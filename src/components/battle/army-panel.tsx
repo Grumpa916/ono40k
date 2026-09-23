@@ -90,6 +90,50 @@ export function WoundStepper({
   );
 }
 
+function UnitStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-0.5 rounded-md bg-muted px-0.5 py-1">
+      <span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">{label}</span>
+      <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function uniqueWeapons(weapons: UnitDef["ranged"]) {
+  const seen = new Set<string>();
+  return weapons.filter((w) => {
+    if (seen.has(w.name)) return false;
+    seen.add(w.name);
+    return true;
+  });
+}
+
+function WeaponStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="flex min-w-0 flex-col items-center rounded bg-muted px-0.5 py-px">
+      <span className="text-[8px] leading-none tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className="font-mono text-[11px] leading-tight font-semibold tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function WeaponLine({ w }: { w: UnitDef["ranged"][number] }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-[11px] leading-tight font-medium">{w.name}</p>
+      <div className="mt-px grid grid-cols-6 gap-0.5">
+        <WeaponStat label="RNG" value={w.range === "Melee" ? "Melee" : `${w.range}"`} />
+        <WeaponStat label="A" value={w.attacks} />
+        <WeaponStat label={w.kind === "melee" ? "WS" : "BS"} value={w.skill > 0 ? `${w.skill}+` : "—"} />
+        <WeaponStat label="S" value={w.strength} />
+        <WeaponStat label="AP" value={w.ap} />
+        <WeaponStat label="D" value={w.damage} />
+      </div>
+      {w.keywords.length > 0 ? <p className="truncate text-[9px] leading-tight text-muted-foreground">{w.keywords.join(" · ")}</p> : null}
+    </div>
+  );
+}
+
 export function ArmyPanel({
   game,
   roster,
@@ -125,8 +169,7 @@ export function ArmyPanel({
         const maxW = unitMaxWounds(def.stats.w);
         const wounds = remainingWounds(st, maxW);
         const applyWounds = (delta: number) => setUnitState(ru.id, patchWounds(ru, def, st, delta));
-        const ranged = [...new Set(def.ranged.map((w) => w.name))].join(" · ");
-        const melee = [...new Set(def.melee.map((w) => w.name))].join(" · ");
+        const weapons = [...uniqueWeapons(def.ranged), ...uniqueWeapons(def.melee)];
         const extras = wargearSummary(def, ru.wargearIds)
           .map((g) => g.name)
           .join(" · ");
@@ -238,10 +281,15 @@ export function ArmyPanel({
                 </div>
               ) : null}
             </div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-              <p className="min-w-0 flex-1 truncate text-left text-xs leading-4 text-muted-foreground">
-                {`M${typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} T${def.stats.t} Sv${def.stats.sv}+ W${def.stats.w}${def.invuln ? ` ${def.invuln}++` : ""} OC${def.stats.oc} · ${ru.points} pts`}
-              </p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <div className="grid min-w-0 flex-1 grid-cols-6 gap-1">
+                <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
+                <UnitStat label="T" value={def.stats.t} />
+                <UnitStat label="SV" value={`${def.stats.sv}+`} />
+                <UnitStat label="W" value={def.stats.w} />
+                <UnitStat label="LD" value={`${def.stats.ld}+`} />
+                <UnitStat label="OC" value={def.stats.oc} />
+              </div>
               <WoundStepper
                 value={wounds}
                 max={maxW}
@@ -251,20 +299,11 @@ export function ArmyPanel({
                 onInc={() => applyWounds(1)}
               />
             </div>
-            {ranged || melee || extras || ru.notes ? (
-                <div className="mt-0.5 w-full min-w-0 text-left">
-                  {ranged ? (
-                    <p className="truncate text-xs leading-4 text-muted-foreground">
-                      <span className="text-[10px] tracking-[0.12em] text-muted-foreground/80 uppercase">R </span>
-                      {ranged}
-                    </p>
-                  ) : null}
-                  {melee ? (
-                    <p className="truncate text-xs leading-4 text-muted-foreground">
-                      <span className="text-[10px] tracking-[0.12em] text-muted-foreground/80 uppercase">M </span>
-                      {melee}
-                    </p>
-                  ) : null}
+            {weapons.length > 0 || extras || ru.notes ? (
+                <div className="mt-1 space-y-1">
+                  {weapons.map((w) => (
+                    <WeaponLine key={`${w.kind}:${w.name}`} w={w} />
+                  ))}
                   {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
                   {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
                 </div>
