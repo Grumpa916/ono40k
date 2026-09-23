@@ -199,6 +199,7 @@ export type GameUndoSlice = {
   activeSide: "me" | "opponent";
   viewing: "me" | "opponent";
   cp: { me: number; opponent: number };
+  cpHistory?: Record<string, { me: number; opponent: number }>;
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
   status: "active" | "complete";
