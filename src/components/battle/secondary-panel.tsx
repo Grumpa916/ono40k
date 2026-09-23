@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 export function SecondaryPanel({ game, locked }: { game: Game; locked: boolean }) {
   const side = game.viewing;
   const score = game.scores[side];
-  const setSecondaryMode = useWarStore((s) => s.setSecondaryMode);
   const toggleFixedSecondary = useWarStore((s) => s.toggleFixedSecondary);
   const toggleTacticalActive = useWarStore((s) => s.toggleTacticalActive);
   const setSecondaryScore = useWarStore((s) => s.setSecondaryScore);
@@ -70,35 +69,14 @@ export function SecondaryPanel({ game, locked }: { game: Game; locked: boolean }
   return (
     <Card className="p-4">
       <p className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
-        Secondary · {side === "me" ? game.myName : game.opponentName}
+        Secondary{mode === "fixed" ? " · Fixed" : mode === "tactical" ? " · Tactical" : ""} · {side === "me" ? game.myName : game.opponentName}
       </p>
       <p className="mt-2 text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
         {mode === "fixed" ? "20 VP / card · 40 cap" : "15 VP / round · 45 cap"} · {pts} VP
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={locked}
-          onClick={() => setSecondaryMode(side, "fixed")}
-          className={cn(
-            "h-10 rounded-lg border text-sm font-medium",
-            mode === "fixed" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted",
-          )}
-        >
-          Fixed
-        </button>
-        <button
-          type="button"
-          disabled={locked}
-          onClick={() => setSecondaryMode(side, "tactical")}
-          className={cn(
-            "h-10 rounded-lg border text-sm font-medium",
-            mode === "tactical" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted",
-          )}
-        >
-          Tactical
-        </button>
-      </div>
+      {mode == null ? (
+        <p className="mt-3 text-xs text-muted-foreground">Secondary type was not set on Setup.</p>
+      ) : null}
       {mode === "fixed" ? (
         <div className="mt-3 space-y-3">
           <p className="text-xs text-muted-foreground">Pick two. They stay active all game.</p>
@@ -164,4 +142,3 @@ export function SecondaryPanel({ game, locked }: { game: Game; locked: boolean }
     </Card>
   );
 }
-
