@@ -157,7 +157,7 @@ export function Scoreboard({
                     size="icon-sm"
                     variant="outline"
                     aria-label="Next phase"
-                    disabled={game.status === "complete" || (game.phase === "end" && game.round === 5 && game.activeSide !== (game.preBattle?.firstTurn === "opponent" ? "opponent" : "me"))}
+                    disabled={game.status === "complete"}
                     onClick={nextPhase}
                   >
                     <span className="rotate-180"><ChevronLeft className="size-4" /></span>
