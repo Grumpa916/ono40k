@@ -437,6 +437,7 @@ type State = {
     scores?: { me: SideScore; opponent: SideScore };
   }) => string | null;
   patchGame: (id: string, patch: Partial<Game>) => void;
+  setMuster: (patch: { attacker?: "me" | "opponent" | null; firstTurn?: "me" | "opponent" | null }) => void;
   setViewing: (side: "me" | "opponent") => void;
   setPhase: (phase: PhaseId) => void;
   endTurn: () => void;
@@ -559,10 +560,16 @@ export const useWarStore = create<State>()(
         const myRoster = snapshotRoster({ ...mine, id: mine.id || uid("tbl") });
         const opponentRoster = snapshotRoster({ ...theirs, id: theirs.id || uid("tbl") });
         const id = uid("game");
-        const first = briefing?.firstTurn ?? "me";
-        const attacker = briefing?.attacker ?? "me";
+        const first = briefing?.firstTurn ?? null;
+        const active = first ?? "me";
         const now = Date.now();
         const mapName = briefing?.mapId ? getMap(briefing.mapId)?.name : undefined;
+        const who = (side: "me" | "opponent" | null) => (side === "me" ? myName || "Grumpa" : side === "opponent" ? opponentName || "Jared" : null);
+        const musterBits = [
+          briefing?.attacker ? `Attacker ${who(briefing.attacker)}` : null,
+          first ? `first ${who(first)}` : null,
+          mapName,
+        ].filter(Boolean);
         const game: Game = {
           id,
           myName: myName || "Grumpa",
@@ -571,8 +578,8 @@ export const useWarStore = create<State>()(
           opponentRoster,
           round: 1,
           phase: "command",
-          activeSide: first,
-          viewing: first,
+          activeSide: active,
+          viewing: active,
           scores: {
             me: scores?.me ?? emptyScore(),
             opponent: scores?.opponent ?? emptyScore(),
@@ -586,10 +593,10 @@ export const useWarStore = create<State>()(
                   id: uid("ev"),
                   at: now,
                   kind: "prebattle",
-                  summary: `Attacker ${attacker === "me" ? myName || "Grumpa" : opponentName || "Jared"} · first ${first === "me" ? myName || "Grumpa" : opponentName || "Jared"}${mapName ? ` · ${mapName}` : ""}`,
+                  summary: musterBits.join(" · ") || "Muster",
                   round: 1,
                   phase: "command",
-                  turn: first,
+                  turn: active,
                   clockMs: 0,
                 },
               ]
@@ -602,7 +609,7 @@ export const useWarStore = create<State>()(
           runningSince: now,
           turnMs: { me: 0, opponent: 0 },
           liveRound: 1,
-          liveSide: first,
+          liveSide: active,
           livePhase: "command",
           preBattle: briefing,
         };
@@ -613,6 +620,33 @@ export const useWarStore = create<State>()(
         set({
           games: get().games.map((g) => (g.id === id ? { ...g, ...patch } : g)),
         }),
+      setMuster: (patch) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw?.preBattle || raw.status === "complete") return;
+        const next: PreBattle = { ...raw.preBattle, ...patch };
+        if ("attacker" in patch) {
+          next.deploysFirst = patch.attacker === "me" ? "opponent" : patch.attacker === "opponent" ? "me" : null;
+        }
+        const who = (side: "me" | "opponent" | null) => (side === "me" ? raw.myName : side === "opponent" ? raw.opponentName : null);
+        const mapName = next.mapId ? getMap(next.mapId)?.name : undefined;
+        const bits = [next.attacker ? `Attacker ${who(next.attacker)}` : null, next.firstTurn ? `first ${who(next.firstTurn)}` : null, mapName].filter(Boolean);
+        const summary = bits.join(" · ") || "Muster";
+        const atStart = (raw.log ?? []).every((e) => e.kind === "prebattle") && raw.round === 1 && raw.phase === "command";
+        const first = next.firstTurn;
+        set({
+          games: get().games.map((g) =>
+            g.id === id
+              ? {
+                  ...g,
+                  preBattle: next,
+                  log: (g.log ?? []).map((e) => (e.kind === "prebattle" ? { ...e, summary, turn: first ?? e.turn } : e)),
+                  ...(atStart && first ? { activeSide: first, viewing: first, liveSide: first } : {}),
+                }
+              : g,
+          ),
+        });
+      },
       setViewing: (side) => {
         const id = get().activeGameId;
         if (!id) return;
