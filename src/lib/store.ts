@@ -447,6 +447,8 @@ type State = {
   setMuster: (patch: { attacker?: "me" | "opponent" | null; firstTurn?: "me" | "opponent" | null }) => void;
   setViewing: (side: "me" | "opponent") => void;
   setPhase: (phase: PhaseId) => void;
+  prevPhase: () => void;
+  nextPhase: () => void;
   endTurn: () => void;
   prevTurn: () => void;
   jumpRound: (round: 1 | 2 | 3 | 4 | 5) => void;
@@ -674,6 +676,44 @@ export const useWarStore = create<State>()(
           const liveS = g.liveSide ?? g.activeSide;
           const atLive = g.round === liveR && g.activeSide === liveS;
           return { ...g, phase, ...(atLive ? { livePhase: phase } : {}) };
+        });
+      },
+      prevPhase: () => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const idx = PHASES.findIndex((p) => p.id === game.phase);
+        if (idx < 0) return;
+        if (idx > 0) {
+          get().setPhase(PHASES[idx - 1].id);
+          return;
+        }
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const rank = turnRank(game.round, game.activeSide, firstTurn);
+        if (rank <= 0) return;
+        const prev = turnFromRank(rank - 1, firstTurn);
+        set({
+          games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), prev.round, prev.side, "end") : g)),
+        });
+      },
+      nextPhase: () => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const idx = PHASES.findIndex((p) => p.id === game.phase);
+        if (idx < 0) return;
+        if (idx < PHASES.length - 1) {
+          get().setPhase(PHASES[idx + 1].id);
+          return;
+        }
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const rank = turnRank(game.round, game.activeSide, firstTurn);
+        if (rank >= 9) return;
+        const next = turnFromRank(rank + 1, firstTurn);
+        set({
+          games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), next.round, next.side, "command") : g)),
         });
       },
       prevTurn: () => {
