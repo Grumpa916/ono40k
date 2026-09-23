@@ -216,9 +216,9 @@ export type SideKey = "me" | "opponent";
 
 export type PreBattle = {
   rollOff: SideKey | null;
-  attacker: SideKey;
-  deploysFirst: SideKey;
-  firstTurn: SideKey;
+  attacker: SideKey | null;
+  deploysFirst: SideKey | null;
+  firstTurn: SideKey | null;
   mapId: string | null;
   terrainNote: string;
   formationNote: string;
