@@ -319,7 +319,7 @@ function browseTurn(g: Game, round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", 
     cp,
     liveRound: liveR,
     liveSide: liveS,
-    livePhase: leavingLive ? g.phase : (g.livePhase ?? g.phase),
+    livePhase: targetIsLive ? phase : (g.livePhase ?? g.phase),
   };
 }
 
