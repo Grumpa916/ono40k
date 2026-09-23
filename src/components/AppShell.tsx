@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Crosshair, List, ScrollText, Swords } from "lucide-react";
+import { BookOpen, Crosshair, Flag, List, ScrollText, Swords } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { AccountSync, retrySave, useSaveDetail, useSavePhase } from "@/components/account-sync";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Lists", icon: List, match: (p: string) => p === "/" || p.startsWith("/lists") },
+  { to: "/setup", label: "Setup", icon: Flag, match: (p: string) => p.startsWith("/setup") },
   { to: "/battle", label: "Ledger", icon: Swords, match: (p: string) => p.startsWith("/battle") },
   { to: "/analytics", label: "Annals", icon: ScrollText, match: (p: string) => p.startsWith("/analytics") },
   { to: "/codex", label: "Codex", icon: BookOpen, match: (p: string) => p.startsWith("/codex") },
@@ -63,7 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <SaveBanner />
       <main className="mx-auto w-full min-w-0 max-w-6xl px-4 pt-5 pb-24 md:pb-10">{children}</main>
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {NAV.map((item) => {
             const active = item.match(pathname);
             const Icon = item.icon;
@@ -72,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium tracking-wide uppercase",
+                  "relative flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-medium tracking-wide uppercase",
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
