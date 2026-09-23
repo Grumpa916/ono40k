@@ -15,6 +15,7 @@ import { Route as BattleRouteImport } from './routes/battle'
 import { Route as CodexRouteImport } from './routes/codex'
 import { Route as LabRouteImport } from './routes/lab'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ListsIndexRouteImport } from './routes/lists.index'
 import { Route as ListsListIdRouteImport } from './routes/lists.$listId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -49,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ListsIndexRoute = ListsIndexRouteImport.update({
   id: '/lists/',
   path: '/lists/',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/codex': typeof CodexRoute
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/lists/$listId': typeof ListsListIdRoute
   '/lists/': typeof ListsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/codex': typeof CodexRoute
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/lists/$listId': typeof ListsListIdRoute
   '/lists': typeof ListsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/codex': typeof CodexRoute
   '/lab': typeof LabRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/lists/$listId': typeof ListsListIdRoute
   '/lists/': typeof ListsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/codex'
     | '/lab'
     | '/login'
+    | '/setup'
     | '/lists/$listId'
     | '/lists/'
     | '/api/auth/$'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/codex'
     | '/lab'
     | '/login'
+    | '/setup'
     | '/lists/$listId'
     | '/lists'
     | '/api/auth/$'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/codex'
     | '/lab'
     | '/login'
+    | '/setup'
     | '/lists/$listId'
     | '/lists/'
     | '/api/auth/$'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   CodexRoute: typeof CodexRoute
   LabRoute: typeof LabRoute
   LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRoute
   ListsListIdRoute: typeof ListsListIdRoute
   ListsIndexRoute: typeof ListsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lists/': {
       id: '/lists/'
       path: '/lists'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   CodexRoute: CodexRoute,
   LabRoute: LabRoute,
   LoginRoute: LoginRoute,
+  SetupRoute: SetupRoute,
   ListsListIdRoute: ListsListIdRoute,
   ListsIndexRoute: ListsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
