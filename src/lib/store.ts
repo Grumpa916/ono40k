@@ -727,16 +727,19 @@ export const useWarStore = create<State>()(
           return;
         }
         if (game.status === "complete") return;
-        if (game.activeSide === "me") {
-          applyTracked(get, set, "turn", `Turn ended · ${game.opponentName}'s turn`, (g) => ({
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const otherSide = firstTurn === "me" ? "opponent" : "me";
+        const isFirstTurnOfRound = game.activeSide === firstTurn;
+        if (isFirstTurnOfRound) {
+          applyTracked(get, set, "turn", `Turn ended · ${sideName(game, otherSide)}'s turn`, (g) => ({
             ...g,
-            ...rollTurnClock(g, "opponent"),
-            activeSide: "opponent",
+            ...rollTurnClock(g, otherSide),
+            activeSide: otherSide,
             phase: "command",
-            viewing: "opponent",
-            cp: { ...g.cp, opponent: g.cp.opponent + 1 },
+            viewing: otherSide,
+            cp: { ...g.cp, [otherSide]: g.cp[otherSide] + 1 },
             liveRound: g.round,
-            liveSide: "opponent",
+            liveSide: otherSide,
             livePhase: "command",
           }));
           return;
@@ -747,21 +750,21 @@ export const useWarStore = create<State>()(
           get,
           set,
           "turn",
-          done ? `Battle ended · Round ${game.round}` : `Turn ended · Round ${nextRound}, ${game.myName}`,
+          done ? `Battle ended · Round ${game.round}` : `Turn ended · Round ${nextRound}, ${firstTurn === "me" ? game.myName : game.opponentName}`,
           (g) => {
-            const clock = done ? stopAllClocks(g) : rollTurnClock(g, "me");
+            const clock = done ? stopAllClocks(g) : rollTurnClock(g, firstTurn);
             return {
               ...g,
               ...clock,
               round: nextRound,
               phase: "command",
-              activeSide: "me",
-              viewing: "me",
-              cp: { ...g.cp, me: g.cp.me + 1 },
+              activeSide: firstTurn,
+              viewing: firstTurn,
+              cp: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
               status: done ? "complete" : "active",
               finishedAt: done ? Date.now() : g.finishedAt,
               liveRound: nextRound,
-              liveSide: "me",
+              liveSide: firstTurn,
               livePhase: "command",
             };
           },
