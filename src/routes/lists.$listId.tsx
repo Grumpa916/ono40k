@@ -450,7 +450,7 @@ function ListBuilder() {
 
       {errors.length === 0 ? (
         <Button asChild className="w-full sm:w-auto">
-          <Link to="/battle" search={{ setup: list.id }}>
+          <Link to="/setup" search={{ list: list.id }}>
             Start battle with this list
           </Link>
         </Button>
