@@ -129,9 +129,9 @@ export function AccountSync() {
   const supabaseConfig = useSupabaseConfig();
   const supabaseSession = useSupabaseSession();
   const usingSupabase = Boolean(supabaseConfig);
-  const pending = usingSupabase ? supabaseSession.pending : isPending;
-  const userId = usingSupabase ? supabaseSession.userId : (user?.id ?? null);
-
+const pagesBuild = import.meta.env.VITE_PAGES === "1";
+const pending = usingSupabase ? supabaseSession.pending : pagesBuild ? false : isPending;
+const userId = usingSupabase ? supabaseSession.userId : pagesBuild ? null : (user?.id ?? null);
   useEffect(() => {
     if (pending) return;
     ensureSubscribed();
