@@ -1,10 +1,9 @@
 import { Check, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
+import { GameSetup } from "@/components/battle/game-setup";
 import { CodexDraft } from "@/components/battle/codex-draft";
 import { armyMeta, armyTitle, resolveArmy, sourceKey, type ArmySource, defaultCodex } from "@/components/battle/army-source";
-import { PreBattleForm } from "@/components/PreBattle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,6 @@ import { cn } from "@/lib/utils";
 
 export function BattleSetup({ presetListId }: { presetListId?: string }) {
   const lists = useWarStore((s) => s.lists);
-  const startGame = useWarStore((s) => s.startGame);
-  const navigate = useNavigate();
   const [step, setStep] = useState<"pool" | "briefing">("pool");
   const [myName, setMyName] = useState("Grumpa");
   const [oppName, setOppName] = useState("Jared");
@@ -63,20 +60,15 @@ export function BattleSetup({ presetListId }: { presetListId?: string }) {
     setPool((prev) => prev.filter((s) => sourceKey(s) !== key));
   };
 
-  if (step === "briefing" && myRoster && oppRoster) {
-    return (
-      <PreBattleForm
-        myName={myName}
-        oppName={oppName}
-        mine={myRoster}
-        theirs={oppRoster}
-        onBack={() => setStep("pool")}
-        onStart={(briefing, scores) => {
-          const id = startGame({ mine: myRoster, theirs: oppRoster, myName, opponentName: oppName, briefing, scores });
-          if (id) void navigate({ to: "/battle" });
-        }}
-      />
-    );
+  const presetSource: ArmySource | null =
+    presetListId && lists.some((l) => l.id === presetListId) ? { kind: "list", listId: presetListId } : null;
+
+  if (presetSource) {
+    return <GameSetup initialMine={presetSource} initialTheirs={null} />;
+  }
+
+  if (step === "briefing" && you && them) {
+    return <GameSetup initialMine={you} initialTheirs={them} names={{ me: myName, opponent: oppName }} onBack={() => setStep("pool")} />;
   }
 
   return (
@@ -186,7 +178,7 @@ export function BattleSetup({ presetListId }: { presetListId?: string }) {
           Swap sides
         </Button>
         <Button className="w-full" disabled={pool.length < 2 || !myRoster || !oppRoster} onClick={() => setStep("briefing")}>
-          Pre-battle
+          Battle setup
         </Button>
       </div>
       {pool.length < 2 ? <p className="text-center text-sm text-muted-foreground">Add at least two armies to continue.</p> : null}
