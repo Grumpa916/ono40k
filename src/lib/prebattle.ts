@@ -4,9 +4,9 @@ import type { PreBattle, Roster, RosterUnit, SideKey, UnitDef } from "@/data/typ
 export function defaultPreBattle(): PreBattle {
   return {
     rollOff: null,
-    attacker: "me",
-    deploysFirst: "opponent",
-    firstTurn: "me",
+    attacker: null,
+    deploysFirst: null,
+    firstTurn: null,
     mapId: null,
     terrainNote: "",
     formationNote: "",
