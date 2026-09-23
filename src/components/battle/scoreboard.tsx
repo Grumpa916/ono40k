@@ -1,7 +1,7 @@
 import { ChevronLeft, Minus, Plus } from "lucide-react";
 import { BattleClock, SideClock } from "@/components/battle/clock";
 import { Button } from "@/components/ui/button";
-import type { Game } from "@/data/types";
+import { PHASES, type Game } from "@/data/types";
 import { useWarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
