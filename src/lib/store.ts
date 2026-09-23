@@ -286,15 +286,18 @@ function hydrateGame(g: Game): Game {
   };
 }
 
-function turnRank(round: number, side: "me" | "opponent"): number {
-  return (round - 1) * 2 + (side === "opponent" ? 1 : 0);
+function turnRank(round: number, side: "me" | "opponent", firstTurn: "me" | "opponent" = "me"): number {
+  const firstIsOpponent = firstTurn === "opponent";
+  const sideOffset = side === firstTurn ? 0 : 1;
+  return (round - 1) * 2 + sideOffset;
 }
 
-function turnFromRank(rank: number): { round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" } {
+function turnFromRank(rank: number, firstTurn: "me" | "opponent" = "me"): { round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" } {
   const clamped = Math.min(9, Math.max(0, rank));
+  const firstIsOpponent = firstTurn === "opponent";
   return {
     round: (Math.floor(clamped / 2) + 1) as 1 | 2 | 3 | 4 | 5,
-    side: clamped % 2 === 1 ? "opponent" : "me",
+    side: clamped % 2 === 0 ? firstTurn : firstIsOpponent ? "me" : "opponent",
   };
 }
 
@@ -679,9 +682,10 @@ export const useWarStore = create<State>()(
         const raw = get().games.find((g) => g.id === id);
         if (!id || !raw) return;
         const game = hydrateGame(raw);
-        const rank = turnRank(game.round, game.activeSide);
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const rank = turnRank(game.round, game.activeSide, firstTurn);
         if (rank <= 0) return;
-        const next = turnFromRank(rank - 1);
+        const next = turnFromRank(rank - 1, firstTurn);
         set({
           games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), next.round, next.side, "command") : g)),
         });
@@ -694,7 +698,8 @@ export const useWarStore = create<State>()(
         const liveR = game.liveRound ?? game.round;
         const liveS = game.liveSide ?? game.activeSide;
         if (round > liveR) return;
-        const side = round === liveR ? liveS : "me";
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const side = round === liveR ? liveS : firstTurn;
         const phase = round === liveR && side === liveS ? (game.livePhase ?? "command") : "command";
         set({
           games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), round, side, phase) : g)),
@@ -707,10 +712,11 @@ export const useWarStore = create<State>()(
         const game = hydrateGame(raw);
         const liveR = game.liveRound ?? game.round;
         const liveS = game.liveSide ?? game.activeSide;
-        const cur = turnRank(game.round, game.activeSide);
-        const live = turnRank(liveR, liveS);
+        const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const cur = turnRank(game.round, game.activeSide, firstTurn);
+        const live = turnRank(liveR, liveS, firstTurn);
         if (cur < live) {
-          const next = turnFromRank(cur + 1);
+          const next = turnFromRank(cur + 1, firstTurn);
           const backToLive = cur + 1 === live;
           set({
             games: get().games.map((g) =>
@@ -727,7 +733,6 @@ export const useWarStore = create<State>()(
           return;
         }
         if (game.status === "complete") return;
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
         const otherSide = firstTurn === "me" ? "opponent" : "me";
         const isFirstTurnOfRound = game.activeSide === firstTurn;
         if (isFirstTurnOfRound) {
