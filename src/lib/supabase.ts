@@ -1,6 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const STORAGE_KEY = "ono40k-supabase";
+const SKIP_BUILTIN_KEY = "ono40k-supabase-skip-builtin";
+
+/** Public project. The publishable key is safe in the client; RLS still scopes each account. */
+const BUILTIN_URL = "https://obeesadkiuufhkaieacj.supabase.co";
+const BUILTIN_KEY = "sb_publishable_iHv3b-VVSmXnu-hVQWn3TQ_DG9QqUfg";
 
 export type SupabaseConfig = { url: string; anonKey: string };
 
@@ -40,11 +45,16 @@ function clean(url: string, anonKey: string): SupabaseConfig | null {
 let cachedRaw = "\0";
 let cached: SupabaseConfig | null = null;
 
+function skipBuiltin() {
+  return typeof localStorage !== "undefined" && localStorage.getItem(SKIP_BUILTIN_KEY) === "1";
+}
+
 export function readSupabaseConfig(): SupabaseConfig | null {
   const envUrl = String(import.meta.env.VITE_SUPABASE_URL ?? "");
   const envKey = String(import.meta.env.VITE_SUPABASE_ANON_KEY ?? "");
   const stored = typeof localStorage === "undefined" ? "" : (localStorage.getItem(STORAGE_KEY) ?? "");
-  const raw = `${envUrl}\n${envKey}\n${stored}`;
+  const skip = skipBuiltin() ? "1" : "0";
+  const raw = `${envUrl}\n${envKey}\n${stored}\n${skip}`;
   if (raw === cachedRaw) return cached;
   cachedRaw = raw;
   const fromEnv = clean(envUrl, envKey);
@@ -54,10 +64,15 @@ export function readSupabaseConfig(): SupabaseConfig | null {
   }
   try {
     const parsed = stored ? (JSON.parse(stored) as Partial<SupabaseConfig>) : null;
-    cached = parsed ? clean(parsed.url ?? "", parsed.anonKey ?? "") : null;
+    const fromStored = parsed ? clean(parsed.url ?? "", parsed.anonKey ?? "") : null;
+    if (fromStored) {
+      cached = fromStored;
+      return cached;
+    }
   } catch {
     cached = null;
   }
+  cached = skip === "1" ? null : clean(BUILTIN_URL, BUILTIN_KEY);
   return cached;
 }
 
@@ -97,11 +112,19 @@ export function saveSupabaseConfig(url: string, anonKey: string) {
   const cfg = clean(url, anonKey);
   if (!cfg) throw new Error("Use the https project URL and the anon key.");
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  localStorage.removeItem(SKIP_BUILTIN_KEY);
   emitConfig();
 }
 
 export function clearSupabaseConfig() {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.setItem(SKIP_BUILTIN_KEY, "1");
+  emitConfig();
+}
+
+export function useBuiltinSupabase() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SKIP_BUILTIN_KEY);
   emitConfig();
 }
 
