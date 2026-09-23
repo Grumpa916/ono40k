@@ -287,7 +287,6 @@ function hydrateGame(g: Game): Game {
 }
 
 function turnRank(round: number, side: "me" | "opponent", firstTurn: "me" | "opponent" = "me"): number {
-  const firstIsOpponent = firstTurn === "opponent";
   const sideOffset = side === firstTurn ? 0 : 1;
   return (round - 1) * 2 + sideOffset;
 }
