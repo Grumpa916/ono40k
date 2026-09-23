@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BookOpen, Copy, Import, Plus, Star, Swords, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FACTIONS, getFaction } from "@/data/codex";
 import { BATTLE_SIZES, type BattleSize, type Roster } from "@/data/types";
@@ -33,6 +33,8 @@ function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importCode, setImportCode] = useState("");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const shown = useMemo(() => {
     return lists.slice().sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt);
@@ -45,7 +47,7 @@ function Home() {
 
   return (
     <div className="min-w-0 space-y-8">
-      {supabaseReady ? null : (
+      {mounted && !supabaseReady ? (
         <Link
           to="/login"
           className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted px-4 py-3"
@@ -55,7 +57,7 @@ function Home() {
             <p className="font-display text-lg">Connect Supabase</p>
           </div>
         </Link>
-      )}
+      ) : null}
       {activeGameId ? (
         <Link
           to="/battle"
