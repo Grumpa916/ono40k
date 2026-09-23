@@ -57,7 +57,7 @@ export function WoundStepper({
   const empty = value <= 0;
   const full = value >= max;
   return (
-    <div className="ml-auto flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+    <div className="flex w-max shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
       <Button
         size="icon-sm"
         className="size-7"
@@ -90,46 +90,11 @@ export function WoundStepper({
   );
 }
 
-function UnitStat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex min-w-0 flex-col items-center gap-0.5 rounded-md bg-muted px-0.5 py-1">
-      <span className="text-[9px] font-medium tracking-[0.12em] text-muted-foreground uppercase">{label}</span>
-      <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
-    </div>
-  );
-}
-
-function uniqueWeapons(weapons: UnitDef["ranged"]) {
-  const seen = new Set<string>();
-  return weapons.filter((w) => {
-    if (seen.has(w.name)) return false;
-    seen.add(w.name);
-    return true;
-  });
-}
-
-function WeaponStat({ label, value }: { label: string; value: string | number }) {
+function UnitStat({ label, value, alert }: { label: string; value: string | number; alert?: boolean }) {
   return (
     <div className="flex min-w-0 flex-col items-center rounded bg-muted px-0.5 py-px">
       <span className="text-[8px] leading-none tracking-wide text-muted-foreground uppercase">{label}</span>
-      <span className="font-mono text-[11px] leading-tight font-semibold tabular-nums">{value}</span>
-    </div>
-  );
-}
-
-function WeaponLine({ w }: { w: UnitDef["ranged"][number] }) {
-  return (
-    <div className="min-w-0">
-      <p className="truncate text-[11px] leading-tight font-medium">{w.name}</p>
-      <div className="mt-px grid grid-cols-6 gap-0.5">
-        <WeaponStat label="RNG" value={w.range === "Melee" ? "Melee" : `${w.range}"`} />
-        <WeaponStat label="A" value={w.attacks} />
-        <WeaponStat label={w.kind === "melee" ? "WS" : "BS"} value={w.skill > 0 ? `${w.skill}+` : "—"} />
-        <WeaponStat label="S" value={w.strength} />
-        <WeaponStat label="AP" value={w.ap} />
-        <WeaponStat label="D" value={w.damage} />
-      </div>
-      {w.keywords.length > 0 ? <p className="truncate text-[9px] leading-tight text-muted-foreground">{w.keywords.join(" · ")}</p> : null}
+      <span className={cn("font-mono text-[11px] leading-tight font-semibold tabular-nums", alert && "text-blood")}>{value}</span>
     </div>
   );
 }
@@ -169,7 +134,6 @@ export function ArmyPanel({
         const maxW = unitMaxWounds(def.stats.w);
         const wounds = remainingWounds(st, maxW);
         const applyWounds = (delta: number) => setUnitState(ru.id, patchWounds(ru, def, st, delta));
-        const weapons = [...uniqueWeapons(def.ranged), ...uniqueWeapons(def.melee)];
         const extras = wargearSummary(def, ru.wargearIds)
           .map((g) => g.name)
           .join(" · ");
@@ -204,110 +168,109 @@ export function ArmyPanel({
               !st.destroyed && !penalised && buffed && "border-ok/50 bg-ok/10",
             )}
           >
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="min-w-0 truncate text-left text-sm font-medium leading-5">
-                {def.name}
-                {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
-                {ru.warlord ? <span className="ml-1.5 text-[10px] tracking-widest uppercase text-steel">WL</span> : null}
-              </span>
-              <Button
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                variant={st.battleShocked ? "blood" : "outline"}
-                disabled={locked}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setUnitState(ru.id, { battleShocked: !st.battleShocked });
-                }}
-              >
-                BS
-              </Button>
-              <Button
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                variant={st.destroyed ? "secondary" : "outline"}
-                disabled={locked}
-                aria-label="Destroyed"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setUnitState(
-                    ru.id,
-                    st.destroyed
-                      ? { destroyed: false, modelsRemaining: ru.models, woundsOnCurrent: maxW }
-                      : { destroyed: true, modelsRemaining: 0, woundsOnCurrent: 0 },
-                  );
-                }}
-              >
-                <Skull className="size-3.5" />
-              </Button>
-              {ru.models > 1 ? (
-                <div className="ml-auto flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
-                  <Button
-                    size="icon-sm"
-                    className="size-7"
-                    variant="outline"
-                    aria-label="Remove model"
-                    disabled={locked || st.destroyed || st.modelsRemaining <= 0}
-                    onClick={() => {
-                      const next = Math.max(0, st.modelsRemaining - 1);
-                      setUnitState(ru.id, {
-                        modelsRemaining: next,
-                        destroyed: next === 0,
-                        woundsOnCurrent: next === 0 ? 0 : maxW,
-                      });
-                    }}
-                  >
-                    <Minus className="size-3.5" />
-                  </Button>
-                  <span className="w-8 text-center font-mono text-xs tabular-nums">
-                    {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
-                  </span>
-                  <Button
-                    size="icon-sm"
-                    className="size-7"
-                    variant="outline"
-                    aria-label="Add model"
-                    disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
-                    onClick={() =>
-                      setUnitState(ru.id, {
-                        modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
-                        destroyed: false,
-                        woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
-                      })
-                    }
-                  >
-                    <Plus className="size-3.5" />
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <div className="grid min-w-0 flex-1 grid-cols-6 gap-1">
-                <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
-                <UnitStat label="T" value={def.stats.t} />
-                <UnitStat label="SV" value={`${def.stats.sv}+`} />
-                <UnitStat label="W" value={def.stats.w} />
-                <UnitStat label="LD" value={`${def.stats.ld}+`} />
-                <UnitStat label="OC" value={def.stats.oc} />
+            <div className="grid grid-cols-12 items-center">
+              <div className="col-span-4 flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 truncate text-left text-sm font-medium leading-5">
+                  {def.name}
+                  {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
+                  {ru.warlord ? <span className="ml-1.5 text-[10px] tracking-widest uppercase text-steel">WL</span> : null}
+                </span>
+                <Button
+                  size="sm"
+                  className="h-7 shrink-0 px-2 text-[11px]"
+                  variant={st.battleShocked ? "blood" : "outline"}
+                  disabled={locked}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setUnitState(ru.id, { battleShocked: !st.battleShocked });
+                  }}
+                >
+                  BS
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 shrink-0 px-2 text-[11px]"
+                  variant={st.destroyed ? "secondary" : "outline"}
+                  disabled={locked}
+                  aria-label="Destroyed"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setUnitState(
+                      ru.id,
+                      st.destroyed
+                        ? { destroyed: false, modelsRemaining: ru.models, woundsOnCurrent: maxW }
+                        : { destroyed: true, modelsRemaining: 0, woundsOnCurrent: 0 },
+                    );
+                  }}
+                >
+                  <Skull className="size-3.5" />
+                </Button>
               </div>
-              <WoundStepper
-                value={wounds}
-                max={maxW}
-                locked={locked}
-                alert={penalised}
-                onDec={() => applyWounds(-1)}
-                onInc={() => applyWounds(1)}
-              />
+              <div className="col-span-8 col-start-5 flex min-w-0 items-center gap-1.5">
+                <WoundStepper
+                  value={wounds}
+                  max={maxW}
+                  locked={locked}
+                  alert={penalised}
+                  onDec={() => applyWounds(-1)}
+                  onInc={() => applyWounds(1)}
+                />
+                {ru.models > 1 ? (
+                  <div className="ml-auto flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+                    <Button
+                      size="icon-sm"
+                      className="size-7"
+                      variant="outline"
+                      aria-label="Remove model"
+                      disabled={locked || st.destroyed || st.modelsRemaining <= 0}
+                      onClick={() => {
+                        const next = Math.max(0, st.modelsRemaining - 1);
+                        setUnitState(ru.id, {
+                          modelsRemaining: next,
+                          destroyed: next === 0,
+                          woundsOnCurrent: next === 0 ? 0 : maxW,
+                        });
+                      }}
+                    >
+                      <Minus className="size-3.5" />
+                    </Button>
+                    <span className="w-8 text-center font-mono text-xs tabular-nums">
+                      {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
+                    </span>
+                    <Button
+                      size="icon-sm"
+                      className="size-7"
+                      variant="outline"
+                      aria-label="Add model"
+                      disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
+                      onClick={() =>
+                        setUnitState(ru.id, {
+                          modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
+                          destroyed: false,
+                          woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
+                        })
+                      }
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
-            {weapons.length > 0 || extras || ru.notes ? (
-                <div className="mt-1 space-y-1">
-                  {weapons.map((w) => (
-                    <WeaponLine key={`${w.kind}:${w.name}`} w={w} />
-                  ))}
-                  {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
-                  {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
-                </div>
-              ) : null}
+            <div className="mt-1 grid w-1/2 min-w-0 grid-cols-6 gap-0.5">
+              <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
+              <UnitStat label="T" value={def.stats.t} />
+              <UnitStat label="SV" value={`${def.stats.sv}+`} />
+              <UnitStat label="W" value={wounds} alert={wounds < maxW} />
+              <UnitStat label="LD" value={`${def.stats.ld}+`} />
+              <UnitStat label="OC" value={def.stats.oc} />
+            </div>
+            {extras || ru.notes ? (
+              <div className="mt-1 space-y-1">
+                {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
+                {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
+              </div>
+            ) : null}
             {effects.length > 0 ? (
               <p className={cn("mt-1 text-xs leading-4", penalised ? "text-blood" : "text-ok")}>
                 {effects.map((e) => `${e.name}: ${e.text}`).join(" · ")}
@@ -319,4 +282,3 @@ export function ArmyPanel({
     </ul>
   );
 }
-

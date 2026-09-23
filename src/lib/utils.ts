@@ -13,7 +13,9 @@ export function roleLabel(role: string) {
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-/** A, B, C… for duplicate datasheets, assigned in roster order. Empty if that sheet appears once. */
+/** α, β, γ… for duplicate datasheets, assigned in roster order. Empty if that sheet appears once. */
+const GREEK = "αβγδεζηθικλμνξοπρστυφχψω";
+
 export function unitCopyMarks(units: Array<{ id: string; unitId: string }>): Record<string, string> {
   const totals = new Map<string, number>();
   for (const u of units) totals.set(u.unitId, (totals.get(u.unitId) ?? 0) + 1);
@@ -23,7 +25,7 @@ export function unitCopyMarks(units: Array<{ id: string; unitId: string }>): Rec
     if ((totals.get(u.unitId) ?? 0) < 2) continue;
     const n = seen.get(u.unitId) ?? 0;
     seen.set(u.unitId, n + 1);
-    marks[u.id] = n < 26 ? String.fromCharCode(65 + n) : String(n + 1);
+    marks[u.id] = n < GREEK.length ? GREEK[n]! : String(n + 1);
   }
   return marks;
 }
