@@ -307,11 +307,9 @@ function turnKey(round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", firstTurn: "
 function browseTurn(g: Game, round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", phase: PhaseId): Game {
   const liveR = g.liveRound ?? g.round;
   const liveS = g.liveSide ?? g.activeSide;
-  const leavingLive = g.round === liveR && g.activeSide === liveS && (round !== liveR || side !== liveS);
-  const firstTurn = g.preBattle?.firstTurn ?? "me";
-  const cp = leavingLive
-    ? g.cp
-    : g.cpHistory?.[turnKey(round, side, firstTurn)] ?? g.cp;
+  const targetIsLive = round === liveR && side === liveS;
+  const firstTurn = g.preBattle?.firstTurn === "opponent" ? "opponent" : "me";
+  const cp = targetIsLive ? g.cp : g.cpHistory?.[turnKey(round, side, firstTurn)] ?? g.cp;
   return {
     ...g,
     round,
