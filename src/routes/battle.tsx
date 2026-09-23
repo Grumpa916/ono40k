@@ -1,8 +1,7 @@
 import { ChevronLeft, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ArmyPanel } from "@/components/battle/army-panel";
-import { BattleSetup } from "@/components/battle/setup";
 import { liveRoster } from "@/components/battle/clock";
 import { Scoreboard } from "@/components/battle/scoreboard";
 import { ScorePanel } from "@/components/battle/score-panel";
@@ -35,13 +34,22 @@ export const Route = createFileRoute("/battle")({
 function BattlePage() {
   const game = useActiveGame();
   const { setup } = Route.useSearch();
-  const leaveGame = useWarStore((s) => s.leaveGame);
-  const openingNew = Boolean(setup) && (!game || game.status === "complete");
-  useEffect(() => {
-    if (setup && game?.status === "complete") leaveGame();
-  }, [setup, game?.status, leaveGame]);
-  if (!game || openingNew) return <BattleSetup presetListId={setup} />;
+  if (setup) return <Navigate to="/setup" search={{ list: setup }} replace />;
+  if (!game) return <LedgerEmpty />;
   return <BattleTable game={game} />;
+}
+
+function LedgerEmpty() {
+  return (
+    <div className="mx-auto max-w-md space-y-3 py-16 text-center">
+      <p className="text-[11px] font-medium tracking-[0.22em] text-muted-foreground uppercase">War Journal</p>
+      <h1 className="font-display text-3xl font-semibold">No open ledger</h1>
+      <p className="text-sm text-muted-foreground">Choose the rosters and mission on Setup, then start the battle.</p>
+      <Button asChild>
+        <Link to="/setup">Open setup</Link>
+      </Button>
+    </div>
+  );
 }
 
 function BattleTable({ game }: { game: Game }) {
@@ -149,10 +157,14 @@ function BattleTable({ game }: { game: Game }) {
                 <BattleMap
                   layout={getMap(game.preBattle.mapId)!}
                   className="mt-1"
-                  sides={{
-                    attacker: game.preBattle.attacker === "me" ? game.myName : game.opponentName,
-                    defender: game.preBattle.attacker === "me" ? game.opponentName : game.myName,
-                  }}
+                  sides={
+                    game.preBattle.attacker
+                      ? {
+                          attacker: game.preBattle.attacker === "me" ? game.myName : game.opponentName,
+                          defender: game.preBattle.attacker === "me" ? game.opponentName : game.myName,
+                        }
+                      : undefined
+                  }
                 />
               ) : null}
               {game.preBattle.formationNote ? <p className="text-sm text-muted-foreground">{game.preBattle.formationNote}</p> : null}
