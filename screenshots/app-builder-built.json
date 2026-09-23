@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 805,
+      "bodyTextHash": "49b8ae1c66f7222fefa5c43ecc29c5c52008431fad4271d4f376ccadea46df73",
+      "bodyTextPrefix": "Ono40k 11TH EDITION Lists Ledger Annals Codex Lab MUSTER Army Li",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 792,
+      "bodyTextHash": "ff5b0830ba3bcb1e6cd2e11ac03e8012567ebdfa84102f3b926f18dde1ff24ce",
+      "bodyTextPrefix": "Ono40k MUSTER Army Lists3 Build as many 11th edition strike forc",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

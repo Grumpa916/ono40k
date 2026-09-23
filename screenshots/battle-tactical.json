@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/battle",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 280,
+      "bodyTextHash": "faedf91237541e40265eb54a5a0118a5c21eb96cf10bfa14a6a4d07e474a3b3e",
+      "bodyTextPrefix": "Ono40k 11TH EDITION Lists Ledger Codex Lab WAR JOURNAL Open the ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/battle-tactical.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 267,
+      "bodyTextHash": "5420319429003829efd922e12c4346120da724b11663b2eebb4fba0b1f037ee3",
+      "bodyTextPrefix": "Ono40k WAR JOURNAL Open the ledger Pick both sides. You can swit",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/battle-tactical-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/battle-tactical.json"
+}

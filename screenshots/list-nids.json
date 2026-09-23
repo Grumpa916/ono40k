@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/lists/seed-nids-vanguard",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 2972,
+      "bodyTextHash": "7432be0d5b03820e7ad9ebae74452f9a14c04185b587744a9763d9664279af17",
+      "bodyTextPrefix": "Ono40k 11TH EDITION Lists Ledger Codex Lab LISTS Tyranids Save C",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/list-nids.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Ono40k",
+      "hasCanvas": false,
+      "bodyTextLen": 2820,
+      "bodyTextHash": "9818d5a8daaa62a4965090fb8803e405178dd538a30697eec4f68e3aa0b91448",
+      "bodyTextPrefix": "Ono40k LISTS Tyranids Save Copy code View ledger BATTLE SIZE Str",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/list-nids-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/list-nids.json"
+}

@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-background: #0b0c0e;
+  --color-foreground: #e6e1d4;
+  --color-card: #12141a;
+  --color-card-foreground: #e6e1d4;
+  --color-popover: #161820;
+  --color-popover-foreground: #e6e1d4;
+  --color-primary: #d7dbe3;
+  --color-primary-foreground: #0b0c0e;
+  --color-secondary: #1c1f28;
+  --color-secondary-foreground: #e6e1d4;
+  --color-muted: #1a1d24;
+  --color-muted-foreground: #8b8a82;
+  --color-accent: #22262f;
+  --color-accent-foreground: #e6e1d4;
+  --color-destructive: #b42318;
+  --color-border: #2a2d36;
+  --color-input: #2a2d36;
+  --color-ring: #d7dbe3;
+  --color-blood: #c45c4a;
+  --color-ok: #7d9b76;
+  --color-steel: #c5c9d1;
+  --radius: 0.75rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1.25rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+  }
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body,
+  #app {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    min-height: 100%;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.tactical-grid {
+  background-color: var(--color-background);
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--color-foreground) 4.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--color-foreground) 4.5%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@media (pointer: coarse) {
+  .tactical-grid {
+    background-image: none;
+  }
+}
+
+.army-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 92px;
+}
+
+.hairline {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-foreground) 10%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/lab",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "War Ledger",
+      "hasCanvas": false,
+      "bodyTextLen": 1593,
+      "bodyTextHash": "e8a15755d9127054c7a0f43ba2df9ae8a26061d19f8e15b26efef57199895c73",
+      "bodyTextPrefix": "WAR LEDGER 11TH EDITION Lists Ledger Codex Lab COMBAT CALCULATOR",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/lab-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "War Ledger",
+      "hasCanvas": false,
+      "bodyTextLen": 1580,
+      "bodyTextHash": "ef2bb2b10b480b93ce9805477a205f90713b4761954c89335a4137883a2b1665",
+      "bodyTextPrefix": "WAR LEDGER COMBAT CALCULATOR 11TH EDITION · BETA Select an attac",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/lab-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/lab-preview.json"
+}
