@@ -16,7 +16,7 @@ export function Scoreboard({
   myTotal: number;
   oppTotal: number;
 }) {
-  const patchGame = useWarStore((s) => s.patchGame);
+  const setPainted = useWarStore((s) => s.setPainted);
   const adjustCp = useWarStore((s) => s.adjustCp);
   const setViewing = useWarStore((s) => s.setViewing);
   const endTurn = useWarStore((s) => s.endTurn);
@@ -58,11 +58,7 @@ export function Scoreboard({
                 <button
                   type="button"
                   disabled={locked}
-                  onClick={() =>
-                    patchGame(game.id, {
-                      scores: { ...game.scores, me: { ...game.scores.me, painted: game.scores.me.painted > 0 ? 0 : 10 } },
-                    })
-                  }
+                  onClick={() => setPainted("me", game.scores.me.painted <= 0)}
                   className={cn(
                     "mt-1.5 text-[11px] tracking-wide uppercase",
                     game.scores.me.painted > 0 ? "text-ok" : "text-muted-foreground",
@@ -101,11 +97,7 @@ export function Scoreboard({
                 <button
                   type="button"
                   disabled={locked}
-                  onClick={() =>
-                    patchGame(game.id, {
-                      scores: { ...game.scores, opponent: { ...game.scores.opponent, painted: game.scores.opponent.painted > 0 ? 0 : 10 } },
-                    })
-                  }
+                  onClick={() => setPainted("opponent", game.scores.opponent.painted <= 0)}
                   className={cn(
                     "mt-1.5 text-[11px] tracking-wide uppercase",
                     game.scores.opponent.painted > 0 ? "text-ok" : "text-muted-foreground",

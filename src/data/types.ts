@@ -157,7 +157,7 @@ export type UnitBattleState = {
   destroyed: boolean;
 };
 
-export type LedgerEventKind = "phase" | "turn" | "destroyed" | "battleShock" | "stratagem" | "prebattle";
+export type LedgerEventKind = "phase" | "turn" | "destroyed" | "battleShock" | "stratagem" | "prebattle" | "action" | "unit" | "score";
 
 export type LedgerEvent = {
   id: string;
@@ -183,6 +183,16 @@ export type ActiveStrat = {
   phase: PhaseId;
 };
 
+export type ScoringAction = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  cardId: string;
+  name: string;
+  side: "me" | "opponent";
+  round: 1 | 2 | 3 | 4 | 5;
+};
+
 export type GameUndoSlice = {
   round: 1 | 2 | 3 | 4 | 5;
   phase: PhaseId;
@@ -193,6 +203,8 @@ export type GameUndoSlice = {
   activeStrats: ActiveStrat[];
   status: "active" | "complete";
   finishedAt?: number;
+  scoringActions?: ScoringAction[];
+  scores?: { me: SideScore; opponent: SideScore };
 };
 
 export type SecondaryStamp = {
@@ -240,6 +252,7 @@ export type Game = {
   cp: { me: number; opponent: number };
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
+  scoringActions?: ScoringAction[];
   log: LedgerEvent[];
   undoStack: GameUndoSlice[];
   notes: string;

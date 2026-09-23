@@ -4,6 +4,8 @@ export type SecondaryCard = {
   id: string;
   name: string;
   fixed: boolean;
+  /** Unit must start an Action to score this card. */
+  action?: boolean;
   blurb: string;
   fixedScoring: string[];
   tacticalScoring: string[];
@@ -71,6 +73,7 @@ export const SECONDARIES: SecondaryCard[] = [
     id: "plunder",
     name: "Plunder",
     fixed: false,
+    action: true,
     blurb: "Action on terrain not in your territory. Redraw if Cleanse is active.",
     fixedScoring: [],
     tacticalScoring: ["5 VP if a terrain area was plundered this turn. (R1–R5, end of your turn)"],
@@ -112,6 +115,7 @@ export const SECONDARIES: SecondaryCard[] = [
     id: "cleanse",
     name: "Cleanse",
     fixed: false,
+    action: true,
     blurb: "Action on non-home objectives you control. Redraw if Plunder is active.",
     fixedScoring: [],
     tacticalScoring: [
@@ -187,6 +191,13 @@ export const FIXED_SECONDARIES = SECONDARIES.filter((s) => s.fixed);
 
 export function getSecondary(id: string): SecondaryCard | undefined {
   return SECONDARIES.find((s) => s.id === id);
+}
+
+export function actionCards(ids: string[]): SecondaryCard[] {
+  return ids.flatMap((id) => {
+    const card = getSecondary(id);
+    return card?.action ? [card] : [];
+  });
 }
 
 export function secondaryLines(card: SecondaryCard, mode: "fixed" | "tactical"): string[] {

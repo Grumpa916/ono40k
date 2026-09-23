@@ -2,6 +2,7 @@ import { Minus, Plus, Skull } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { wargearSummary } from "@/data/wargear";
+import { actionCards } from "@/data/secondaries";
 import { getUnit } from "@/data/codex";
 import type { Game, Roster, RosterUnit, UnitBattleState, UnitDef } from "@/data/types";
 import { useWarStore } from "@/lib/store";
@@ -44,6 +45,7 @@ export function WoundStepper({
   max,
   locked,
   alert,
+  label,
   onDec,
   onInc,
 }: {
@@ -51,6 +53,7 @@ export function WoundStepper({
   max: number;
   locked: boolean;
   alert?: boolean;
+  label?: string;
   onDec: () => void;
   onInc: () => void;
 }) {
@@ -58,6 +61,7 @@ export function WoundStepper({
   const full = value >= max;
   return (
     <div className="flex w-max shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+      {label ? <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">{label}</span> : null}
       <Button
         size="icon-sm"
         className="size-7"
@@ -113,16 +117,39 @@ export function ArmyPanel({
   onOpen: (unitId: string) => void;
 }) {
   const setUnitState = useWarStore((s) => s.setUnitState);
+  const startScoringAction = useWarStore((s) => s.startScoringAction);
+  const resolveScoringAction = useWarStore((s) => s.resolveScoringAction);
+  const score = game.scores[game.viewing];
+  const actionOptions = useMemo(() => {
+    const ids =
+      score.secondaryMode === "fixed" ? (score.fixedIds ?? []) : score.secondaryMode === "tactical" ? (score.tacticalActive ?? []) : [];
+    return actionCards(ids);
+  }, [score.secondaryMode, score.fixedIds, score.tacticalActive]);
   const ordered = useMemo(() => {
-    const rank = (id: string) => {
-      const st = game.unitState[id];
-      if (!st) return 1;
-      if (st.destroyed) return 2;
+    const rank = (ru: (typeof roster.units)[number]) => {
+      const st = game.unitState[ru.id];
+      if (!st || st.destroyed) return 3;
       if (st.battleShocked) return 0;
-      return 1;
+      const def = getUnit(roster.factionId, ru.unitId);
+      if (!def) return 2;
+      const maxW = unitMaxWounds(def.stats.w);
+      const wounds = remainingWounds(st, maxW);
+      const level = strengthState({
+        modelsStart: ru.models,
+        modelsNow: st.modelsRemaining,
+        woundsMax: maxW,
+        woundsNow: wounds,
+        destroyed: false,
+      });
+      return level.belowHalf ? 1 : 2;
     };
-    return [...roster.units].sort((a, b) => rank(a.id) - rank(b.id));
-  }, [roster.units, game.unitState]);
+    const nameOf = (ru: (typeof roster.units)[number]) => getUnit(roster.factionId, ru.unitId)?.name ?? "";
+    return [...roster.units].sort((a, b) => {
+      const byRank = rank(a) - rank(b);
+      if (byRank !== 0) return byRank;
+      return nameOf(a).localeCompare(nameOf(b));
+    });
+  }, [roster.units, roster.factionId, game.unitState]);
   const copies = useMemo(() => unitCopyMarks(roster.units), [roster.units]);
 
   return (
@@ -156,6 +183,7 @@ export function ArmyPanel({
         });
         const penalised = effects.some((e) => e.kind === "penalty");
         const buffed = effects.some((e) => e.kind === "buff");
+        const running = (game.scoringActions ?? []).find((a) => a.unitId === ru.id);
         return (
           <li
             key={ru.id}
@@ -212,11 +240,13 @@ export function ArmyPanel({
                   max={maxW}
                   locked={locked}
                   alert={penalised}
+                  label="Wounds"
                   onDec={() => applyWounds(-1)}
                   onInc={() => applyWounds(1)}
                 />
                 {ru.models > 1 ? (
-                  <div className="ml-auto flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+                    <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
                     <Button
                       size="icon-sm"
                       className="size-7"
@@ -265,6 +295,34 @@ export function ArmyPanel({
               <UnitStat label="LD" value={`${def.stats.ld}+`} />
               <UnitStat label="OC" value={def.stats.oc} />
             </div>
+            {running || (actionOptions.length > 0 && !st.destroyed) ? (
+              <div className="mt-1 flex flex-wrap items-center gap-1" onClick={(event) => event.stopPropagation()}>
+                <span className="text-[9px] tracking-wide text-muted-foreground uppercase">{running ? running.name : "Action"}</span>
+                {running ? (
+                  <>
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={() => resolveScoringAction(running.id, "complete")}>
+                      Done
+                    </Button>
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="ghost" disabled={locked} onClick={() => resolveScoringAction(running.id, "fail")}>
+                      Fail
+                    </Button>
+                  </>
+                ) : (
+                  actionOptions.map((card) => (
+                    <Button
+                      key={card.id}
+                      size="sm"
+                      className="h-7 px-2 text-[11px]"
+                      variant="outline"
+                      disabled={locked}
+                      onClick={() => startScoringAction(ru.id, card.id)}
+                    >
+                      {card.name}
+                    </Button>
+                  ))
+                )}
+              </div>
+            ) : null}
             {extras || ru.notes ? (
               <div className="mt-1 space-y-1">
                 {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
@@ -282,3 +340,4 @@ export function ArmyPanel({
     </ul>
   );
 }
+

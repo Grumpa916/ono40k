@@ -15,13 +15,15 @@ import type {
   Roster,
   RosterUnit,
   SideScore,
+  ScoringAction,
   Stratagem,
   UnitBattleState,
 } from "@/data/types";
 import { BATTLE_SIZES, PHASES } from "@/data/types";
-import { secondaryVp } from "@/data/secondaries";
+import { cardAward, getSecondary, secondaryVp } from "@/data/secondaries";
+import { parseObjective } from "@/data/missions";
 import { getMap } from "@/data/maps";
-import { rosterDisposition } from "@/lib/validation";
+import { primaryForSide, rosterDisposition } from "@/lib/validation";
 import { battleElapsedMs, uid, unitCopyMarks } from "@/lib/utils";
 
 const emptyScore = (): SideScore => ({
@@ -273,6 +275,7 @@ function hydrateGame(g: Game): Game {
     ...g,
     log: g.log ?? [],
     activeStrats: g.activeStrats ?? [],
+    scoringActions: g.scoringActions ?? [],
     undoStack: g.undoStack ?? [],
     elapsedMs,
     runningSince,
@@ -348,6 +351,8 @@ function snapshotUndo(g: Game): GameUndoSlice {
     cp: clone(g.cp),
     unitState: clone(g.unitState),
     activeStrats: clone(g.activeStrats ?? []),
+    scoringActions: clone(g.scoringActions ?? []),
+    scores: clone(g.scores),
     status: g.status,
     finishedAt: g.finishedAt,
   };
@@ -450,10 +455,13 @@ type State = {
   toggleFixedSecondary: (side: "me" | "opponent", id: string) => void;
   toggleTacticalActive: (side: "me" | "opponent", id: string) => void;
   setSecondaryScore: (side: "me" | "opponent", cardId: string, vp: number) => void;
+  setPainted: (side: "me" | "opponent", painted: boolean) => void;
   ensureSecondaryMeta: (side: "me" | "opponent") => void;
   adjustTactical: (side: "me" | "opponent", delta: number) => void;
   adjustCp: (side: "me" | "opponent", delta: number) => void;
   setUnitState: (unitId: string, patch: Partial<UnitBattleState>) => void;
+  startScoringAction: (unitId: string, cardId: string) => void;
+  resolveScoringAction: (actionId: string, result: "complete" | "fail") => void;
   playStratagem: (side: "me" | "opponent", strat: Stratagem, source: string) => void;
   playStratagems: (side: "me" | "opponent", items: Array<{ strat: Stratagem; source: string }>) => void;
   dismissStrat: (activeId: string) => void;
@@ -587,6 +595,7 @@ export const useWarStore = create<State>()(
           cp: { me: 1, opponent: 1 },
           unitState: initUnitState(myRoster, opponentRoster),
           activeStrats: [],
+          scoringActions: [],
           log: briefing
             ? [
                 {
@@ -789,22 +798,30 @@ export const useWarStore = create<State>()(
       },
       togglePrimaryCheck: (side, objIndex, slot, max = 1) => {
         const id = get().activeGameId;
-        if (!id) return;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
         const cap = Math.max(1, max);
-        set({
-          games: get().games.map((g) => {
-            if (g.id !== id) return g;
-            const score = { ...g.scores[side] };
-            const checks = (score.primaryChecks ?? []).map((row) => [...row]);
-            while (checks.length <= objIndex) checks.push([]);
-            const row = [...(checks[objIndex] ?? [])];
-            while (row.length <= slot) row.push(0);
-            const cur = Number(row[slot] || 0);
-            row[slot] = (cur + 1) % (cap + 1);
-            checks[objIndex] = row;
-            return { ...g, scores: { ...g.scores, [side]: { ...score, primaryChecks: checks } } };
-          }),
-        });
+        const checks = (game.scores[side].primaryChecks ?? []).map((row) => [...row]);
+        while (checks.length <= objIndex) checks.push([]);
+        const row = [...(checks[objIndex] ?? [])];
+        while (row.length <= slot) row.push(0);
+        const cur = Number(row[slot] || 0);
+        const nextCount = (cur + 1) % (cap + 1);
+        row[slot] = nextCount;
+        checks[objIndex] = row;
+        const mine = side === "me" ? game.myRoster : game.opponentRoster;
+        const other = side === "me" ? game.opponentRoster : game.myRoster;
+        const line = primaryForSide(mine, other)?.info.scoring[objIndex];
+        const parsed = line ? parseObjective(line) : null;
+        const label = (parsed?.text ?? "the primary").replace(/\s*\([^)]*\)\s*$/, "");
+        const vp = (parsed?.vp ?? 0) * nextCount;
+        const who = sideName(game, side);
+        const summary = nextCount === 0 ? `${who} clears ${label}.` : `${who} scores ${vp} VP for ${label}.`;
+        applyTracked(get, set, "score", summary, (g) => ({
+          ...g,
+          scores: { ...g.scores, [side]: { ...g.scores[side], primaryChecks: checks } },
+        }));
       },
       setSecondaryMode: (side, mode) => {
         const id = get().activeGameId;
@@ -852,24 +869,42 @@ export const useWarStore = create<State>()(
       },
       setSecondaryScore: (side, cardId, vp) => {
         const id = get().activeGameId;
-        if (!id) return;
-        set({
-          games: get().games.map((g) => {
-            if (g.id !== id) return g;
-            const prev = g.scores[side].secondaryChecks ?? {};
-            const meta = { ...(g.scores[side].secondaryMeta ?? {}) };
-            const stamp = meta[cardId] ?? { selectedRound: g.round };
-            if (vp > 0) {
-              meta[cardId] = { ...stamp, selectedRound: stamp.selectedRound ?? g.round, completedRound: g.round };
-            } else {
-              meta[cardId] = { selectedRound: stamp.selectedRound ?? g.round };
-            }
-            return patchScore(g, side, {
-              secondaryChecks: { ...prev, [cardId]: [[Math.max(0, vp)]] },
-              secondaryMeta: meta,
-            });
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const nextVp = Math.max(0, vp);
+        const prevVp = cardAward(game.scores[side].secondaryChecks?.[cardId]);
+        if (prevVp === nextVp) return;
+        const prev = game.scores[side].secondaryChecks ?? {};
+        const meta = { ...(game.scores[side].secondaryMeta ?? {}) };
+        const stamp = meta[cardId] ?? { selectedRound: game.round };
+        meta[cardId] =
+          nextVp > 0
+            ? { ...stamp, selectedRound: stamp.selectedRound ?? game.round, completedRound: game.round }
+            : { selectedRound: stamp.selectedRound ?? game.round };
+        const card = getSecondary(cardId)?.name ?? "a secondary";
+        const who = sideName(game, side);
+        const summary = nextVp === 0 ? `${who} clears ${card}.` : `${who} scores ${nextVp} VP on ${card}.`;
+        applyTracked(get, set, "score", summary, (g) =>
+          patchScore(g, side, {
+            secondaryChecks: { ...prev, [cardId]: [[nextVp]] },
+            secondaryMeta: meta,
           }),
-        });
+        );
+      },
+      setPainted: (side, painted) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const next = painted ? 10 : 0;
+        if ((game.scores[side].painted ?? 0) === next) return;
+        const who = sideName(game, side);
+        const summary = painted ? `${who} claims Battle Ready for 10 VP.` : `${who} drops Battle Ready.`;
+        applyTracked(get, set, "score", summary, (g) => ({
+          ...g,
+          scores: { ...g.scores, [side]: { ...g.scores[side], painted: next } },
+        }));
       },
       ensureSecondaryMeta: (side) => {
         const id = get().activeGameId;
@@ -925,30 +960,62 @@ export const useWarStore = create<State>()(
         const apply = (g: Game): Game => ({
           ...g,
           unitState: { ...g.unitState, [unitId]: next },
+          scoringActions:
+            next.destroyed && !prev.destroyed
+              ? (g.scoringActions ?? []).filter((a) => a.unitId !== unitId)
+              : g.scoringActions,
         });
-        if (next.destroyed !== prev.destroyed) {
-          applyTracked(
-            get,
-            set,
-            "destroyed",
-            `${who} · ${name} ${next.destroyed ? "destroyed" : "restored"}`,
-            apply,
-          );
+        const parts: string[] = [];
+        if (next.destroyed !== prev.destroyed) parts.push(next.destroyed ? "destroyed" : "restored");
+        if (next.battleShocked !== prev.battleShocked) parts.push(next.battleShocked ? "Battle-shocked" : "rallied");
+        if (next.hidden !== prev.hidden) parts.push(next.hidden ? "hidden" : "revealed");
+        if (next.destroyed === prev.destroyed) {
+          if (next.modelsRemaining !== prev.modelsRemaining) parts.push(`models ${prev.modelsRemaining} → ${next.modelsRemaining}`);
+          if (next.woundsOnCurrent !== prev.woundsOnCurrent) parts.push(`wounds ${prev.woundsOnCurrent} → ${next.woundsOnCurrent}`);
+        }
+        if (parts.length === 0) {
+          set({
+            games: get().games.map((g) => (g.id === id ? apply(hydrateGame(g)) : g)),
+          });
           return;
         }
-        if (next.battleShocked !== prev.battleShocked) {
-          applyTracked(
-            get,
-            set,
-            "battleShock",
-            `${who} · ${name} ${next.battleShocked ? "Battle-shocked" : "rallied"}`,
-            apply,
-          );
-          return;
-        }
-        set({
-          games: get().games.map((g) => (g.id === id ? apply(hydrateGame(g)) : g)),
-        });
+        const kind: LedgerEventKind = next.destroyed !== prev.destroyed ? "destroyed" : next.battleShocked !== prev.battleShocked && parts.length === 1 ? "battleShock" : "unit";
+        applyTracked(get, set, kind, `${who} · ${name} ${parts.join(" · ")}`, apply);
+      },
+      startScoringAction: (unitId, cardId) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const found = findRosterUnit(game, unitId);
+        const card = getSecondary(cardId);
+        if (!found || !card?.action || game.unitState[unitId]?.destroyed) return;
+        const action: ScoringAction = {
+          id: uid("act"),
+          unitId,
+          unitName: unitLabel(game, unitId),
+          cardId: card.id,
+          name: card.name,
+          side: found.side,
+          round: game.round,
+        };
+        applyTracked(get, set, "action", `${sideName(game, found.side)} · ${action.unitName} starts ${card.name}`, (g) => ({
+          ...g,
+          scoringActions: [action, ...(g.scoringActions ?? []).filter((a) => a.unitId !== unitId)],
+        }));
+      },
+      resolveScoringAction: (actionId, result) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const action = (game.scoringActions ?? []).find((a) => a.id === actionId);
+        if (!action) return;
+        const verb = result === "complete" ? "completes" : "fails";
+        applyTracked(get, set, "action", `${sideName(game, action.side)} · ${action.unitName} ${verb} ${action.name}`, (g) => ({
+          ...g,
+          scoringActions: (g.scoringActions ?? []).filter((a) => a.id !== actionId),
+        }));
       },
       playStratagem: (side, strat, source) => {
         get().playStratagems(side, [{ strat, source }]);
@@ -1019,6 +1086,8 @@ export const useWarStore = create<State>()(
                   cp: clone(slice.cp),
                   unitState: clone(slice.unitState),
                   activeStrats: clone(slice.activeStrats),
+                  scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
+                  ...(slice.scores ? { scores: clone(slice.scores) } : {}),
                   status: slice.status,
                   finishedAt: slice.finishedAt,
                   log: game.log.slice(1),

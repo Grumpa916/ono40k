@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getFaction, getUnit } from "@/data/codex";
 import { getMap } from "@/data/maps";
 import { parseObjective, sideVp } from "@/data/missions";
-import { PHASES, type Game } from "@/data/types";
+import { type Game } from "@/data/types";
 import { useActiveGame, useWarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { primaryForSide } from "@/lib/validation";
@@ -56,6 +56,7 @@ function BattleTable({ game }: { game: Game }) {
   const setViewing = useWarStore((s) => s.setViewing);
   const undoLast = useWarStore((s) => s.undoLast);
   const dismissStrat = useWarStore((s) => s.dismissStrat);
+  const resolveScoringAction = useWarStore((s) => s.resolveScoringAction);
   const endGame = useWarStore((s) => s.endGame);
   const leaveGame = useWarStore((s) => s.leaveGame);
   const reopenGame = useWarStore((s) => s.reopenGame);
@@ -80,6 +81,7 @@ function BattleTable({ game }: { game: Game }) {
   const log = game.log ?? [];
   const undoStack = game.undoStack ?? [];
   const activeStrats = game.activeStrats ?? [];
+  const scoringActions = game.scoringActions ?? [];
 
   return (
     <div className="space-y-4">
@@ -197,7 +199,7 @@ function BattleTable({ game }: { game: Game }) {
                           <Badge>{s.source}</Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {s.side === "me" ? game.myName : game.opponentName} · Round {s.round} · {PHASES.find((p) => p.id === s.phase)?.label}
+                          {s.side === "me" ? game.myName : game.opponentName} · Round {s.round}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
                       </div>
@@ -205,6 +207,33 @@ function BattleTable({ game }: { game: Game }) {
                         <X className="size-4" />
                       </Button>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {scoringActions.length > 0 ? (
+            <section className="space-y-2">
+              <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Scoring actions</p>
+              <ul className="space-y-2">
+                {scoringActions.map((a) => (
+                  <li key={a.id} className="flex items-center gap-2 rounded-xl border border-ok/40 bg-card px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {a.name}
+                        <span className="ml-1.5 font-normal text-muted-foreground">{a.unitName}</span>
+                      </p>
+                      <p className="text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
+                        {a.side === "me" ? game.myName : game.opponentName} · Round {a.round}
+                      </p>
+                    </div>
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={() => resolveScoringAction(a.id, "complete")}>
+                      Done
+                    </Button>
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="ghost" disabled={locked} onClick={() => resolveScoringAction(a.id, "fail")}>
+                      Fail
+                    </Button>
                   </li>
                 ))}
               </ul>
