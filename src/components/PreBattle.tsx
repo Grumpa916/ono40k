@@ -10,7 +10,7 @@ import { getMap, layoutsFor } from "@/data/maps";
 import { FIXED_SECONDARIES } from "@/data/secondaries";
 import { BATTLE_SIZES, type PreBattle, type Roster, type SideKey, type SideScore } from "@/data/types";
 import { primaryForSide, rosterDisposition } from "@/lib/validation";
-import { defaultPreBattle, otherSide, pickAttacker, preAbilityUnits } from "@/lib/prebattle";
+import { defaultPreBattle, preAbilityUnits } from "@/lib/prebattle";
 import { cn, unitCopyMarks } from "@/lib/utils";
 
 type ScoreDraft = {
@@ -75,9 +75,6 @@ export function PreBattleForm({
     d.mode === "tactical" || (d.mode === "fixed" && d.fixedIds.length === 2);
   const ready = secondariesReady(meScore) && secondariesReady(themScore) && Boolean(brief.mapId || maps.length === 0);
 
-  const nameOf = (side: SideKey) => (side === "me" ? myName : oppName);
-  const defender = otherSide(brief.attacker);
-
   const toggleFixed = (which: "me" | "them", id: string) => {
     const set = which === "me" ? setMeScore : setThemScore;
     set((prev) => {
@@ -106,7 +103,7 @@ export function PreBattleForm({
         <p className="text-[11px] font-medium tracking-[0.22em] text-muted-foreground uppercase">War Journal · Pre-battle</p>
         <h1 className="font-display mt-1 text-3xl font-semibold">11th edition muster</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Mission, secondaries, attacker, and Scout / Infiltrate — then the ledger opens.
+          Mission, secondaries, and Scout / Infiltrate. Attacker and first turn are set on Setup.
         </p>
       </div>
 
@@ -164,39 +161,8 @@ export function PreBattleForm({
         ) : null}
       </section>
 
-      <section className="space-y-3">
-        <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">3 · Attacker and first turn</p>
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <p className="text-sm text-muted-foreground">Roll off. Winner chooses to attack or defend. Defender deploys first; the player who finishes deploying first chooses who takes turn 1.</p>
-          <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">Won the roll-off</p>
-          <SidePair
-            a={myName}
-            b={oppName}
-            value={brief.rollOff}
-            onChange={(side) => setBrief((p) => ({ ...p, rollOff: side }))}
-          />
-          <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">Attacker</p>
-          <SidePair
-            a={myName}
-            b={oppName}
-            value={brief.attacker}
-            onChange={(side) => setBrief((p) => pickAttacker(p, side))}
-          />
-          <p className="text-xs text-muted-foreground">
-            Defender {nameOf(defender)} deploys first, then {nameOf(brief.attacker)}.
-          </p>
-          <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">First turn</p>
-          <SidePair
-            a={myName}
-            b={oppName}
-            value={brief.firstTurn}
-            onChange={(side) => setBrief((p) => ({ ...p, firstTurn: side, deploysFirst: p.deploysFirst }))}
-          />
-        </div>
-      </section>
-
       <section className="space-y-2">
-        <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">4 · Battlefield</p>
+        <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">3 · Battlefield</p>
         {maps.length === 0 ? (
           <p className="text-sm text-muted-foreground">Set force dispositions on both lists to load the three Event Companion maps for this pairing.</p>
         ) : (
@@ -269,7 +235,7 @@ export function PreBattleForm({
       </section>
 
       <section className="space-y-2">
-        <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">5 · Scout and Infiltrate</p>
+        <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">4 · Scout and Infiltrate</p>
         <p className="text-xs text-muted-foreground">A unit cannot use both in the same battle. Tick what you actually used.</p>
         <AbilityList
           label={myName}
@@ -310,16 +276,18 @@ export function PreBattleForm({
   );
 }
 
-function SidePair({
+export function SidePair({
   a,
   b,
   value,
   onChange,
+  disabled,
 }: {
   a: string;
   b: string;
   value: SideKey | null;
   onChange: (side: SideKey) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-1.5">
@@ -327,10 +295,12 @@ function SidePair({
         <button
           key={side}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(side)}
           className={cn(
             "min-h-11 rounded-md border px-2 text-sm font-medium",
             value === side ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted text-muted-foreground",
+            disabled && "opacity-60",
           )}
         >
           {side === "me" ? a : b}
@@ -478,9 +448,14 @@ function AbilityList({
 export function preBattleLine(game: { myName: string; opponentName: string; preBattle?: PreBattle; scores: { me: SideScore; opponent: SideScore } }) {
   const b = game.preBattle;
   if (!b) return null;
-  const who = (s: SideKey) => (s === "me" ? game.myName : game.opponentName);
+  const who = (s: SideKey | null) => (s === "me" ? game.myName : s === "opponent" ? game.opponentName : null);
   const mode = (s: SideScore) => (s.secondaryMode === "fixed" ? "Fixed" : s.secondaryMode === "tactical" ? "Tactical" : "—");
   const map = getMap(b.mapId);
-  const mapBit = map ? ` · ${map.name}` : "";
-  return `Attacker ${who(b.attacker)} · first ${who(b.firstTurn)} · ${mode(game.scores.me)} / ${mode(game.scores.opponent)}${mapBit}`;
+  const bits = [
+    b.attacker ? `Attacker ${who(b.attacker)}` : null,
+    b.firstTurn ? `first ${who(b.firstTurn)}` : null,
+    `${mode(game.scores.me)} / ${mode(game.scores.opponent)}`,
+    map?.name ?? null,
+  ].filter(Boolean);
+  return bits.join(" · ");
 }
