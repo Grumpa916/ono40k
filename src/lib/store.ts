@@ -300,16 +300,25 @@ function turnFromRank(rank: number, firstTurn: "me" | "opponent" = "me"): { roun
   };
 }
 
+function turnKey(round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", firstTurn: "me" | "opponent") {
+  return String(turnRank(round, side, firstTurn));
+}
+
 function browseTurn(g: Game, round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", phase: PhaseId): Game {
   const liveR = g.liveRound ?? g.round;
   const liveS = g.liveSide ?? g.activeSide;
   const leavingLive = g.round === liveR && g.activeSide === liveS && (round !== liveR || side !== liveS);
+  const firstTurn = g.preBattle?.firstTurn ?? "me";
+  const cp = leavingLive
+    ? g.cp
+    : g.cpHistory?.[turnKey(round, side, firstTurn)] ?? g.cp;
   return {
     ...g,
     round,
     activeSide: side,
     viewing: side,
     phase,
+    cp,
     liveRound: liveR,
     liveSide: liveS,
     livePhase: leavingLive ? g.phase : (g.livePhase ?? g.phase),
@@ -625,6 +634,7 @@ export const useWarStore = create<State>()(
           liveSide: active,
           livePhase: "command",
           preBattle: briefing,
+          cpHistory: { [turnKey(1, active, first ?? "me")]: { me: 1, opponent: 1 } },
         };
         set({ games: [game, ...get().games], activeGameId: id });
         return id;
@@ -812,6 +822,12 @@ export const useWarStore = create<State>()(
               activeSide: firstTurn,
               viewing: firstTurn,
               cp: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
+              cpHistory: done
+                ? g.cpHistory
+                : {
+                    ...(g.cpHistory ?? {}),
+                    [turnKey(nextRound, firstTurn, firstTurn)]: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
+                  },
               status: done ? "complete" : "active",
               finishedAt: done ? Date.now() : g.finishedAt,
               liveRound: nextRound,
@@ -996,7 +1012,17 @@ export const useWarStore = create<State>()(
         if (!id) return;
         set({
           games: get().games.map((g) =>
-            g.id === id ? { ...g, cp: { ...g.cp, [side]: Math.max(0, g.cp[side] + delta) } } : g,
+            g.id === id
+            ? (() => {
+                const cp = { ...g.cp, [side]: Math.max(0, g.cp[side] + delta) };
+                const firstTurn = g.preBattle?.firstTurn ?? "me";
+                return {
+                  ...g,
+                  cp,
+                  cpHistory: { ...(g.cpHistory ?? {}), [turnKey(g.round, g.activeSide, firstTurn)]: cp },
+                };
+              })()
+            : g,
           ),
         });
       },
@@ -1108,6 +1134,13 @@ export const useWarStore = create<State>()(
           (g) => ({
             ...g,
             cp: { ...g.cp, [side]: Math.max(0, g.cp[side] - total) },
+            cpHistory: {
+              ...(g.cpHistory ?? {}),
+              [turnKey(g.round, g.activeSide, g.preBattle?.firstTurn ?? "me")]: {
+                ...g.cp,
+                [side]: Math.max(0, g.cp[side] - total),
+              },
+            },
             activeStrats: [...actives, ...g.activeStrats],
           }),
         );
