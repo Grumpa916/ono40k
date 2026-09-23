@@ -157,7 +157,7 @@ export type UnitBattleState = {
   destroyed: boolean;
 };
 
-export type LedgerEventKind = "phase" | "turn" | "destroyed" | "battleShock" | "stratagem" | "prebattle" | "action" | "unit" | "score";
+export type LedgerEventKind = "phase" | "turn" | "destroyed" | "battleShock" | "stratagem" | "prebattle" | "action" | "unit" | "score" | "cp";
 
 export type LedgerEvent = {
   id: string;
@@ -199,7 +199,6 @@ export type GameUndoSlice = {
   activeSide: "me" | "opponent";
   viewing: "me" | "opponent";
   cp: { me: number; opponent: number };
-  cpHistory?: Record<string, { me: number; opponent: number }>;
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
   status: "active" | "complete";

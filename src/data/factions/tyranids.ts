@@ -9,14 +9,14 @@ const stingerSalvo = w("Stinger salvoes", "ranged", 24, 8, 3, 5, 0, 1, []);
 const heavyVenom = w("Heavy venom cannon", "ranged", 36, "D3", 2, 9, -2, 3, ["Blast"]);
 const stranglethorn = w("Stranglethorn cannon", "ranged", 36, "D6+1", 2, 7, -1, 2, ["Blast"]);
 const bonesword = w("Monstrous bonesword and lash whip", "melee", "Melee", 6, 2, 9, -2, 3, ["Twin-linked"]);
-const fleshHooks = w("Flesh hooks", "ranged", 8, 2, 3, 5, -1, 1, ["Assault"]);
 const lictorClaws = w("Lictor claws and talons", "melee", "Melee", 6, 2, 7, -2, 2, ["Precision"]);
 const powerfulLimbs = w("Powerful limbs", "melee", "Melee", 3, 4, 7, -1, 2, []);
 const scythingTalons = w("Scything talons", "melee", "Melee", 4, 3, 5, -1, 1, []);
-const bioWeapons = w("Bio-weapons", "melee", "Melee", 6, 3, 5, -2, 1, ["Twin-linked"]);
 const loneOp = a("Lone Operative", "This unit is not visible to enemy models more than 12\" away.");
 const deepStrike = a("Deep Strike", "This unit can make an Ingress move from Reserves more than 8\" from enemy models.");
-const infiltrate = a("Infiltrators", "This unit can be set up anywhere on the battlefield more than 9\" from enemy models.");
+const infiltrate = a("Infiltrators", "Set up more than 8\" from the enemy deployment zone and all enemy units.");
+const fightsFirst = a("Fights First", "This unit fights in the Fights First step.");
+const stealth = a("Stealth", "Ranged attacks that target this unit have the Benefit of Cover.");
 const willOfHive = a("Will of the Hive Mind", "Once per battle round, you can target this model's unit with a Stratagem for 0 CP.");
 const KW_SYN = ["Monster", "Character", "Psyker", "Synapse", "Tyranids"];
 const KW_VANGUARD = ["Infantry", "Great Devourer", "Tyranids", "Vanguard Invader"];
@@ -57,11 +57,16 @@ const units: UnitDef[] = [
   u("nids-winged-tyrant", "Winged Hive Tyrant", "character", 185, { m: 12, t: 9, sv: 2, w: 10, ld: 7, oc: 3 }, [...KW_SYN, "Fly", "Vanguard Invader", "Hive Tyrant"], {
     inv: 4,
     r: [heavyVenom, stranglethorn],
-    m: [bonesword],
+    m: [
+      bonesword,
+      w("Tyrant talons", "melee", "Melee", 5, 2, 7, -2, 2, []),
+      w("Monstrous scything talons", "melee", "Melee", 4, 2, 7, -2, 2, ["Extra Attacks"]),
+    ],
     ab: [
-      willOfHive,
+      a("Will of the Hive Mind", "Once per battle round, when a friendly Tyranids unit within 12\" is targeted with a Stratagem, reduce that CP cost by 1."),
       deepStrike,
-      a("Onslaught", "Friendly Tyranids units within 6\" have Assault and Lethal Hits on ranged weapons. Enemy units within 6\" are −1 to Charge."),
+      a("Deadly Demise D3", "When this model is destroyed, on a 4+ each unit within 6\" suffers D3 mortal wounds."),
+      a("Paroxysm", "At the start of the Fight phase, pick one visible enemy unit within 12\" and roll a D6. On a 1 this model suffers D3 mortal wounds. On a 2+, that unit's weapons are −1 Attacks until the end of the phase."),
     ],
   }),
   u("nids-neurotyrant", "Neurotyrant", "character", 130, { m: 6, t: 8, sv: 4, w: 9, ld: 7, oc: 3 }, ["Monster", "Character", "Fly", "Psyker", "Synapse", "Tyranids"], {
@@ -91,47 +96,52 @@ const units: UnitDef[] = [
     ],
     lead: ["nids-genestealers"],
   }),
-  u("nids-deathleaper", "Deathleaper", "character", 80, { m: 8, t: 6, sv: 3, w: 7, ld: 7, oc: 1 }, ["Infantry", "Character", "Epic Hero", "Great Devourer", "Tyranids", "Vanguard Invader", "Lictor"], {
+  u("nids-deathleaper", "Deathleaper", "character", 80, { m: 8, t: 6, sv: 3, w: 7, ld: 7, oc: 1 }, ["Infantry", "Character", "Epic Hero", "Great Devourer", "Tyranids", "Vanguard Invader", "Deathleaper"], {
     inv: 4,
-    r: [fleshHooks],
-    m: [w("Lictor claws and talons", "melee", "Melee", 7, 2, 7, -2, 2, ["Precision"])],
+    m: [lictorClaws],
     ab: [
-      loneOp,
+      fightsFirst,
       infiltrate,
-      a("Fear of the Unseen", "At the start of the Fight phase, one enemy unit within 6\" must take a Battle-shock test."),
-      a("Stealth", "Ranged attacks that target this unit are −1 to Hit."),
+      loneOp,
+      stealth,
+      a("Feeder Tendrils", "Each time this model destroys an enemy Character model, you gain 1 CP."),
+      a("Fear of the Unseen", "Enemy units within 6\" worsen Leadership by 1. In your opponent's Command phase, such a unit below Starting Strength must take a Battle-shock test."),
     ],
   }),
   u("nids-old-one-eye", "Old One Eye", "character", 140, { m: 8, t: 9, sv: 2, w: 9, ld: 8, oc: 3 }, ["Monster", "Character", "Epic Hero", "Tyranids"], {
+    fnp: 5,
     m: [
       w("Claws and talons — strike", "melee", "Melee", 6, 3, 14, -3, "D6+1", []),
       w("Claws and talons — sweep", "melee", "Melee", 12, 3, 6, -1, 1, []),
     ],
     ab: [
       a("Alpha Leader", "While leading a unit, that unit can re-roll Hit rolls."),
-      a("Berserk Rampage", "This model regains D3 lost wounds at the start of your Command phase."),
+      a("Unstoppable Monster", "At the start of each player's Command phase, this model regains up to D3 lost wounds."),
     ],
     lead: ["nids-carnifexes"],
   }),
-  u("nids-red-terror", "The Red Terror", "character", 130, { m: 10, t: 8, sv: 3, w: 9, ld: 8, oc: 3 }, ["Monster", "Character", "Epic Hero", "Tyranids", "Vanguard Invader", "Burrower"], {
+  u("nids-red-terror", "The Red Terror", "character", 130, { m: 10, t: 8, sv: 3, w: 9, ld: 8, oc: 3 }, ["Monster", "Character", "Epic Hero", "Great Devourer", "Tyranids", "Vanguard Invader", "Burrower", "Mobile"], {
     m: [
-      w("Scything talons", "melee", "Melee", 6, 2, 7, -2, 2, []),
-      w("Prehensile maw", "melee", "Melee", 2, 2, 5, 0, 3, ["Anti-Infantry 3+", "Devastating Wounds", "Extra Attacks"]),
+      w("Scything talons", "melee", "Melee", 12, 2, 7, -2, 2, []),
+      w("Gaping maw", "melee", "Melee", 1, 2, 5, 0, "D3+2", ["Extra Attacks", "Devastating Wounds", "Precision"]),
     ],
     ab: [
       deepStrike,
-      a("Swallow Whole", "Each time this model destroys an enemy Infantry, Mounted, or Beast model, it regains D3+2 lost wounds."),
+      a("Swallow Whole", "Gaping maw attacks against Infantry, Mounted, or Beasts score a Critical Wound on a successful unmodified Wound roll. Each model those attacks destroy lets this model regain up to D3+2 lost wounds."),
+      a("Subterranean Hunter", "At the end of the Fight phase, if this unit is not in Engagement Range, it can be placed into Strategic Reserves."),
     ],
   }),
   u("nids-parasite", "Parasite of Mortrex", "character", 70, { m: 12, t: 5, sv: 4, w: 5, ld: 8, oc: 1 }, KW_VANGUARD.concat(["Character", "Fly", "Synapse"]), {
     m: [
-      scythingTalons,
+      w("Clawed limbs", "melee", "Melee", 6, 2, 5, -1, 1, []),
       w("Barbed ovipositor", "melee", "Melee", 1, 2, 3, -2, 3, ["Anti-Infantry 3+", "Extra Attacks"]),
     ],
     ab: [
       loneOp,
       deepStrike,
-      a("Implant Parasite", "Each time this model destroys an enemy Infantry model, you can set up a Ripper Swarms unit of 1 model within 3\" of this model."),
+      stealth,
+      a("Parasitic Infection", "Each time the barbed ovipositor destroys an Infantry model, you can set up a Ripper Swarms unit of D3 models within 3\", including within Engagement Range of that unit."),
+      a("It Itches!", "At the start of the Fight phase, one enemy unit in Engagement Range of this model must take a Battle-shock test."),
     ],
   }),
   u("nids-winged-prime", "Winged Tyranid Prime", "character", 65, { m: 12, t: 5, sv: 4, w: 6, ld: 7, oc: 1 }, ["Infantry", "Character", "Fly", "Synapse", "Tyranids", "Vanguard Invader"], {
@@ -167,30 +177,45 @@ const units: UnitDef[] = [
     lead: ["nids-raveners"],
   }),
   u("nids-lictor", "Lictor", "character", 60, { m: 8, t: 6, sv: 4, w: 6, ld: 7, oc: 1 }, [...KW_VANGUARD, "Lictor"], {
-    r: [fleshHooks],
     m: [lictorClaws],
     ab: [
-      loneOp,
+      fightsFirst,
       infiltrate,
-      a("Feeder Tendrils", "Gain 1 CP each time this model destroys an enemy Character. Once per battle round this model can Rapid Ingress for 0 CP."),
+      loneOp,
+      stealth,
+      a("Feeder Tendrils", "Each time this model destroys an enemy Character model, you gain 1 CP."),
+      a("Pheromone Trail", "Once per battle round, this model can use Rapid Ingress for 0 CP."),
     ],
   }),
-  u("nids-neurolictor", "Neurolictor", "character", 80, { m: 8, t: 5, sv: 4, w: 7, ld: 7, oc: 1 }, ["Infantry", "Character", "Psyker", "Synapse", "Tyranids", "Vanguard Invader", "Neurolictor"], {
+  u("nids-neurolictor", "Neurolictor", "character", 80, { m: 8, t: 5, sv: 4, w: 7, ld: 7, oc: 1 }, ["Infantry", "Great Devourer", "Synapse", "Tyranids", "Vanguard Invader", "Neurolictor"], {
     inv: 4,
-    r: [w("Psychostatic disruption", "ranged", 12, "D6", 3, 4, 0, 1, ["Psychic", "Devastating Wounds"])],
-    m: [w("Neurolictor claws", "melee", "Melee", 5, 3, 6, -1, 2, ["Precision"])],
-    ab: [loneOp, infiltrate, a("Neuroparasite", "Enemy units within 6\" are −1 to Hit. This unit has Stealth.")],
+    m: [w("Piercing claws and talons", "melee", "Melee", 6, 2, 6, -2, 1, ["Precision"])],
+    ab: [
+      infiltrate,
+      loneOp,
+      stealth,
+      a("Feeder Tendrils", "Each time this model destroys an enemy Character model, you gain 1 CP."),
+      a("Neural Disruption", "In your Command phase, one enemy unit within 12\" must take a Battle-shock test."),
+      a("Psychological Saboteur", "While an enemy unit within 12\" is Battle-shocked, its attacks are −1 to Hit and friendly Tyranids attacks against it are +1 to Wound."),
+    ],
   }),
   u("nids-termagants", "Termagants", "battleline", 60, { m: 6, t: 3, sv: 5, w: 1, ld: 8, oc: 2 }, KW_SWARM, {
     sizes: sizes10(60, 110),
-    r: [fleshborer, devourer],
+    r: [
+      fleshborer,
+      w("Termagant devourer", "ranged", 18, 2, 4, 4, 0, 1, []),
+      w("Termagant spinefists", "ranged", 12, 2, 4, 3, 0, 1, ["Assault", "Pistol", "Twin-linked"]),
+      w("Shardlauncher", "ranged", 18, "D3", 4, 5, 0, 1, ["Blast", "Heavy"]),
+      w("Spike rifle", "ranged", 24, 1, 4, 4, -1, 1, ["Heavy"]),
+      w("Strangleweb", "ranged", 18, "D6", 0, 2, 0, 1, ["Assault", "Devastating Wounds", "Torrent"]),
+    ],
     m: [clawsTeeth],
-    ab: [a("Skulking Horrors", "This unit can shoot after Falling Back. Stealth while within a terrain objective.")],
+    ab: [a("Skulking Horrors", "In your opponent's Movement phase, if an enemy ends a move within 8\" and this unit is not in Engagement Range, it can make a Normal move of up to D6\".")],
   }),
   u("nids-hormagaunts", "Hormagaunts", "battleline", 70, { m: 10, t: 3, sv: 5, w: 1, ld: 8, oc: 2 }, KW_SWARM, {
     sizes: sizes10(70, 120),
     m: [w("Hormagaunt talons", "melee", "Melee", 3, 4, 3, -1, 1, [])],
-    ab: [a("Bounding Leap", "Eligible to charge after Advancing. Extra 3\" when it piles in or consolidates.")],
+    ab: [a("Bounding Leap", "This unit is eligible to declare a charge in a turn in which it Advanced.")],
   }),
   u("nids-gargoyles", "Gargoyles", "battleline", 80, { m: 12, t: 3, sv: 6, w: 1, ld: 8, oc: 2 }, ["Infantry", "Battleline", "Fly", "Tyranids", "Endless Multitude", "Vanguard Invader"], {
     sizes: sizes10(80, 155),
@@ -220,16 +245,21 @@ const units: UnitDef[] = [
   }),
   u("nids-warriors-melee", "Tyranid Warriors with Melee Bio-weapons", "infantry", 75, { m: 6, t: 5, sv: 4, w: 3, ld: 7, oc: 2 }, ["Infantry", "Synapse", "Tyranids"], {
     sizes: sizes36(75, 150),
-    m: [bioWeapons],
+    m: [w("Tyranid Warrior claws and talons", "melee", "Melee", 6, 3, 5, -2, 1, ["Twin-linked"])],
     ab: [
-      a("Adaptable Predators", "Eligible to shoot and charge after Falling Back."),
-      a("Preservation Imperative", "Re-roll saving throws of 1."),
+      a("Adaptive Instincts", "Once per turn, when this unit is selected to fight or is targeted, its melee attacks are +1 Strength or it has +1 Toughness."),
     ],
   }),
   u("nids-warriors-ranged", "Tyranid Warriors with Ranged Bio-weapons", "infantry", 60, { m: 6, t: 5, sv: 4, w: 3, ld: 7, oc: 2 }, ["Infantry", "Synapse", "Tyranids"], {
     sizes: sizes36(60, 120),
-    r: [devourer, w("Deathspitter", "ranged", 24, 3, 4, 5, -1, 1, []), w("Venom cannon", "ranged", 36, "D3", 4, 9, -2, 2, ["Blast"])],
-    m: [bioWeapons],
+    r: [
+      devourer,
+      w("Deathspitter", "ranged", 24, 3, 4, 5, -1, 1, []),
+      w("Spinefists", "ranged", 12, 2, 4, 4, 0, 1, ["Assault", "Pistol", "Twin-linked"]),
+      w("Barbed strangler", "ranged", 36, "D6+1", 4, 6, -1, 1, ["Blast"]),
+      w("Venom cannon", "ranged", 36, "D3", 4, 9, -2, 2, ["Blast"]),
+    ],
+    m: [w("Tyranid Warrior claws and talons", "melee", "Melee", 5, 3, 5, -1, 1, [])],
     ab: [a("Adaptable Predators", "Eligible to shoot and charge after Falling Back.")],
   }),
   u("nids-raveners", "Raveners", "infantry", 125, { m: 10, t: 5, sv: 4, w: 3, ld: 8, oc: 1 }, ["Infantry", "Tyranids", "Vanguard Invader", "Burrower"], {
@@ -245,7 +275,12 @@ const units: UnitDef[] = [
     inv: 6,
     sizes: sizes36(55, 105),
     m: [w("Leaper's talons", "melee", "Melee", 6, 3, 5, -1, 1, [])],
-    ab: [loneOp, a("Pouncing Leap", "Fight First. Set up more than 9\" from enemy models. Stealth.")],
+    ab: [
+      fightsFirst,
+      infiltrate,
+      stealth,
+      a("Pouncing Leap", "Can Heroic Intervention for −1 CP, and that use does not stop other units using the Stratagem this phase."),
+    ],
   }),
   u("nids-barbgaunts", "Barbgaunts", "infantry", 55, { m: 6, t: 4, sv: 4, w: 2, ld: 8, oc: 1 }, KW_INF, {
     sizes: [
@@ -302,9 +337,18 @@ const units: UnitDef[] = [
   u("nids-zoanthropes", "Zoanthropes", "infantry", 90, { m: 5, t: 5, sv: 5, w: 3, ld: 7, oc: 1 }, ["Infantry", "Psyker", "Fly", "Synapse", "Tyranids"], {
     inv: 4,
     sizes: sizes36(90, 190),
-    r: [w("Warp blast", "ranged", 24, "D3", 3, 12, -3, "D6+1", ["Blast", "Psychic"])],
-    m: [clawsTeeth],
-    ab: [a("Warp Field", "Friendly Tyranids units within 6\" have a 6+ invulnerable save against ranged attacks.")],
+    r: [
+      w("Warp blast (witchfire)", "ranged", 24, "D3", 3, 7, -2, "D3", ["Blast", "Psychic"]),
+      w("Warp blast (focused witchfire)", "ranged", 24, 1, 3, 12, -3, "D6+1", ["Lethal Hits", "Psychic"]),
+    ],
+    m: [w("Chitinous claws and teeth", "melee", "Melee", 2, 5, 3, 0, 1, [])],
+    ab: [
+      a(
+        "Spirit Leech",
+        "While an enemy unit is within 6\" of this unit, if this unit contains a Neurothrope, each time that enemy unit fails a Battle-shock test, it suffers D3 mortal wounds and one model in this unit regains up to D3 lost wounds.",
+      ),
+      a("Warp Field", "While a friendly Tyranids unit is within 6\" of this unit, models in that unit have a 6+ invulnerable save."),
+    ],
   }),
   u("nids-ripper-swarms", "Ripper Swarms", "infantry", 30, { m: 6, t: 2, sv: 6, w: 4, ld: 8, oc: 0 }, ["Swarm", "Tyranids", "Harvester"], {
     sizes: [

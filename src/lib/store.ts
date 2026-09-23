@@ -286,40 +286,31 @@ function hydrateGame(g: Game): Game {
   };
 }
 
-function turnRank(round: number, side: "me" | "opponent", firstTurn: "me" | "opponent" = "me"): number {
-  const sideOffset = side === firstTurn ? 0 : 1;
-  return (round - 1) * 2 + sideOffset;
+function turnRank(round: number, side: "me" | "opponent"): number {
+  return (round - 1) * 2 + (side === "opponent" ? 1 : 0);
 }
 
-function turnFromRank(rank: number, firstTurn: "me" | "opponent" = "me"): { round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" } {
+function turnFromRank(rank: number): { round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" } {
   const clamped = Math.min(9, Math.max(0, rank));
-  const firstIsOpponent = firstTurn === "opponent";
   return {
     round: (Math.floor(clamped / 2) + 1) as 1 | 2 | 3 | 4 | 5,
-    side: clamped % 2 === 0 ? firstTurn : firstIsOpponent ? "me" : "opponent",
+    side: clamped % 2 === 1 ? "opponent" : "me",
   };
-}
-
-function turnKey(round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", firstTurn: "me" | "opponent") {
-  return String(turnRank(round, side, firstTurn));
 }
 
 function browseTurn(g: Game, round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", phase: PhaseId): Game {
   const liveR = g.liveRound ?? g.round;
   const liveS = g.liveSide ?? g.activeSide;
-  const targetIsLive = round === liveR && side === liveS;
-  const firstTurn = g.preBattle?.firstTurn === "opponent" ? "opponent" : "me";
-  const cp = targetIsLive ? g.cp : g.cpHistory?.[turnKey(round, side, firstTurn)] ?? g.cp;
+  const leavingLive = g.round === liveR && g.activeSide === liveS && (round !== liveR || side !== liveS);
   return {
     ...g,
     round,
     activeSide: side,
     viewing: side,
     phase,
-    cp,
     liveRound: liveR,
     liveSide: liveS,
-    livePhase: targetIsLive ? phase : (g.livePhase ?? g.phase),
+    livePhase: leavingLive ? g.phase : (g.livePhase ?? g.phase),
   };
 }
 
@@ -392,6 +383,18 @@ function sideName(game: Game, side: "me" | "opponent") {
   return side === "me" ? game.myName : game.opponentName;
 }
 
+function allocationFrom(summary: string, prefix: string, fallback: UnitBattleState): { models: number; wounds: number } | null {
+  if (!summary.startsWith(prefix)) return null;
+  const rest = summary.slice(prefix.length);
+  if (!/^(?:models \d+ → \d+|wounds \d+ → \d+)(?: · (?:models \d+ → \d+|wounds \d+ → \d+))?$/.test(rest)) return null;
+  const models = rest.match(/models (\d+) → \d+/);
+  const wounds = rest.match(/wounds (\d+) → \d+/);
+  return {
+    models: models ? Number(models[1]) : fallback.modelsRemaining,
+    wounds: wounds ? Number(wounds[1]) : fallback.woundsOnCurrent,
+  };
+}
+
 function applyTracked(
   get: () => State,
   set: (partial: { games: Game[] }) => void,
@@ -454,8 +457,6 @@ type State = {
   setMuster: (patch: { attacker?: "me" | "opponent" | null; firstTurn?: "me" | "opponent" | null }) => void;
   setViewing: (side: "me" | "opponent") => void;
   setPhase: (phase: PhaseId) => void;
-  prevPhase: () => void;
-  nextPhase: () => void;
   endTurn: () => void;
   prevTurn: () => void;
   jumpRound: (round: 1 | 2 | 3 | 4 | 5) => void;
@@ -632,7 +633,6 @@ export const useWarStore = create<State>()(
           liveSide: active,
           livePhase: "command",
           preBattle: briefing,
-          cpHistory: { [turnKey(1, active, first ?? "me")]: { me: 1, opponent: 1 } },
         };
         set({ games: [game, ...get().games], activeGameId: id });
         return id;
@@ -686,60 +686,14 @@ export const useWarStore = create<State>()(
           return { ...g, phase, ...(atLive ? { livePhase: phase } : {}) };
         });
       },
-      prevPhase: () => {
-        const id = get().activeGameId;
-        const raw = get().games.find((g) => g.id === id);
-        if (!id || !raw || raw.status === "complete") return;
-        const game = hydrateGame(raw);
-        const idx = PHASES.findIndex((p) => p.id === game.phase);
-        if (idx < 0) return;
-        if (idx > 0) {
-          get().setPhase(PHASES[idx - 1].id);
-          return;
-        }
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
-        const rank = turnRank(game.round, game.activeSide, firstTurn);
-        if (rank <= 0) return;
-        const prev = turnFromRank(rank - 1, firstTurn);
-        set({
-          games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), prev.round, prev.side, "end") : g)),
-        });
-      },
-      nextPhase: () => {
-        const id = get().activeGameId;
-        const raw = get().games.find((g) => g.id === id);
-        if (!id || !raw || raw.status === "complete") return;
-        const game = hydrateGame(raw);
-        const idx = PHASES.findIndex((p) => p.id === game.phase);
-        if (idx < 0) return;
-        if (idx < PHASES.length - 1) {
-          get().setPhase(PHASES[idx + 1].id);
-          return;
-        }
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
-        const liveR = game.liveRound ?? game.round;
-        const liveS = game.liveSide ?? game.activeSide;
-        const isLiveTurn = game.round === liveR && game.activeSide === liveS;
-        if (isLiveTurn) {
-          get().endTurn();
-          return;
-        }
-        const rank = turnRank(game.round, game.activeSide, firstTurn);
-        if (rank >= 9) return;
-        const next = turnFromRank(rank + 1, firstTurn);
-        set({
-          games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), next.round, next.side, "command") : g)),
-        });
-      },
       prevTurn: () => {
         const id = get().activeGameId;
         const raw = get().games.find((g) => g.id === id);
         if (!id || !raw) return;
         const game = hydrateGame(raw);
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
-        const rank = turnRank(game.round, game.activeSide, firstTurn);
+        const rank = turnRank(game.round, game.activeSide);
         if (rank <= 0) return;
-        const next = turnFromRank(rank - 1, firstTurn);
+        const next = turnFromRank(rank - 1);
         set({
           games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), next.round, next.side, "command") : g)),
         });
@@ -752,8 +706,7 @@ export const useWarStore = create<State>()(
         const liveR = game.liveRound ?? game.round;
         const liveS = game.liveSide ?? game.activeSide;
         if (round > liveR) return;
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
-        const side = round === liveR ? liveS : firstTurn;
+        const side = round === liveR ? liveS : "me";
         const phase = round === liveR && side === liveS ? (game.livePhase ?? "command") : "command";
         set({
           games: get().games.map((g) => (g.id === id ? browseTurn(hydrateGame(g), round, side, phase) : g)),
@@ -766,11 +719,10 @@ export const useWarStore = create<State>()(
         const game = hydrateGame(raw);
         const liveR = game.liveRound ?? game.round;
         const liveS = game.liveSide ?? game.activeSide;
-        const firstTurn = game.preBattle?.firstTurn ?? "me";
-        const cur = turnRank(game.round, game.activeSide, firstTurn);
-        const live = turnRank(liveR, liveS, firstTurn);
+        const cur = turnRank(game.round, game.activeSide);
+        const live = turnRank(liveR, liveS);
         if (cur < live) {
-          const next = turnFromRank(cur + 1, firstTurn);
+          const next = turnFromRank(cur + 1);
           const backToLive = cur + 1 === live;
           set({
             games: get().games.map((g) =>
@@ -787,18 +739,16 @@ export const useWarStore = create<State>()(
           return;
         }
         if (game.status === "complete") return;
-        const otherSide = firstTurn === "me" ? "opponent" : "me";
-        const isFirstTurnOfRound = game.activeSide === firstTurn;
-        if (isFirstTurnOfRound) {
-          applyTracked(get, set, "turn", `Turn ended · ${sideName(game, otherSide)}'s turn`, (g) => ({
+        if (game.activeSide === "me") {
+          applyTracked(get, set, "turn", `Turn ended · ${game.opponentName}'s turn`, (g) => ({
             ...g,
-            ...rollTurnClock(g, otherSide),
-            activeSide: otherSide,
+            ...rollTurnClock(g, "opponent"),
+            activeSide: "opponent",
             phase: "command",
-            viewing: otherSide,
-            cp: { ...g.cp, [otherSide]: g.cp[otherSide] + 1 },
+            viewing: "opponent",
+            cp: { ...g.cp, opponent: g.cp.opponent + 1 },
             liveRound: g.round,
-            liveSide: otherSide,
+            liveSide: "opponent",
             livePhase: "command",
           }));
           return;
@@ -809,27 +759,21 @@ export const useWarStore = create<State>()(
           get,
           set,
           "turn",
-          done ? `Battle ended · Round ${game.round}` : `Turn ended · Round ${nextRound}, ${firstTurn === "me" ? game.myName : game.opponentName}`,
+          done ? `Battle ended · Round ${game.round}` : `Turn ended · Round ${nextRound}, ${game.myName}`,
           (g) => {
-            const clock = done ? stopAllClocks(g) : rollTurnClock(g, firstTurn);
+            const clock = done ? stopAllClocks(g) : rollTurnClock(g, "me");
             return {
               ...g,
               ...clock,
               round: nextRound,
               phase: "command",
-              activeSide: firstTurn,
-              viewing: firstTurn,
-              cp: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
-              cpHistory: done
-                ? g.cpHistory
-                : {
-                    ...(g.cpHistory ?? {}),
-                    [turnKey(nextRound, firstTurn, firstTurn)]: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
-                  },
+              activeSide: "me",
+              viewing: "me",
+              cp: { ...g.cp, me: g.cp.me + 1 },
               status: done ? "complete" : "active",
               finishedAt: done ? Date.now() : g.finishedAt,
               liveRound: nextRound,
-              liveSide: firstTurn,
+              liveSide: "me",
               livePhase: "command",
             };
           },
@@ -920,20 +864,25 @@ export const useWarStore = create<State>()(
       },
       toggleTacticalActive: (side, cardId) => {
         const id = get().activeGameId;
-        if (!id) return;
-        set({
-          games: get().games.map((g) => {
-            if (g.id !== id) return g;
-            const cur = g.scores[side].tacticalActive ?? [];
-            const adding = !cur.includes(cardId);
-            const next = adding ? [...cur, cardId] : cur.filter((x) => x !== cardId);
-            const meta = { ...(g.scores[side].secondaryMeta ?? {}) };
-            if (adding) {
-              meta[cardId] = { selectedRound: g.round };
-            }
-            return patchScore(g, side, { secondaryMode: "tactical", tacticalActive: next, secondaryMeta: meta });
-          }),
-        });
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const cur = game.scores[side].tacticalActive ?? [];
+        const adding = !cur.includes(cardId);
+        const next = adding ? [...cur, cardId] : cur.filter((x) => x !== cardId);
+        const meta = { ...(game.scores[side].secondaryMeta ?? {}) };
+        if (adding) meta[cardId] = { selectedRound: game.round };
+        const apply = (g: Game) => patchScore(g, side, { secondaryMode: "tactical", tacticalActive: next, secondaryMeta: meta });
+        if (!adding) {
+          set({
+            games: get().games.map((g) => (g.id === id ? apply(hydrateGame(g)) : g)),
+          });
+          return;
+        }
+        const card = getSecondary(cardId)?.name ?? "a secondary";
+        const who = sideName(game, side);
+        const verb = who.trim().toLowerCase() === "you" ? "You draw" : `${who} draws`;
+        applyTracked(get, set, "score", `${verb} ${card}.`, apply);
       },
       setSecondaryScore: (side, cardId, vp) => {
         const id = get().activeGameId;
@@ -1007,22 +956,21 @@ export const useWarStore = create<State>()(
       },
       adjustCp: (side, delta) => {
         const id = get().activeGameId;
-        if (!id) return;
-        set({
-          games: get().games.map((g) =>
-            g.id === id
-            ? (() => {
-                const cp = { ...g.cp, [side]: Math.max(0, g.cp[side] + delta) };
-                const firstTurn = g.preBattle?.firstTurn ?? "me";
-                return {
-                  ...g,
-                  cp,
-                  cpHistory: { ...(g.cpHistory ?? {}), [turnKey(g.round, g.activeSide, firstTurn)]: cp },
-                };
-              })()
-            : g,
-          ),
-        });
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const before = game.cp[side];
+        const after = Math.max(0, before + delta);
+        if (after === before) return;
+        const diff = after - before;
+        const n = Math.abs(diff);
+        const who = sideName(game, side);
+        const you = who.trim().toLowerCase() === "you";
+        const verb = diff > 0 ? (you ? "You gain" : `${who} gains`) : you ? "You spend" : `${who} spends`;
+        applyTracked(get, set, "cp", `${verb} ${n} CP.`, (g) => ({
+          ...g,
+          cp: { ...g.cp, [side]: after },
+        }));
       },
       setUnitState: (unitId, patch) => {
         const id = get().activeGameId;
@@ -1058,7 +1006,58 @@ export const useWarStore = create<State>()(
           return;
         }
         const kind: LedgerEventKind = next.destroyed !== prev.destroyed ? "destroyed" : next.battleShocked !== prev.battleShocked && parts.length === 1 ? "battleShock" : "unit";
-        applyTracked(get, set, kind, `${who} · ${name} ${parts.join(" · ")}`, apply);
+        const prefix = `${who} · ${name} `;
+        const last = (game.log ?? [])[0];
+        const origin = kind === "unit" && last?.kind === "unit" ? allocationFrom(last.summary, prefix, prev) : null;
+        if (origin && last) {
+          const folded: string[] = [];
+          if (origin.models !== next.modelsRemaining) folded.push(`models ${origin.models} → ${next.modelsRemaining}`);
+          if (origin.wounds !== next.woundsOnCurrent) folded.push(`wounds ${origin.wounds} → ${next.woundsOnCurrent}`);
+          if (folded.length === 0) {
+            const slice = game.undoStack[0];
+            set({
+              games: get().games.map((g) =>
+                g.id === id
+                  ? {
+                      ...hydrateGame(g),
+                      ...(slice
+                        ? {
+                            round: slice.round,
+                            phase: slice.phase,
+                            activeSide: slice.activeSide,
+                            viewing: slice.viewing ?? g.viewing,
+                            cp: clone(slice.cp),
+                            unitState: clone(slice.unitState),
+                            activeStrats: clone(slice.activeStrats),
+                            scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
+                            ...(slice.scores ? { scores: clone(slice.scores) } : {}),
+                            status: slice.status,
+                            finishedAt: slice.finishedAt,
+                          }
+                        : apply(hydrateGame(g))),
+                      log: (g.log ?? []).slice(1),
+                      undoStack: (g.undoStack ?? []).slice(1),
+                    }
+                  : g,
+              ),
+            });
+            return;
+          }
+          const stampedAt = Date.now();
+          const updated: LedgerEvent = {
+            ...last,
+            at: stampedAt,
+            summary: `${prefix}${folded.join(" · ")}`,
+            clockMs: battleElapsedMs(game, stampedAt),
+          };
+          set({
+            games: get().games.map((g) =>
+              g.id === id ? { ...apply(hydrateGame(g)), log: [updated, ...(g.log ?? []).slice(1)] } : g,
+            ),
+          });
+          return;
+        }
+        applyTracked(get, set, kind, `${prefix}${parts.join(" · ")}`, apply);
       },
       startScoringAction: (unitId, cardId) => {
         const id = get().activeGameId;
@@ -1132,13 +1131,6 @@ export const useWarStore = create<State>()(
           (g) => ({
             ...g,
             cp: { ...g.cp, [side]: Math.max(0, g.cp[side] - total) },
-            cpHistory: {
-              ...(g.cpHistory ?? {}),
-              [turnKey(g.round, g.activeSide, g.preBattle?.firstTurn ?? "me")]: {
-                ...g.cp,
-                [side]: Math.max(0, g.cp[side] - total),
-              },
-            },
             activeStrats: [...actives, ...g.activeStrats],
           }),
         );
