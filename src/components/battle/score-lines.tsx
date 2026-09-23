@@ -145,3 +145,4 @@ export function cardScored(checks?: Array<Array<number | boolean>>): boolean {
 export function unscoredFirst<T extends string>(ids: T[], checks: Record<string, number[][]> | undefined): T[] {
   return [...ids].sort((a, b) => Number(cardScored(checks?.[a])) - Number(cardScored(checks?.[b])));
 }
+
