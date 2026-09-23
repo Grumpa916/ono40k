@@ -709,6 +709,13 @@ export const useWarStore = create<State>()(
           return;
         }
         const firstTurn = game.preBattle?.firstTurn ?? "me";
+        const liveR = game.liveRound ?? game.round;
+        const liveS = game.liveSide ?? game.activeSide;
+        const isLiveTurn = game.round === liveR && game.activeSide === liveS;
+        if (isLiveTurn) {
+          get().endTurn();
+          return;
+        }
         const rank = turnRank(game.round, game.activeSide, firstTurn);
         if (rank >= 9) return;
         const next = turnFromRank(rank + 1, firstTurn);
