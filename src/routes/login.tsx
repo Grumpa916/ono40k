@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SUPABASE_SCHEMA, clearSupabaseConfig, getSupabase, saveSupabaseConfig } from "@/lib/supabase";
+import { SUPABASE_SCHEMA, clearSupabaseConfig, getSupabase, saveSupabaseConfig, useBuiltinSupabase } from "@/lib/supabase";
 import { useSupabaseConfig, useSupabaseSession } from "@/lib/use-supabase-session";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -87,6 +87,9 @@ function ConnectProject() {
       <Button type="submit" className="w-full">
         Connect
       </Button>
+      <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => useBuiltinSupabase()}>
+        Use the built-in project
+      </button>
       <details className="text-sm text-muted-foreground">
         <summary className="cursor-pointer">SQL to run once in Supabase</summary>
         <pre className="mt-2 overflow-x-auto rounded-md border border-border bg-muted p-3 text-[11px] leading-relaxed text-foreground">{SUPABASE_SCHEMA}</pre>
