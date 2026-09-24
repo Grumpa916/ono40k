@@ -1,4 +1,4 @@
-import type { Disposition, Game, PhaseId, RosterUnit, UnitDef } from "@/data/types";
+import type { Disposition, Game, MissionEvent, PhaseId, RosterUnit, UnitDef } from "@/data/types";
 
 export type ResolutionStatus = "RESOLVED" | "UNKNOWN" | "NOT_APPLICABLE" | "INVALID";
 export type ResolutionResult<T> =
@@ -48,7 +48,7 @@ export type BattleRuntime = {
   battleId: string; edition: 11; rulesVersion: string;
   round: 1 | 2 | 3 | 4 | 5; activeSide: "me" | "opponent"; phase: PhaseId;
   cp: { me: number; opponent: number }; vp: { me: number; opponent: number };
-  units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>;
+  units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>; missionEvents: MissionEvent[];
   mission: {
     disposition: { me: Disposition | null; opponent: Disposition | null };
     primaryId: string | null;
@@ -99,6 +99,8 @@ export type MissionConditionKind =
   | "CONTROL_MORE_OBJECTIVES"
   | "DESTROY_UNIT"
   | "DESTROYED_DURING_WINDOW"
+  | "ACTION_COMPLETED"
+  | "OPERATION_MARKER_COUNT"
   | "ALL"
   | "ANY"
   | "AT_LEAST_N"
@@ -113,6 +115,9 @@ export type MissionCondition = {
   territory?: "me" | "opponent";
   requiresHomeControl?: boolean;
   count?: number;
+  actionName?: string;
+  markerLocation?: "battlefield" | "opponentHome" | "myHome" | "centreObjective";
+  comparePreviousTurn?: boolean;
   children?: MissionCondition[];
   vp: number;
   each?: boolean;
