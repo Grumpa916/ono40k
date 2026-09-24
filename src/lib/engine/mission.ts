@@ -11,12 +11,15 @@ function rounds(text: string): number[] {
 
 function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> {
   const out: Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> = [];
-  const clauses = line.matchAll(/(R\\d(?:–R\\d)?)\\s*,?\\s*(Command|end of (?:your|the) turn)/gi);
-  for (const match of clauses) {
-    const roundText = match[1]!;
-    const label = match[2]!.toLowerCase();
-    const checkpoint: PrimaryCheckpoint = label === "command" ? "COMMAND" : "END_OF_TURN";
-    out.push({ checkpoint, rounds: rounds(roundText) });
+  const body = line.match(/\(([^)]*)\)/)?.[1];
+  const clauses = body ? body.split(";") : [line];
+  for (const clause of clauses) {
+    const match = clause.match(/(R\d(?:–R\d)?)\s*,?\s*(Command|end of (?:your|the) turn)/i);
+    if (!match) continue;
+    out.push({
+      checkpoint: match[2]!.toLowerCase() === "command" ? "COMMAND" : "END_OF_TURN",
+      rounds: rounds(match[1]!),
+    });
   }
   if (/end of battle/i.test(line)) out.push({ checkpoint: "END_OF_BATTLE", rounds: [5] });
   if (!out.length && /Command/i.test(line)) out.push({ checkpoint: "COMMAND", rounds: rounds(line) });
