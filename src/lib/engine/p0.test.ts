@@ -91,8 +91,8 @@ test("territory mapping is valid across all three layouts and both attacker orie
       assert.equal(home.length, 2);
       const attackerHome = home.find((d) => d.owner === attackerSide);
       const defenderHome = home.find((d) => d.owner !== attackerSide);
-      assert.equal(attackerHome?.territory, "me");
-      assert.equal(defenderHome?.territory, "opponent");
+      assert.equal(attackerHome?.territory, attackerSide);
+      assert.equal(defenderHome?.territory, attackerSide === "me" ? "opponent" : "me");
       assert.ok(defs.every((d) => d.territory === "me" || d.territory === "opponent"));
     }
   }
