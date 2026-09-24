@@ -209,3 +209,17 @@ test("P2 evaluates completed mission actions from structured state",()=>{
   const item = result.items.find(x=>x.conditionId===c!.id);
   assert.equal(item?.status,"PASS");
 });
+
+
+test("P2 evaluates opponent operation-marker conditions from the opponent side",()=>{
+  const r=runtime();
+  r.activeSide="me";
+  r.missionEvents=[{
+    id:"marker-1",kind:"operationMarker",at:10,round:2,turn:"opponent",phase:"movement",side:"opponent",markerId:"m1",markerLocation:"battlefield"
+  }];
+  const c=missionConditions("Surveil the Foe","Take and Hold").find(x=>x.kind==="OPERATION_MARKER_COUNT");
+  assert.ok(c);
+  const result = evaluatePrimaryCheckpoint(r,"me",2,"END_OF_TURN",0);
+  const item = result.items.find(x=>x.conditionId===c!.id);
+  assert.equal(item?.status,"FAIL");
+});
