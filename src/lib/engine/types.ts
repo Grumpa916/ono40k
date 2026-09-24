@@ -55,6 +55,8 @@ export type BattleRuntime = {
     scoringWindow: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE" | null;
   };
   versions: Record<string, number>;
+  primaryTransactions: Record<string, PrimaryScoreTransaction>;
+  primaryAwardedByRound: { me: [number, number, number, number, number]; opponent: [number, number, number, number, number] };
 };
 
 export type BattleEvent =
