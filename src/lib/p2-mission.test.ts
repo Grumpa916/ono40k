@@ -121,9 +121,9 @@ test("P2 commits primary scoring once and records overscore",()=>{
 
 test("P2 applies opponent-territory filtering to territory bonus scoring",()=>{
     const r=runtime();
-    r.objectives.O1 = {...r.objectives.O1, territory:"me"};
-    r.objectives.O2 = {...r.objectives.O2, territory:"opponent"};
-    r.objectives.O3 = {...r.objectives.O3, territory:"opponent"};
+    r.objectives.O1 = {...r.objectives.O1, definition:{...r.objectives.O1.definition, territory:"me"}};
+    r.objectives.O2 = {...r.objectives.O2, definition:{...r.objectives.O2.definition, territory:"opponent"}};
+    r.objectives.O3 = {...r.objectives.O3, definition:{...r.objectives.O3.definition, territory:"opponent"}};
     const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
     const bonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
     assert.equal(bonus?.status,"PASS");
