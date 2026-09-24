@@ -48,7 +48,7 @@ export type BattleRuntime = {
   battleId: string; edition: 11; rulesVersion: string;
   round: 1 | 2 | 3 | 4 | 5; activeSide: "me" | "opponent"; phase: PhaseId;
   cp: { me: number; opponent: number }; vp: { me: number; opponent: number };
-  units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>; missionEvents: MissionEvent[];
+  units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>; missionEvents?: MissionEvent[];
   mission: {
     disposition: { me: Disposition | null; opponent: Disposition | null };
     primaryId: string | null;
