@@ -1206,8 +1206,11 @@ export const useWarStore = create<State>()(
         const found = findRosterUnit(game, unitId);
         const name = unitLabel(game, unitId);
         const who = found ? sideName(game, found.side) : "";
+        const alreadyRecordedDestruction = (game.missionEvents ?? []).some(
+          (e) => e.kind === "unitDestroyed" && e.unitId === unitId && e.round === game.round && e.turn === game.activeSide,
+        );
         const destructionEvent: MissionEvent | null =
-          next.destroyed && !prev.destroyed
+          next.destroyed && !prev.destroyed && !alreadyRecordedDestruction
             ? {
                 id: uid("mev"),
                 kind: "unitDestroyed",
