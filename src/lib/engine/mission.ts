@@ -49,8 +49,9 @@ function parseLine(text: string, index: number): MissionCondition {
   const op = text.match(/(three or more|one or more|only one|none of the opponent'?s) (?:of your |of the opponent'?s )?operation markers?/i);
   if (op && !/only one operation marker remains and|you control|contest that terrain/i.test(text)) {
     const phrase = op[1]!.toLowerCase();
+    const targetSide = /none of the opponent'?s/i.test(text) ? "opponent" : undefined;
     const count = phrase === "three or more" ? 3 : phrase === "none of the opponent's" ? 0 : 1;
-    return { ...base, kind: "OPERATION_MARKER_COUNT", count, markerLocation: /opponent'?s home/i.test(text) ? "opponentHome" : /central objective/i.test(text) ? "centreObjective" : "battlefield" };
+    return { ...base, kind: "OPERATION_MARKER_COUNT", count, targetSide, markerLocation: /opponent'?s home/i.test(text) ? "opponentHome" : /central objective/i.test(text) ? "centreObjective" : "battlefield" };
   }
   if (/control more objectives than (?:your )?opponent/i.test(text)) return { ...base, kind: "CONTROL_MORE_OBJECTIVES" };
   if (/control (?:your opponent'?s|opponent'?s) home objective/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE", objectiveKind: "home", objectiveId: "OPPONENT_HOME" };
@@ -110,7 +111,8 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
     return { status: matches.length ? "PASS" : "FAIL", value: matches.length, dependencies:["mission:action:"+String(c.actionName ?? "any").toLowerCase()] };
   }
   if (c.kind === "OPERATION_MARKER_COUNT") {
-    const matches = missionEvents.filter(e => e.kind === "operationMarker" && e.side === side && (!c.markerLocation || e.markerLocation === c.markerLocation));
+    const markerSide = c.targetSide === "opponent" ? (side === "me" ? "opponent" : "me") : side;
+    const matches = missionEvents.filter(e => e.kind === "operationMarker" && e.side === markerSide && (!c.markerLocation || e.markerLocation === c.markerLocation));
     const value = matches.length;
     return { status: value >= (c.count ?? 1) ? "PASS" : "FAIL", value, dependencies:["mission:operation-markers"] };
   }
