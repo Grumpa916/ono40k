@@ -14,14 +14,18 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 function WeaponRow({ w }: { w: Weapon }) {
   return (
     <tr className="border-t border-border/70">
-      <td className="py-1.5 pr-2 font-medium">{w.name}</td>
-      <td className="py-1.5 pr-2 text-muted-foreground tabular-nums">{w.range === "Melee" ? "Melee" : `${w.range}"`}</td>
-      <td className="py-1.5 pr-2 tabular-nums">{w.attacks}</td>
-      <td className="py-1.5 pr-2 tabular-nums">{w.skill}+</td>
-      <td className="py-1.5 pr-2 tabular-nums">{w.strength}</td>
-      <td className="py-1.5 pr-2 tabular-nums">{w.ap}</td>
-      <td className="py-1.5 pr-2 tabular-nums">{w.damage}</td>
-      <td className="py-1.5 text-[11px] text-muted-foreground">{w.keywords.join(", ") || "—"}</td>
+      <td className="py-1.5 pr-1 font-medium">
+        <span className="block leading-tight">{w.name}</span>
+        {w.keywords.length > 0 ? (
+          <span className="block text-[10px] leading-tight font-normal text-muted-foreground">{w.keywords.join(", ")}</span>
+        ) : null}
+      </td>
+      <td className="py-1.5 text-right text-muted-foreground tabular-nums whitespace-nowrap">{w.range === "Melee" ? "Melee" : `${w.range}"`}</td>
+      <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{w.attacks}</td>
+      <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{w.skill}+</td>
+      <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{w.strength}</td>
+      <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{w.ap}</td>
+      <td className="py-1.5 text-right tabular-nums whitespace-nowrap">{w.damage}</td>
     </tr>
   );
 }
@@ -67,18 +71,26 @@ export function Datasheet({
       {!compact && (
         <>
           {(unit.ranged.length > 0 || unit.melee.length > 0) && (
-            <div className="mt-3 overflow-x-auto px-4">
-              <table className="w-full min-w-[540px] text-left text-xs">
+            <div className="mt-3 px-4">
+              <table className="w-full table-fixed text-left text-[11px]">
+                <colgroup>
+                  <col />
+                  <col className="w-12" />
+                  <col className="w-6" />
+                  <col className="w-7" />
+                  <col className="w-5" />
+                  <col className="w-6" />
+                  <col className="w-9" />
+                </colgroup>
                 <thead>
-                  <tr className="text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                  <tr className="text-[9px] tracking-wide text-muted-foreground uppercase">
                     <th className="pb-1 font-medium">Weapon</th>
-                    <th className="pb-1 font-medium">Rng</th>
-                    <th className="pb-1 font-medium">A</th>
-                    <th className="pb-1 font-medium">BS/WS</th>
-                    <th className="pb-1 font-medium">S</th>
-                    <th className="pb-1 font-medium">AP</th>
-                    <th className="pb-1 font-medium">D</th>
-                    <th className="pb-1 font-medium">Keywords</th>
+                    <th className="pb-1 text-right font-medium">Rng</th>
+                    <th className="pb-1 text-right font-medium">A</th>
+                    <th className="pb-1 text-right font-medium">BS</th>
+                    <th className="pb-1 text-right font-medium">S</th>
+                    <th className="pb-1 text-right font-medium">AP</th>
+                    <th className="pb-1 text-right font-medium">D</th>
                   </tr>
                 </thead>
                 <tbody>
