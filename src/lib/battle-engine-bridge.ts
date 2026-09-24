@@ -1,5 +1,5 @@
-import { BattleEngine } from "@/lib/engine";
-import type { BattleCommand, BattleRuntime } from "@/lib/engine";
+import { BattleEngine, evaluatePrimaryCheckpoint } from "@/lib/engine";
+import type { BattleCommand, BattleRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "@/lib/engine";
 import type { Game } from "@/data/types";
 import { uid } from "@/lib/utils";
 
@@ -124,4 +124,15 @@ export function getBattleEngineDiagnostics(gameId: string) {
 
 export function resetBattleEngineRegistry() {
   records.clear();
+}
+
+export function getPrimaryScorePreview(
+  game: Game,
+  side: "me" | "opponent" = game.activeSide,
+  checkpoint: PrimaryCheckpoint = game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN",
+): PrimaryScorePreview {
+  const runtime = getBattleRuntime(game);
+  const round = game.round;
+  const primaryAlreadyAwarded = game.scores[side].primaryByRound[round - 1] ?? 0;
+  return evaluatePrimaryCheckpoint(runtime, side, round, checkpoint, primaryAlreadyAwarded);
 }
