@@ -173,3 +173,12 @@ test("P2 does not require unrelated stale objectives for a one-or-more condition
     const objectiveCount=preview.items.find(i=>i.sourceText.includes("3 VP for each objective you control"));
     assert.equal(objectiveCount?.status,"UNKNOWN");
 });
+
+
+test("P2 rejects primary scoring at the wrong live checkpoint",()=>{
+    const r=runtime();
+    r.phase="shooting";
+    const result=executeCommand(r,{id:"score-wrong-phase",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"END_OF_TURN"});
+    assert.equal(result.ok,false);
+    assert.match(result.error ?? "",/end of the turn/i);
+});
