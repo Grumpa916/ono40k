@@ -76,7 +76,8 @@ export type BattleCommand =
   | { id: string; type: "MOVE_UNIT"; unitId: string }
   | { id: string; type: "REMOVE_MODELS"; unitId: string; count: number }
   | { id: string; type: "SET_BATTLE_SHOCK"; unitId: string; battleShocked: boolean }
-  | { id: string; type: "SET_OBJECTIVE_CONTRIBUTION"; objectiveId: string; contribution: ObjectiveContribution }\n  | { id: string; type: "SET_OBJECTIVE_SIDE_ABSENT"; objectiveId: string; side: "me" | "opponent" }
+  | { id: string; type: "SET_OBJECTIVE_CONTRIBUTION"; objectiveId: string; contribution: ObjectiveContribution }
+  | { id: string; type: "SET_OBJECTIVE_SIDE_ABSENT"; objectiveId: string; side: "me" | "opponent" }
   | { id: string; type: "CONFIRM_OBJECTIVE"; objectiveId: string }
   | { id: string; type: "CHANGE_PHASE"; phase: PhaseId }
   | { id: string; type: "CHANGE_TURN"; round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" }
@@ -144,6 +145,7 @@ export type PrimaryScorePreview = {
   awardedVp: number;
   overscore: number;
   unresolved: string[];
+  requiredObjectiveIds: string[];
 };
 
 export type CommandResult = { ok: boolean; state?: BattleRuntime; events: BattleEvent[]; error?: string };
