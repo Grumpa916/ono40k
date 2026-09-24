@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { SEED_LISTS } from "@/data/seeds";
-import type { Game } from "@/data/types";
-import { registerBattle, reconcileBattle, getBattleRuntime, getBattleEngineDiagnostics, unregisterBattle } from "./battle-engine-bridge";
+import { SEED_LISTS } from "../data/seeds.ts";
+import type { Game } from "../data/types.ts";
+import { registerBattle, reconcileBattle, getBattleRuntime, getBattleEngineDiagnostics, unregisterBattle } from "./battle-engine-bridge.ts";
 
 function fixture(): Game {
   const mine = structuredClone(SEED_LISTS[0]!);
