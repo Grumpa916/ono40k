@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateCanonicalCatalogue } from "./integrity";
 import { DependencyManager } from "./dependency";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, enforceSingleObjectiveContest } from "./objective";
+import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, findContestConflicts } from "./objective";
 import { resolveWeapon } from "./resolution";
 import { executeCommand } from "./commands";
 import type { BattleRuntime, RuntimeUnit } from "./types";
@@ -59,14 +59,12 @@ test("objective definitions have no circular-radius field", () => {
   assert.equal("radius" in defs[0]!, false);
 });
 
-test("a unit cannot be credited to two objectives at control time", () => {
+test("a unit assigned to two objectives produces a conflict instead of being auto-resolved", () => {
   const input = [
-    { componentId: "u1", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
-    { componentId: "u1", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
+    { componentId: "a", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
+    { componentId: "b", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
   ];
-  const result = enforceSingleObjectiveContest(input);
-  assert.equal(result[0]?.modelsContributing, 5);
-  assert.equal(result[1]?.modelsContributing, 0);
+  assert.deepEqual(findContestConflicts(input), ["u1"]);
 });
 
 test("command rejects invalid casualty input", () => {
