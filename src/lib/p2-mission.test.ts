@@ -72,12 +72,32 @@ test("P2 does not score from stale objective data",()=>{
 });
 
 
+test("P2 home-control bonus requires confirmed home control",()=>{
+    const r=runtime();
+    r.objectives.O1 = {...r.objectives.O1, controller:"opponent"};
+    const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
+    const bonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
+    assert.equal(bonus?.status,"FAIL");
+    assert.equal(bonus?.awardedVp,0);
+});
+
+test("P2 home-control bonus stays unresolved when home data is stale",()=>{
+    const r=runtime();
+    r.objectives.O1 = {...r.objectives.O1, status:"STALE"};
+    const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
+    const bonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
+    assert.equal(bonus?.status,"UNKNOWN");
+    assert.ok(bonus?.dependencies.includes("objective:O1"));
+    assert.ok(preview.unresolved.some(text=>text.includes("2 VP extra for each non-home objective")));
+});
+
 test("P2 commits primary scoring once and records overscore",()=>{
     const r=runtime();
+    r.primaryAwardedByRound.me[1] = 5;
     const first=executeCommand(r,{id:"score-1",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
     assert.equal(first.ok,true, first.error ?? "primary scoring rejected");
-    assert.equal(first.state?.primaryAwardedByRound.me[1],9);
-    assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,9);
+    assert.equal(first.state?.primaryAwardedByRound.me[1],10);
+    assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,10);
     const duplicate=executeCommand(first.state!,{id:"score-2",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
     assert.equal(duplicate.ok,false);
 });
