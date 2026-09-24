@@ -1,7 +1,7 @@
-import { BattleEngine, evaluatePrimaryCheckpoint } from "@/lib/engine";
-import type { BattleCommand, BattleRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "@/lib/engine";
-import type { Game } from "@/data/types";
-import { uid } from "@/lib/utils";
+import { BattleEngine, evaluatePrimaryCheckpoint } from "./engine/index.ts";
+import type { BattleCommand, BattleRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "./engine/index.ts";
+import type { Game } from "../data/types.ts";
+import { uid } from "./utils.ts";
 
 type BridgeRecord = {
   engine: BattleEngine;
