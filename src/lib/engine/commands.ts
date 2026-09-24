@@ -150,6 +150,15 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       break;
     case "SCORE_PRIMARY": {
       if (command.round !== state.round) return { ok: false, events, error: "Primary scoring round does not match the live battle round." };
+      if (command.checkpoint === "COMMAND" && state.phase !== "command") {
+        return { ok: false, events, error: "Command-phase primary scoring is only available in the Command phase." };
+      }
+      if (command.checkpoint === "END_OF_TURN" && state.phase !== "end") {
+        return { ok: false, events, error: "End-of-turn primary scoring is only available at the end of the turn." };
+      }
+      if (command.checkpoint === "END_OF_BATTLE" && (state.phase !== "end" || state.round !== 5)) {
+        return { ok: false, events, error: "End-of-battle primary scoring is only available at the end of battle round 5." };
+      }
       const transactionId = `primary:${command.side}:${command.round}:${command.checkpoint}`;
       if (state.primaryTransactions[transactionId]) return { ok: false, events, error: "Primary scoring checkpoint already committed." };
       const alreadyAwarded = state.primaryAwardedByRound[command.side][command.round - 1] ?? 0;
