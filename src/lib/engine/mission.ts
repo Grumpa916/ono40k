@@ -20,7 +20,6 @@ function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: n
       rounds: rounds(match[1]!),
     });
   }
-  for (const endClause of line.matchAll(/(R\\d(?:–R\\d)?)\\s+end of (?:(?:your|the) )?turn/gi)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(endClause[1]!) });
   if (/end of battle/i.test(line)) out.push({ checkpoint: "END_OF_BATTLE", rounds: [5] });
   if (!out.length && /Command/i.test(line)) out.push({ checkpoint: "COMMAND", rounds: rounds(line) });
   if (!out.length && /end of (?:(?:your|the) )?turn/i.test(line)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(line) });
@@ -94,10 +93,25 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
     if (c.territory && o.definition.territory !== (c.territory === "opponent" ? (side === "me" ? "opponent" : "me") : side)) return false;
     return !c.objectiveKind || o.definition.kind === c.objectiveKind;
   });
-  if (relevant.some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:relevant.map(o => "objective:"+o.definition.id), reason:"Required objective control is not confirmed." };
-  const matching = relevant.filter(o => o.controller === side);
-  if (c.count != null && matching.length < c.count) return { status:"FAIL", value:matching.length, dependencies:deps };
-  return { status:"PASS", value:matching.length, dependencies:deps };
+  const matching = relevant.filter(o => o.status === "CONFIRMED" && o.controller === side);
+  const unknown = relevant.filter(o => o.status !== "CONFIRMED");
+  const requiredCount = c.count ?? 1;
+
+  // Resolve only as much objective state as the condition actually needs.
+  if (matching.length >= requiredCount) {
+    return { status:"PASS", value:matching.length, dependencies:matching.map(o => "objective:"+o.definition.id) };
+  }
+
+  const confirmed = relevant.filter(o => o.status === "CONFIRMED");
+  if (c.count != null && confirmed.length >= requiredCount && matching.length < requiredCount) {
+    return { status:"FAIL", value:matching.length, dependencies:confirmed.map(o => "objective:"+o.definition.id) };
+  }
+
+  if (unknown.length) {
+    return { status:"UNKNOWN", value:matching.length, dependencies:unknown.map(o => "objective:"+o.definition.id), reason:"Additional objective control data could change this result." };
+  }
+
+  return { status:"FAIL", value:matching.length, dependencies:relevant.map(o => "objective:"+o.definition.id) };
 }
 
 export function evaluateMissionCondition(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition, round=runtime.round, checkpoint:PrimaryCheckpoint="END_OF_TURN"): ConditionResult {
