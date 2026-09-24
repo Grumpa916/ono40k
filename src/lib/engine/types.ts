@@ -117,6 +117,7 @@ export type MissionCondition = {
   count?: number;
   actionName?: string;
   markerLocation?: "battlefield" | "opponentHome" | "myHome" | "centreObjective";
+  targetSide?: "me" | "opponent";
   comparePreviousTurn?: boolean;
   children?: MissionCondition[];
   vp: number;
