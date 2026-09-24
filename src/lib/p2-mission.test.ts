@@ -129,3 +129,47 @@ test("P2 applies opponent-territory filtering to territory bonus scoring",()=>{
     assert.equal(bonus?.status,"PASS");
     assert.equal(bonus?.eligibleVp,4);
 });
+
+
+test("P2 allows the same unit to contribute to two objectives independently",()=>{
+    const r=runtime();
+    r.units["shared"] = {
+      rosterUnit:{id:"shared",unitId:"test",models:6},
+      definition:{id:"test",name:"Shared Unit",models:6,oc:2},
+      side:"me",
+      modelsRemaining:6,
+      woundsOnCurrent:0,
+      battleShocked:false,
+      destroyed:false,
+    } as any;
+    r.objectives.O2 = setContribution(r.objectives.O2,{
+      componentId:"shared",
+      unitId:"shared",
+      side:"me",
+      modelsContributing:6,
+      effectiveOcPerModel:2,
+      totalOc:12,
+      updatedAt:1
+    });
+    r.objectives.O3 = setContribution(r.objectives.O3,{
+      componentId:"shared",
+      unitId:"shared",
+      side:"me",
+      modelsContributing:3,
+      effectiveOcPerModel:2,
+      totalOc:6,
+      updatedAt:1
+    });
+    assert.equal(r.objectives.O2.youOc,12);
+    assert.equal(r.objectives.O3.youOc,6);
+});
+
+test("P2 does not require unrelated stale objectives for a one-or-more condition",()=>{
+    const r=runtime();
+    r.objectives.O3.status="STALE";
+    const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
+    const eachObjective=preview.items.find(i=>i.sourceText.includes("3 VP for each objective you control"));
+    assert.equal(eachObjective?.status,"UNKNOWN");
+    const homeBonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
+    assert.equal(homeBonus?.status,"UNKNOWN");
+});
