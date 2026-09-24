@@ -40,6 +40,29 @@ function recalculate(runtime: ObjectiveRuntime): ObjectiveRuntime {
   return { ...runtime, youOc: totals.me, opponentOc: totals.opponent, controller, status: controlUnknown ? "UNKNOWN" : runtime.status, version: runtime.version + 1 };
 }
 
+/** Record a one-tap "no contributing models" observation for a side.
+ * This is intentionally a contribution record rather than an implicit zero:
+ * zero is known only when the player has explicitly observed that side.
+ * Existing unit contributions for the other side remain untouched.
+ */
+export function setSideAbsent(runtime: ObjectiveRuntime, side: "me" | "opponent", updatedAt = Date.now()): ObjectiveRuntime {
+  const componentId = `__side_absent__:${side}`;
+  const contribution: ObjectiveContribution = {
+    componentId,
+    unitId: componentId,
+    side,
+    modelsContributing: 0,
+    effectiveOcPerModel: 0,
+    totalOc: 0,
+    updatedAt,
+  };
+  return recalculate({
+    ...runtime,
+    contributions: { ...runtime.contributions, [componentId]: contribution },
+    status: "STALE",
+  });
+}
+
 export function setContribution(runtime: ObjectiveRuntime, contribution: ObjectiveContribution): ObjectiveRuntime {
   const models = Math.max(0, contribution.modelsContributing);
   const totalOc = contribution.effectiveOcPerModel == null ? null : models * Math.max(0, contribution.effectiveOcPerModel);
