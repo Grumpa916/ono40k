@@ -1,8 +1,20 @@
 import { getUnit } from "../../data/codex.ts";
-import { getMap } from "../../data/maps.ts";
+import { getMap, territoryGuide } from "../../data/maps.ts";
 import type { RosterUnit } from "../../data/types.ts";
 import { resolveModelOc } from "./resolution.ts";
 import type { ObjectiveContribution, ObjectiveDefinition, ObjectiveRuntime, RuntimeUnit } from "./types.ts";
+
+function pointTerritory(layout: NonNullable<ReturnType<typeof getMap>>, x: number, y: number, attackerSide?: "me" | "opponent"): "me" | "opponent" {
+  const guide = territoryGuide(layout.zones, layout.markers);
+  const attackerTerritory = guide?.attackerSide;
+  if (!attackerSide || !attackerTerritory) return "me";
+  const inAttackerTerritory =
+    attackerTerritory === "top" ? y <= 22 :
+    attackerTerritory === "bottom" ? y >= 22 :
+    attackerTerritory === "left" ? x <= 30 : x >= 30;
+  const attacker = attackerSide;
+  return inAttackerTerritory ? attacker : attacker === "me" ? "opponent" : "me";
+}
 
 export function objectiveDefinitions(layoutId: string | null | undefined, attackerSide?: "me" | "opponent"): ObjectiveDefinition[] {
   const layout = getMap(layoutId);
@@ -13,6 +25,7 @@ export function objectiveDefinitions(layoutId: string | null | undefined, attack
     index: index + 1,
     kind: marker.kind,
     owner: marker.owner && attackerSide ? marker.owner === "attacker" ? attackerSide : attackerSide === "me" ? "opponent" : "me" : undefined,
+    territory: pointTerritory(layout, marker.x, marker.y, attackerSide),
     anchor: { x: marker.x, y: marker.y },
     terrainAreaId: null,
   }));
