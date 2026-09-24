@@ -30,6 +30,7 @@ test("P2 preserves command vs end-of-turn windows",()=>{
 test("P2 calculates objective-count VP and applies the 15VP round cap",()=>{
     const preview=evaluatePrimaryCheckpoint(runtime(),"me",2,"COMMAND",14);
     assert.equal(preview.items[0]?.status, "PASS");
+    assert.deepEqual(preview.requiredObjectiveIds.sort(), ["O1","O2","O3"]);
     assert.ok(preview.items[0]?.eligibleVp > 0);
     assert.ok(preview.eligibleVp > 0);
     assert.ok(preview.awardedVp <= 1);
