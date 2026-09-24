@@ -64,7 +64,7 @@ export type BattleEvent =
   | { type: "MODEL_DESTROYED"; commandId: string; unitId: string; count: number }
   | { type: "UNIT_DESTROYED"; commandId: string; unitId: string }
   | { type: "UNIT_OC_CHANGED"; commandId: string; unitId: string }
-  | { type: "UNIT_BATTLE_SHOCK_CHANGED"; commandId: string; unitId: string; battleShocked: boolean };
+  | { type: "UNIT_BATTLE_SHOCK_CHANGED"; commandId: string; unitId: string; battleShocked: boolean }
   | { type: "OBJECTIVE_CONTRIBUTION_CHANGED"; commandId: string; objectiveId: string; unitId: string }
   | { type: "OBJECTIVE_CONFIRMED"; commandId: string; objectiveId: string }
   | { type: "OBJECTIVE_STALE"; commandId: string; objectiveId: string }
@@ -81,6 +81,65 @@ export type BattleCommand =
   | { id: string; type: "CHANGE_TURN"; round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" }
   | { id: string; type: "SET_CP"; side: "me" | "opponent"; value: number }
   | { id: string; type: "SET_VP"; side: "me" | "opponent"; value: number };
+
+export type PrimaryCheckpoint = "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE";
+export type MissionConditionKind =
+  | "CONTROL_OBJECTIVE"
+  | "CONTROL_OBJECTIVE_COUNT"
+  | "CONTROL_OBJECTIVE_IN_ZONE"
+  | "CONTROL_ANY_OBJECTIVE"
+  | "CONTROL_MORE_OBJECTIVES"
+  | "DESTROY_UNIT"
+  | "DESTROYED_DURING_WINDOW"
+  | "ALL"
+  | "ANY"
+  | "AT_LEAST_N"
+  | "UNSUPPORTED";
+
+export type MissionCondition = {
+  id: string;
+  kind: MissionConditionKind;
+  objectiveId?: string;
+  objectiveKind?: ObjectiveDefinition["kind"];
+  excludeHome?: boolean;
+  count?: number;
+  children?: MissionCondition[];
+  vp: number;
+  each?: boolean;
+  rounds: number[];
+  checkpoints: PrimaryCheckpoint[];
+  sourceText: string;
+};
+
+export type ConditionResult = {
+  status: "PASS" | "FAIL" | "UNKNOWN";
+  value?: number;
+  dependencies: string[];
+  reason?: string;
+};
+
+export type PrimaryScoreItem = {
+  conditionId: string;
+  sourceText: string;
+  eligibleVp: number;
+  awardedVp: number;
+  overscore: number;
+  status: ConditionResult["status"];
+  dependencies: string[];
+};
+
+export type PrimaryScorePreview = {
+  side: "me" | "opponent";
+  round: number;
+  checkpoint: PrimaryCheckpoint;
+  missionId: string | null;
+  items: PrimaryScoreItem[];
+  eligibleVp: number;
+  remainingRoundCap: number;
+  awardedVp: number;
+  overscore: number;
+  unresolved: string[];
+};
 
 export type CommandResult = { ok: boolean; state?: BattleRuntime; events: BattleEvent[]; error?: string };
 export type CatalogueAudit = { edition: 11; valid: boolean; errors: string[]; warnings: string[]; checkedFactions: number; checkedUnits: number; checkedWeapons: number };
