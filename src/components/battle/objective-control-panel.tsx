@@ -26,6 +26,20 @@ export function ObjectiveControlPanel({
   if (!objectives.length) return null;
 
   const needsScoringUpdate = requiredObjectiveIds.filter((id) => runtime.objectives[id]?.status !== "CONFIRMED");
+  const sharedObjectiveUnits = useMemo(() => {
+    const byUnit = new Map<string, Set<string>>();
+    for (const objective of objectives) {
+      for (const contribution of Object.values(objective.contributions)) {
+        if (contribution.modelsContributing <= 0 || contribution.componentId.startsWith("__side_absent__:")) continue;
+        const ids = byUnit.get(contribution.unitId) ?? new Set<string>();
+        ids.add(objective.definition.id);
+        byUnit.set(contribution.unitId, ids);
+      }
+    }
+    return [...byUnit.entries()]
+      .filter(([, ids]) => ids.size > 1)
+      .map(([unitId, ids]) => ({ unitId, objectives: [...ids] }));
+  }, [objectives]);
 
   const beginEdit = (objectiveId: string, side: "me" | "opponent") => {
     const objective = runtime.objectives[objectiveId];
@@ -60,6 +74,12 @@ export function ObjectiveControlPanel({
         <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Objective control</p>
         <p className="text-[10px] text-muted-foreground">tap only when changed</p>
       </div>
+
+      {sharedObjectiveUnits.length > 0 ? (
+        <div className="mb-2 rounded border border-warning/40 bg-warning/10 px-2 py-1.5 text-[9px] text-warning">
+          Verify model placement: {sharedObjectiveUnits.map((u) => `${runtime.units[u.unitId]?.definition.name ?? u.unitId} → ${u.objectives.join(" + ")}`).join("; ")}
+        </div>
+      ) : null}
 
       {needsScoringUpdate.length > 0 ? (
         <div className="mb-2 flex items-center justify-between gap-2 rounded border border-warning/40 bg-warning/10 px-2 py-1.5">
