@@ -1188,6 +1188,7 @@ export const useWarStore = create<State>()(
                             activeStrats: clone(slice.activeStrats),
                             scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
                             primaryScoreTransactions: clone(slice.primaryScoreTransactions ?? g.primaryScoreTransactions ?? []),
+                  objectiveControl: clone(slice.objectiveControl ?? g.objectiveControl ?? {}),
                             objectiveControl: clone(slice.objectiveControl ?? g.objectiveControl ?? {}),
                             ...(slice.scores ? { scores: clone(slice.scores) } : {}),
                             status: slice.status,
