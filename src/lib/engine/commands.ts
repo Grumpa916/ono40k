@@ -1,5 +1,6 @@
 import { getUnit } from "../../data/codex.ts";
 import { primaryForSide } from "../validation.ts";
+import { evaluatePrimaryCheckpoint } from "./mission.ts";
 import type { Game } from "../../data/types.ts";
 import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective.ts";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types.ts";
@@ -139,6 +140,29 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       state.vp[command.side] = command.value; bump(state, "battle:vp:" + command.side);
       events.push({ type: "VP_CHANGED", commandId: command.id, side: command.side });
       break;
+    case "SCORE_PRIMARY": {
+      if (command.round !== state.round) return { ok: false, events, error: "Primary scoring round does not match the live battle round." };
+      const transactionId = `primary:${command.side}:${command.round}:${command.checkpoint}`;
+      if (state.primaryTransactions[transactionId]) return { ok: false, events, error: "Primary scoring checkpoint already committed." };
+      const alreadyAwarded = state.primaryAwardedByRound[command.side][command.round - 1] ?? 0;
+      const preview = evaluatePrimaryCheckpoint(state, command.side, command.round, command.checkpoint, alreadyAwarded);
+      if (preview.unresolved.length) return { ok: false, events, error: "Primary scoring has unresolved objective or mission data." };
+      const transaction = {
+        transactionId, side: command.side, round: command.round, checkpoint: command.checkpoint,
+        missionId: preview.missionId, eligibleVp: preview.eligibleVp, awardedVp: preview.awardedVp,
+        overscore: preview.overscore,
+        conditionIds: preview.items.filter((item) => item.status === "PASS").map((item) => item.conditionId),
+        committedAt: Date.now(),
+      };
+      state.primaryTransactions[transactionId] = transaction;
+      state.primaryAwardedByRound[command.side][command.round - 1] = alreadyAwarded + preview.awardedVp;
+      state.vp[command.side] += preview.awardedVp;
+      bump(state, "battle:vp:" + command.side);
+      bump(state, "primary:" + command.side + ":" + command.round);
+      events.push({ type: "PRIMARY_SCORE_COMMITTED", commandId: command.id, transactionId, side: command.side, round: command.round, checkpoint: command.checkpoint, awardedVp: preview.awardedVp, overscore: preview.overscore });
+      events.push({ type: "VP_CHANGED", commandId: command.id, side: command.side });
+      break;
+    }
   }
 
   return { ok: true, state, events };
