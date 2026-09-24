@@ -21,7 +21,8 @@ test("P2 preserves command vs end-of-turn windows",()=>{
     const cs=missionConditions("Take and Hold","Take and Hold");
     const command=cs.find(c=>c.sourceText.includes("3 VP for each objective you control"))!;
     assert.deepEqual(command?.windows,[{checkpoint:"COMMAND",rounds:[2,3,4,5]},{checkpoint:"END_OF_TURN",rounds:[5]}]);
-  
+});
+
 test("P2 calculates objective-count VP and applies the 15VP round cap",()=>{
     const preview=evaluatePrimaryCheckpoint(runtime(),"me",2,"COMMAND",14);
     assert.ok(preview.eligibleVp > 0);
