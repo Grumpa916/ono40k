@@ -1,3 +1,4 @@
+// CI refresh: validate corrected engine syntax and current scoring tests.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { missionConditions, evaluatePrimaryCheckpoint } from "./engine/mission.ts";
