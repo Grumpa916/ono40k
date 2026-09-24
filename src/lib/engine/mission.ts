@@ -95,15 +95,23 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
   });
   const matching = relevant.filter(o => o.status === "CONFIRMED" && o.controller === side);
   const unknown = relevant.filter(o => o.status !== "CONFIRMED");
-  const requiredCount = c.count ?? 1;
 
-  // Resolve only as much objective state as the condition actually needs.
+  // "Each" conditions need the complete relevant set because an unknown
+  // objective could increase the VP amount even when a confirmed match exists.
+  if (c.each) {
+    if (unknown.length) {
+      return { status:"UNKNOWN", value:matching.length, dependencies:unknown.map(o => "objective:"+o.definition.id), reason:"Additional objective control data could change the VP amount." };
+    }
+    return { status:"PASS", value:matching.length, dependencies:relevant.map(o => "objective:"+o.definition.id) };
+  }
+
+  const requiredCount = c.count ?? 1;
   if (matching.length >= requiredCount) {
     return { status:"PASS", value:matching.length, dependencies:matching.map(o => "objective:"+o.definition.id) };
   }
 
   const confirmed = relevant.filter(o => o.status === "CONFIRMED");
-  if (c.count != null && confirmed.length >= requiredCount && matching.length < requiredCount) {
+  if (c.count != null && confirmed.length >= requiredCount) {
     return { status:"FAIL", value:matching.length, dependencies:confirmed.map(o => "objective:"+o.definition.id) };
   }
 
