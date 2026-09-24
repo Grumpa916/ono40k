@@ -1,8 +1,8 @@
-import { getUnit } from "@/data/codex";
-import { getMap } from "@/data/maps";
-import type { RosterUnit } from "@/data/types";
-import { resolveModelOc } from "./resolution";
-import type { ObjectiveContribution, ObjectiveDefinition, ObjectiveRuntime, RuntimeUnit } from "./types";
+import { getUnit } from "../../data/codex.ts";
+import { getMap } from "../../data/maps.ts";
+import type { RosterUnit } from "../../data/types.ts";
+import { resolveModelOc } from "./resolution.ts";
+import type { ObjectiveContribution, ObjectiveDefinition, ObjectiveRuntime, RuntimeUnit } from "./types.ts";
 
 export function objectiveDefinitions(layoutId: string | null | undefined, attackerSide?: "me" | "opponent"): ObjectiveDefinition[] {
   const layout = getMap(layoutId);
