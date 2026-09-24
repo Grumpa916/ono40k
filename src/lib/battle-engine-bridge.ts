@@ -77,6 +77,11 @@ export function reconcileBattle(previous: Game, next: Game) {
 
   let failed = false;
 
+  if (JSON.stringify(previous.missionEvents ?? []) !== JSON.stringify(next.missionEvents ?? [])) {
+    record.engine.getState().missionEvents = [...(next.missionEvents ?? [])];
+    record.engine.getState().versions["mission"] = (record.engine.getState().versions["mission"] ?? 0) + 1;
+  }
+
   if (previous.phase !== next.phase) {
     failed ||= !dispatch(record, { id: commandId(), type: "CHANGE_PHASE", phase: next.phase });
   }
