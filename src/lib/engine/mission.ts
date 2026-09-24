@@ -30,6 +30,23 @@ function parseLine(text: string, index: number): MissionCondition {
   const parsed = parseObjective(text);
   const ws = windows(text);
   const base = { id: "primary:" + index, vp: parsed.vp, each: false, rounds: parsed.rounds, checkpoints: ws.map(w => w.checkpoint), sourceText: text, windows: ws };
+  if (/one or more enemy units were destroyed (?:this turn|in a trapped area this turn|this turn by a unit on an objective|that started the turn on an objective)/i.test(text)) {
+    return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1 };
+  }
+  if (/for each enemy unit destroyed this turn/i.test(text)) {
+    return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1, each: true };
+  }
+  if (/more enemy units were destroyed this turn than (?:friendly units|they destroyed) in (?:the )?previous turn/i.test(text)) {
+    return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1, comparePreviousTurn: true };
+  }
+  const action = text.match(/completed the ([^".]+?) action/i);
+  if (action) return { ...base, kind: "ACTION_COMPLETED", actionName: action[1]!.trim() };
+  const op = text.match(/(?:three or more|only one|one or more|none of the opponent'?s|each) (?:of your |of the opponent'?s )?operation markers?/i);
+  if (op) {
+    const countMatch = text.match(/(three or more|only one|one or more) (?:of your |of the opponent'?s )?operation markers?/i);
+    const count = countMatch?.[1] === "three or more" ? 3 : countMatch?.[1] === "only one" ? 1 : 1;
+    return { ...base, kind: "OPERATION_MARKER_COUNT", count, markerLocation: /opponent'?s home/i.test(text) ? "opponentHome" : /central objective/i.test(text) ? "centreObjective" : "battlefield" };
+  }
   if (/control more objectives than (?:your )?opponent/i.test(text)) return { ...base, kind: "CONTROL_MORE_OBJECTIVES" };
   if (/control (?:your opponent'?s|opponent'?s) home objective/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE", objectiveKind: "home", objectiveId: "OPPONENT_HOME" };
   if (/control your home objective/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE", objectiveKind: "home", objectiveId: "MY_HOME" };
@@ -67,7 +84,30 @@ function controlled(runtime: BattleRuntime, side: "me"|"opponent"): ObjectiveRun
 
 function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition): ConditionResult {
   const deps = Object.keys(runtime.objectives).map(id => "objective:" + id);
+  const turnEvents = runtime.missionEvents.filter(e => e.round === runtime.round && e.turn === runtime.activeSide);
+  const previousTurn = runtime.activeSide === "me" ? "opponent" : "me";
+  const previousEvents = runtime.missionEvents.filter(e => e.round === runtime.round && e.turn === previousTurn);
   if (c.kind === "UNSUPPORTED") return { status:"UNKNOWN", dependencies:deps, reason:"Mission condition is not represented by the engine yet." };
+  if (c.kind === "DESTROYED_DURING_WINDOW") {
+    const destroyed = turnEvents.filter(e => e.kind === "unitDestroyed" && e.side === side);
+    if (c.comparePreviousTurn) {
+      const previousDestroyed = previousEvents.filter(e => e.kind === "unitDestroyed" && e.side !== side);
+      if (destroyed.length > previousDestroyed.length) return { status:"PASS", value:destroyed.length, dependencies:["mission:destroyed:current","mission:destroyed:previous"] };
+      return { status:"FAIL", value:destroyed.length, dependencies:["mission:destroyed:current","mission:destroyed:previous"] };
+    }
+    const value = destroyed.length;
+    if (c.each) return { status: value > 0 ? "PASS" : "FAIL", value, dependencies:["mission:destroyed:current"] };
+    return { status: value >= (c.count ?? 1) ? "PASS" : "FAIL", value, dependencies:["mission:destroyed:current"] };
+  }
+  if (c.kind === "ACTION_COMPLETED") {
+    const matches = turnEvents.filter(e => e.kind === "actionCompleted" && e.side === side && (!c.actionName || e.actionName?.toLowerCase() === c.actionName.toLowerCase()));
+    return { status: matches.length ? "PASS" : "FAIL", value: matches.length, dependencies:["mission:action:"+String(c.actionName ?? "any").toLowerCase()] };
+  }
+  if (c.kind === "OPERATION_MARKER_COUNT") {
+    const matches = runtime.missionEvents.filter(e => e.kind === "operationMarker" && e.side === side && (!c.markerLocation || e.markerLocation === c.markerLocation));
+    const value = matches.length;
+    return { status: value >= (c.count ?? 1) ? "PASS" : "FAIL", value, dependencies:["mission:operation-markers"] };
+  }
   const mine = controlled(runtime, side);
   if (c.kind === "CONTROL_MORE_OBJECTIVES") {
     if (Object.values(runtime.objectives).some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:deps, reason:"Objective control is not confirmed for the comparison." };
