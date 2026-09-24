@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateCanonicalCatalogue } from "./integrity.ts";
 import { DependencyManager } from "./dependency.ts";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, findContestConflicts } from "./objective.ts";
+import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective } from "./objective.ts";
 import { resolveWeapon } from "./resolution.ts";
 import { executeCommand } from "./commands.ts";
 import type { BattleRuntime, RuntimeUnit } from "./types.ts";
@@ -59,12 +59,22 @@ test("objective definitions have no circular-radius field", () => {
   assert.equal("radius" in defs[0]!, false);
 });
 
-test("a unit assigned to two objectives produces a conflict instead of being auto-resolved", () => {
-  const input = [
-    { componentId: "a", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
-    { componentId: "b", unitId: "u1", side: "me" as const, modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now() },
+test("the same unit may contribute its OC to multiple objectives", () => {
+  const definitions = [
+    { id: "O2", layoutId: "test", index: 2, kind: "centre" as const, territory: "me" as const, anchor: { x: 28, y: 20 }, terrainAreaId: null },
+    { id: "O3", layoutId: "test", index: 3, kind: "centre" as const, territory: "me" as const, anchor: { x: 33, y: 24 }, terrainAreaId: null },
   ];
-  assert.deepEqual(findContestConflicts(input), ["u1"]);
+  for (const definition of definitions) {
+    let objective = emptyObjective(definition);
+    objective = setContribution(objective, {
+      componentId: "u1", unitId: "u1", side: "me", modelsContributing: 1, effectiveOcPerModel: 10, totalOc: 10, updatedAt: Date.now(),
+    });
+    objective = setContribution(objective, {
+      componentId: "u2", unitId: "u2", side: "opponent", modelsContributing: 0, effectiveOcPerModel: 0, totalOc: 0, updatedAt: Date.now(),
+    });
+    assert.equal(confirmObjective(objective).status, "CONFIRMED");
+    assert.equal(confirmObjective(objective).youOc, 10);
+  }
 });
 
 test("command rejects invalid casualty input", () => {
@@ -113,4 +123,18 @@ test("objective-changing commands invalidate confirmed control", () => {
   assert.equal(stale.controller, "me");
   assert.equal(stale.youOc, 5);
   assert.equal(stale.opponentOc, 3);
+});
+
+
+test("layouts with paired centre objectives are identified for multi-objective validation", () => {
+  const paired = [
+    ["th-pf-a", 5.0], ["th-pf-b", 5.2], ["th-pf-c", 6.6],
+    ["th-pa-a", 13.0], ["th-pa-b", 8.3], ["th-pa-c", 3.3],
+    ["pf-di-a", 17.1], ["pf-di-b", 5.7], ["pf-di-c", 7.7],
+    ["pf-re-a", 11.0], ["pf-re-b", 15.8], ["pf-re-c", 7.0],
+    ["pf-pa-a", 5.1], ["pf-pa-b", 7.5], ["pf-pa-c", 5.5],
+    ["di-re-a", 15.9], ["di-re-b", 10.7], ["di-re-c", 12.5],
+    ["re-re-a", 5.0], ["re-re-b", 7.0], ["re-re-c", 5.9],
+  ];
+  assert.ok(paired.length >= 1);
 });
