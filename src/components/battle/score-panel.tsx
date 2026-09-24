@@ -1,5 +1,6 @@
 import { ScoreLines } from "@/components/battle/score-lines";
 import { ObjectiveControlPanel } from "@/components/battle/objective-control-panel";
+import { MissionStatePanel } from "@/components/battle/mission-state-panel";
 import { SecondaryPanel } from "@/components/battle/secondary-panel";
 import { Card } from "@/components/ui/card";
 import { objectiveVp, parseObjective, type MissionInfo } from "@/data/missions";
@@ -49,6 +50,7 @@ export function ScorePanel({
             15 VP / round · 45 primary max · {primaryPts} VP
           </p>
           <ObjectiveControlPanel runtime={runtime} requiredObjectiveIds={preview.requiredObjectiveIds} />
+          <MissionStatePanel game={game} mission={mission} mineDisp={mineDisp} theirDisp={theirDisp} />
           <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-2">
             <div className="min-w-0">
               <p className="text-[11px] font-medium">Engine scoring</p>
