@@ -1,0 +1,102 @@
+import { missionFor, parseObjective } from "@/data/missions";
+import type { Disposition } from "@/data/types";
+import type { BattleRuntime, ConditionResult, MissionCondition, ObjectiveRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "./types";
+
+function rounds(text: string): number[] {
+  const r = text.match(/R(\d)–R(\d)/);
+  if (r) return Array.from({ length: Number(r[2]) - Number(r[1]) + 1 }, (_, i) => Number(r[1]) + i);
+  const one = text.match(/R(\d)/);
+  return one ? [Number(one[1])] : [1,2,3,4,5];
+}
+
+function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> {
+  const out: Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> = [];
+  if (/end of battle/i.test(line)) out.push({ checkpoint: "END_OF_BATTLE", rounds: [5] });
+  const command = line.match(/\((R\d(?:–R\d)?)[^)]*?Command/i);
+  if (command) out.push({ checkpoint: "COMMAND", rounds: rounds(command[1]) });
+  const end = line.match(/(?:\(|;\s*)(R\d(?:–R\d)?)[^)]*?end of (?:your|the) turn/i);
+  if (end) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(end[1]) });
+  if (!out.length && /Command/i.test(line)) out.push({ checkpoint: "COMMAND", rounds: rounds(line) });
+  if (!out.length && /end of (?:your|the) turn/i.test(line)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(line) });
+  return out;
+}
+
+function parseLine(text: string, index: number): MissionCondition {
+  const parsed = parseObjective(text);
+  const ws = windows(text);
+  const base = { id: "primary:" + index, vp: parsed.vp, each: false, rounds: parsed.rounds, checkpoints: ws.map(w => w.checkpoint), sourceText: text, windows: ws };
+  if (/control more objectives than (?:your )?opponent/i.test(text)) return { ...base, kind: "CONTROL_MORE_OBJECTIVES" };
+  if (/control (?:your opponent'?s|opponent'?s) home objective/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE", objectiveKind: "home", objectiveId: "OPPONENT_HOME" };
+  if (/control your home objective/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE", objectiveKind: "home", objectiveId: "MY_HOME" };
+  if (/control (?:one or more )?central objectives?/i.test(text)) return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", objectiveKind: "centre", count: 1 };
+  const n = text.match(/control (two|three|four|five|[2-5]) or more objectives?/i);
+  if (n) {
+    const key = n[1].toLowerCase();
+    const count = ({two:2,three:3,four:4,five:5} as Record<string,number>)[key] ?? Number(key);
+    return { ...base, kind: "CONTROL_OBJECTIVE_COUNT", count };
+  }
+  if (/control (?:one or more )?objectives? excluding (?:your )?home/i.test(text)) {
+    const each = /for each|per (?:objective|non-home)/i.test(text);
+    return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, count: each ? undefined : 1, each };
+  }
+  if (/control (?:one or more )?objectives?/i.test(text)) {
+    const each = /for each|per objective/i.test(text);
+    return { ...base, kind: "CONTROL_ANY_OBJECTIVE", count: each ? undefined : 1, each };
+  }
+  return { ...base, kind: "UNSUPPORTED" };
+}
+
+export function missionConditions(me: Disposition, them: Disposition): MissionCondition[] {
+  return missionFor(me, them).me.scoring.map((line, i) => parseLine(line, i));
+}
+
+function controlled(runtime: BattleRuntime, side: "me"|"opponent"): ObjectiveRuntime[] {
+  return Object.values(runtime.objectives).filter(o => o.status === "CONFIRMED" && o.controller === side);
+}
+
+function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition): ConditionResult {
+  const deps = Object.keys(runtime.objectives).map(id => "objective:" + id);
+  if (c.kind === "UNSUPPORTED") return { status:"UNKNOWN", dependencies:deps, reason:"Mission condition is not represented by the engine yet." };
+  if (Object.values(runtime.objectives).some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:deps, reason:"Required objective control is not confirmed." };
+  const mine = controlled(runtime, side);
+  if (c.kind === "CONTROL_MORE_OBJECTIVES") {
+    const theirs = controlled(runtime, side === "me" ? "opponent" : "me");
+    return { status: mine.length > theirs.length ? "PASS" : "FAIL", value: mine.length, dependencies:deps };
+  }
+  if (c.kind === "CONTROL_OBJECTIVE" && c.objectiveId) {
+    const target = Object.values(runtime.objectives).find(o =>
+      c.objectiveId === "MY_HOME" ? o.definition.kind === "home" && o.definition.owner === side :
+      c.objectiveId === "OPPONENT_HOME" ? o.definition.kind === "home" && o.definition.owner !== side :
+      o.definition.id === c.objectiveId);
+    if (!target) return { status:"UNKNOWN", dependencies:deps, reason:"Required objective does not exist." };
+    return { status:target.controller === side ? "PASS":"FAIL", value:target.controller === side ? 1:0, dependencies:["objective:"+target.definition.id] };
+  }
+  const matching = mine.filter(o => {
+    if (c.excludeHome && o.definition.kind === "home" && o.definition.owner === side) return false;
+    return !c.objectiveKind || o.definition.kind === c.objectiveKind;
+  });
+  if (c.count != null && matching.length < c.count) return { status:"FAIL", value:matching.length, dependencies:deps };
+  return { status:"PASS", value:matching.length, dependencies:deps };
+}
+
+export function evaluateMissionCondition(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition, round=runtime.round, checkpoint:PrimaryCheckpoint="END_OF_TURN"): ConditionResult {
+  if (!c.windows.some(w => w.checkpoint === checkpoint && w.rounds.includes(round))) return { status:"FAIL", dependencies:[], reason:"Condition does not score at this checkpoint." };
+  return evaluate(runtime, side, c);
+}
+
+export function evaluatePrimaryCheckpoint(runtime: BattleRuntime, side:"me"|"opponent", round=runtime.round, checkpoint:PrimaryCheckpoint="END_OF_TURN", alreadyAwardedThisRound=0): PrimaryScorePreview {
+  const me = runtime.mission.disposition.me;
+  const them = runtime.mission.disposition.opponent;
+  const conditions = me && them ? missionConditions(side === "me" ? me : them, side === "me" ? them : me) : [];
+  const items = conditions.filter(c => c.windows.some(w => w.checkpoint === checkpoint && w.rounds.includes(round))).map(c => {
+    const result = evaluateMissionCondition(runtime, side, c, round, checkpoint);
+    const eligibleVp = result.status === "PASS" ? (c.each ? (result.value ?? 0) * c.vp : c.vp) : 0;
+    return { conditionId:c.id, sourceText:c.sourceText, eligibleVp, awardedVp:0, overscore:0, status:result.status, dependencies:result.dependencies };
+  });
+  const eligibleVp = items.reduce((n,i) => n+i.eligibleVp,0);
+  const remainingRoundCap = Math.max(0,15-alreadyAwardedThisRound);
+  const awardedVp = Math.min(eligibleVp, remainingRoundCap);
+  let remaining = awardedVp;
+  const resolved = items.map(i => { const awarded=Math.min(i.eligibleVp,remaining); remaining-=awarded; return {...i,awardedVp:awarded,overscore:i.eligibleVp-awarded}; });
+  return { side, round, checkpoint, missionId:runtime.mission.primaryId, items:resolved, eligibleVp, remainingRoundCap, awardedVp, overscore:eligibleVp-awardedVp, unresolved:items.filter(i=>i.status==="UNKNOWN").map(i=>i.sourceText) };
+}
