@@ -30,21 +30,26 @@ function parseLine(text: string, index: number): MissionCondition {
   const parsed = parseObjective(text);
   const ws = windows(text);
   const base = { id: "primary:" + index, vp: parsed.vp, each: false, rounds: parsed.rounds, checkpoints: ws.map(w => w.checkpoint), sourceText: text, windows: ws };
-  if (/one or more enemy units were destroyed (?:this turn|in a trapped area this turn|this turn by a unit on an objective|that started the turn on an objective)/i.test(text)) {
+  if (/^\d+ VP if one or more enemy units were destroyed this turn\./i.test(text)) {
     return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1 };
   }
-  if (/for each enemy unit destroyed this turn/i.test(text)) {
+  if (/one or more enemy units were destroyed this turn\./i.test(text) && !/trapped|started the turn|by a unit on an objective/i.test(text)) {
+    return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1 };
+  }
+  if (/for each enemy unit destroyed this turn/i.test(text) && !/started the turn|trapped|terrain area/i.test(text)) {
     return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1, each: true };
   }
   if (/more enemy units were destroyed this turn than (?:friendly units|they destroyed) in (?:the )?previous turn/i.test(text)) {
     return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1, comparePreviousTurn: true };
   }
   const action = text.match(/completed the ([^".]+?) action/i);
-  if (action) return { ...base, kind: "ACTION_COMPLETED", actionName: action[1]!.trim() };
-  const op = text.match(/(?:three or more|only one|one or more|none of the opponent'?s|each) (?:of your |of the opponent'?s )?operation markers?/i);
-  if (op) {
-    const countMatch = text.match(/(three or more|only one|one or more) (?:of your |of the opponent'?s )?operation markers?/i);
-    const count = countMatch?.[1] === "three or more" ? 3 : countMatch?.[1] === "only one" ? 1 : 1;
+  if (action && !/operation|vanguard/i.test(action[1]!)) {
+    return { ...base, kind: "ACTION_COMPLETED", actionName: action[1]!.trim() };
+  }
+  const op = text.match(/(three or more|one or more|only one|none of the opponent'?s) (?:of your |of the opponent'?s )?operation markers?/i);
+  if (op && !/only one operation marker remains and|you control|contest that terrain/i.test(text)) {
+    const phrase = op[1]!.toLowerCase();
+    const count = phrase === "three or more" ? 3 : phrase === "none of the opponent's" ? 0 : 1;
     return { ...base, kind: "OPERATION_MARKER_COUNT", count, markerLocation: /opponent'?s home/i.test(text) ? "opponentHome" : /central objective/i.test(text) ? "centreObjective" : "battlefield" };
   }
   if (/control more objectives than (?:your )?opponent/i.test(text)) return { ...base, kind: "CONTROL_MORE_OBJECTIVES" };
