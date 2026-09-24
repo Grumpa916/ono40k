@@ -109,6 +109,7 @@ export type MissionCondition = {
   rounds: number[];
   checkpoints: PrimaryCheckpoint[];
   sourceText: string;
+  windows: Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }>;
 };
 
 export type ConditionResult = {
