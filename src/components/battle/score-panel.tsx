@@ -26,6 +26,7 @@ export function ScorePanel({
   const commitPrimaryScore = useWarStore((s) => s.commitPrimaryScore);
   const runtime = getBattleRuntime(game);
   const checkpoint = game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN";
+  const checkpointAvailable = game.phase === "command" || game.phase === "end";
   const preview = getPrimaryScorePreview(game, side, checkpoint);
   const primaryPts = mission ? objectiveVp(score.primaryChecks, mission.scoring.map(parseObjective)) : score.primaryByRound.reduce((a, b) => a + b, 0);
   const scoringBlockedObjectives = preview.requiredObjectiveIds.filter(
@@ -52,12 +53,14 @@ export function ScorePanel({
             <div className="min-w-0">
               <p className="text-[11px] font-medium">Engine scoring</p>
               <p className="text-[10px] text-muted-foreground">
-                {preview.unresolved.length
+                {!checkpointAvailable
+                  ? "Primary scoring becomes available in the Command phase or at end of turn."
+                  : preview.unresolved.length
                   ? `${preview.unresolved.length} input${preview.unresolved.length === 1 ? "" : "s"} unresolved · ${scoringBlockedObjectives.length ? `update ${scoringBlockedObjectives.join(", ")}` : "check mission inputs"}`
                   : `${preview.awardedVp} VP now · ${preview.overscore} capped`}
               </p>
             </div>
-            <button type="button" disabled={locked || preview.unresolved.length > 0 || preview.awardedVp <= 0} onClick={() => commitPrimaryScore(side, checkpoint)} className="h-8 shrink-0 rounded-md border border-ok/50 bg-ok/15 px-3 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" disabled={locked || !checkpointAvailable || preview.unresolved.length > 0 || preview.awardedVp <= 0} onClick={() => commitPrimaryScore(side, checkpoint)} className="h-8 shrink-0 rounded-md border border-ok/50 bg-ok/15 px-3 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40">
               Score {preview.awardedVp} VP
             </button>
           </div>
