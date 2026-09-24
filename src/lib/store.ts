@@ -10,6 +10,7 @@ import type {
   GameUndoSlice,
   LedgerEvent,
   LedgerEventKind,
+  MissionEvent,
   PhaseId,
   PreBattle,
   PrimaryScoreRecord,
@@ -281,6 +282,7 @@ function hydrateGame(g: Game): Game {
     activeStrats: g.activeStrats ?? [],
     scoringActions: g.scoringActions ?? [],
     primaryScoreTransactions: g.primaryScoreTransactions ?? [],
+    missionEvents: g.missionEvents ?? [],
     undoStack: g.undoStack ?? [],
     elapsedMs,
     runningSince,
@@ -369,6 +371,7 @@ function snapshotUndo(g: Game): GameUndoSlice {
     scoringActions: clone(g.scoringActions ?? []),
     primaryScoreTransactions: clone(g.primaryScoreTransactions ?? []),
     objectiveControl: clone(g.objectiveControl ?? {}),
+    missionEvents: clone(g.missionEvents ?? []),
     scores: clone(g.scores),
     status: g.status,
     finishedAt: g.finishedAt,
@@ -485,6 +488,9 @@ type State = {
   setObjectiveSideAbsent: (objectiveId: string, side: "me" | "opponent") => { ok: boolean; error?: string };
   setObjectiveContribution: (objectiveId: string, unitId: string, modelsContributing: number) => { ok: boolean; error?: string };
   confirmObjective: (objectiveId: string) => { ok: boolean; error?: string };
+  completeMissionAction: (actionName: string, side?: "me" | "opponent") => void;
+  addOperationMarker: (side?: "me" | "opponent", location?: "battlefield" | "opponentHome" | "myHome" | "centreObjective") => void;
+  removeOperationMarker: (markerId: string) => void;
   togglePrimaryCheck: (side: "me" | "opponent", objIndex: number, slot: number, max?: number) => void;
   setSecondaryMode: (side: "me" | "opponent", mode: "fixed" | "tactical") => void;
   toggleFixedSecondary: (side: "me" | "opponent", id: string) => void;
@@ -885,6 +891,61 @@ export const useWarStore = create<State>()(
           }),
         });
       },
+      completeMissionAction: (actionName, side) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete" || !actionName.trim()) return;
+        const game = hydrateGame(raw);
+        const actor = side ?? game.activeSide;
+        const event: MissionEvent = {
+          id: uid("mev"),
+          kind: "actionCompleted",
+          at: Date.now(),
+          round: game.round,
+          turn: game.activeSide,
+          phase: game.phase,
+          side: actor,
+          actionName: actionName.trim(),
+        };
+        applyTracked(get, set, "action", `${sideName(game, actor)} · completed ${actionName.trim()}`, (g) => ({
+          ...g,
+          missionEvents: [event, ...(g.missionEvents ?? [])],
+        }));
+      },
+      addOperationMarker: (side, location = "battlefield") => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const actor = side ?? game.activeSide;
+        const marker: MissionEvent = {
+          id: uid("op"),
+          kind: "operationMarker",
+          at: Date.now(),
+          round: game.round,
+          turn: game.activeSide,
+          phase: game.phase,
+          side: actor,
+          markerId: uid("marker"),
+          markerLocation: location,
+        };
+        applyTracked(get, set, "action", `${sideName(game, actor)} · operation marker added (${location})`, (g) => ({
+          ...g,
+          missionEvents: [marker, ...(g.missionEvents ?? [])],
+        }));
+      },
+      removeOperationMarker: (markerId) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const marker = (game.missionEvents ?? []).find((e) => e.kind === "operationMarker" && e.markerId === markerId);
+        if (!marker) return;
+        applyTracked(get, set, "action", `operation marker removed (${marker.markerLocation ?? "battlefield"})`, (g) => ({
+          ...g,
+          missionEvents: (g.missionEvents ?? []).filter((e) => e.id !== marker.id),
+        }));
+      },
       setObjectiveSideAbsent: (objectiveId, side) => {
         const id = get().activeGameId;
         const raw = get().games.find((g) => g.id === id);
@@ -1145,6 +1206,19 @@ export const useWarStore = create<State>()(
         const found = findRosterUnit(game, unitId);
         const name = unitLabel(game, unitId);
         const who = found ? sideName(game, found.side) : "";
+        const destructionEvent: MissionEvent | null =
+          next.destroyed && !prev.destroyed
+            ? {
+                id: uid("mev"),
+                kind: "unitDestroyed",
+                at: Date.now(),
+                round: game.round,
+                turn: game.activeSide,
+                phase: game.phase,
+                side: game.activeSide,
+                unitId,
+              }
+            : null;
         const apply = (g: Game): Game => ({
           ...g,
           unitState: { ...g.unitState, [unitId]: next },
@@ -1152,6 +1226,9 @@ export const useWarStore = create<State>()(
             next.destroyed && !prev.destroyed
               ? (g.scoringActions ?? []).filter((a) => a.unitId !== unitId)
               : g.scoringActions,
+          missionEvents: destructionEvent
+            ? [destructionEvent, ...(g.missionEvents ?? [])]
+            : g.missionEvents,
         });
         const parts: string[] = [];
         if (next.destroyed !== prev.destroyed) parts.push(next.destroyed ? "destroyed" : "restored");
@@ -1259,6 +1336,23 @@ export const useWarStore = create<State>()(
         applyTracked(get, set, "action", `${sideName(game, action.side)} · ${action.unitName} ${verb} ${action.name}`, (g) => ({
           ...g,
           scoringActions: (g.scoringActions ?? []).filter((a) => a.id !== actionId),
+          ...(result === "complete"
+            ? {
+                missionEvents: [
+                  {
+                    id: uid("mev"),
+                    kind: "actionCompleted" as const,
+                    at: Date.now(),
+                    round: game.round,
+                    turn: game.activeSide,
+                    phase: game.phase,
+                    side: action.side,
+                    actionName: action.name,
+                  },
+                  ...(g.missionEvents ?? []),
+                ],
+              }
+            : {}),
         }));
       },
       playStratagem: (side, strat, source) => {
@@ -1358,6 +1452,7 @@ export const useWarStore = create<State>()(
                   activeStrats: clone(slice.activeStrats),
                   scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
                   primaryScoreTransactions: clone(slice.primaryScoreTransactions ?? g.primaryScoreTransactions ?? []),
+                  missionEvents: clone(slice.missionEvents ?? g.missionEvents ?? []),
                   ...(slice.scores ? { scores: clone(slice.scores) } : {}),
                   status: slice.status,
                   finishedAt: slice.finishedAt,
