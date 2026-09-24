@@ -1373,6 +1373,7 @@ useWarStore.subscribe((state, previous) => {
     return;
   }
   if (!previousGame || previousGame.id !== nextGame.id) {
+    if (previousGame) unregisterBattle(previousGame.id);
     registerBattle(nextGame);
     return;
   }
