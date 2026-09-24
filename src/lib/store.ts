@@ -905,7 +905,7 @@ export const useWarStore = create<State>()(
         const command: BattleCommand = { id: uid("obj"), type: "SET_OBJECTIVE_CONTRIBUTION", objectiveId, contribution: contributionFromUnit(unit, unit.side, modelsContributing) };
         const result = updateObjectiveControl(raw, command);
         if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Objective update failed." };
-        const name = getUnit(unit.rosterUnit.unitId === unit.rosterUnit.unitId ? (unit.side === "me" ? raw.myRoster.factionId : raw.opponentRoster.factionId) : "", unit.rosterUnit.unitId)?.name ?? "unit";
+        const name = unitLabel(raw, unitId);
         applyTracked(get, set, "action", `${name}: ${modelsContributing} models contributing to ${objectiveId}.`, (g) => ({ ...g, objectiveControl: result.state!.objectives }));
         return { ok: true };
       },
