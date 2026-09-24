@@ -108,6 +108,7 @@ export type MissionCondition = {
   objectiveId?: string;
   objectiveKind?: ObjectiveDefinition["kind"];
   excludeHome?: boolean;
+  territory?: "me" | "opponent";
   requiresHomeControl?: boolean;
   count?: number;
   children?: MissionCondition[];
