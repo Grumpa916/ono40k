@@ -1,7 +1,7 @@
 import { getUnit } from "@/data/codex";
 import { primaryForSide } from "@/lib/validation";
 import type { Game } from "@/data/types";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective } from "./objective";
+import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types";
 
 function bump(state: BattleRuntime, key: string) {
@@ -16,14 +16,7 @@ function makeUnits(game: Game): Record<string, RuntimeUnit> {
       const definition = getUnit(roster.factionId, ru.unitId);
       if (!definition) continue;
       const current = game.unitState[ru.id];
-      out[ru.id] = {
-        rosterUnit: ru, definition, side,
-        modelsRemaining: current?.modelsRemaining ?? ru.models,
-        woundsOnCurrent: current?.woundsOnCurrent ?? 0,
-        battleShocked: current?.battleShocked ?? false,
-        destroyed: current?.destroyed ?? false,
-        attachedTo: ru.attachedTo,
-      };
+      out[ru.id] = { rosterUnit: ru, definition, side, modelsRemaining: current?.modelsRemaining ?? ru.models, woundsOnCurrent: current?.woundsOnCurrent ?? 0, battleShocked: current?.battleShocked ?? false, destroyed: current?.destroyed ?? false, attachedTo: ru.attachedTo };
     }
   }
   return out;
@@ -31,10 +24,9 @@ function makeUnits(game: Game): Record<string, RuntimeUnit> {
 
 export function createBattleRuntime(game: Game): BattleRuntime {
   const primary = primaryForSide(game.myRoster, game.opponentRoster);
-  const definitions = objectiveDefinitions(game.preBattle?.mapId);
+  const definitions = objectiveDefinitions(game.preBattle?.mapId, game.preBattle?.attacker ?? undefined);
   return {
-    battleId: game.id, edition: 11, rulesVersion: "11e",
-    round: game.round, activeSide: game.activeSide, phase: game.phase,
+    battleId: game.id, edition: 11, rulesVersion: "11e", round: game.round, activeSide: game.activeSide, phase: game.phase,
     cp: { ...game.cp },
     vp: {
       me: game.scores.me.primaryByRound.reduce((a, b) => a + b, 0) + game.scores.me.tactical + game.scores.me.painted,
@@ -54,6 +46,10 @@ function validateContribution(state: BattleRuntime, contribution: ObjectiveContr
   if (contribution.modelsContributing > unit.modelsRemaining) return "Contributing models exceed models remaining.";
   if (contribution.effectiveOcPerModel != null && contribution.effectiveOcPerModel < 0) return "Effective OC cannot be negative.";
   return null;
+}
+
+function contestConflicts(state: BattleRuntime) {
+  return findContestConflicts(Object.values(state.objectives).flatMap((objective) => Object.values(objective.contributions)));
 }
 
 export function executeCommand(previous: BattleRuntime, command: BattleCommand): CommandResult {
@@ -102,6 +98,7 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
     case "CONFIRM_OBJECTIVE": {
       const objective = state.objectives[command.objectiveId];
       if (!objective) return { ok: false, events, error: "Unknown objective." };
+      if (contestConflicts(state).length) return { ok: false, events, error: "A unit is assigned to multiple objectives; choose one before confirming control." };
       const next = confirmObjective(objective);
       if (next.status !== "CONFIRMED") return { ok: false, events, error: "Objective control is unknown; required contribution data is incomplete." };
       state.objectives[command.objectiveId] = next;
@@ -111,26 +108,21 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
     }
     case "CHANGE_PHASE":
       if (state.phase === command.phase) return { ok: true, state, events };
-      state.phase = command.phase;
-      bump(state, "phase:" + command.phase);
+      state.phase = command.phase; bump(state, "phase:" + command.phase);
       events.push({ type: "PHASE_CHANGED", commandId: command.id, phase: command.phase });
       break;
     case "CHANGE_TURN":
-      state.round = command.round;
-      state.activeSide = command.side;
-      bump(state, "turn:" + command.round + ":" + command.side);
+      state.round = command.round; state.activeSide = command.side; bump(state, "turn:" + command.round + ":" + command.side);
       events.push({ type: "TURN_CHANGED", commandId: command.id, round: command.round, side: command.side });
       break;
     case "SET_CP":
       if (!Number.isInteger(command.value) || command.value < 0) return { ok: false, events, error: "Invalid CP value." };
-      state.cp[command.side] = command.value;
-      bump(state, "battle:cp:" + command.side);
+      state.cp[command.side] = command.value; bump(state, "battle:cp:" + command.side);
       events.push({ type: "CP_CHANGED", commandId: command.id, side: command.side });
       break;
     case "SET_VP":
       if (!Number.isInteger(command.value) || command.value < 0) return { ok: false, events, error: "Invalid VP value." };
-      state.vp[command.side] = command.value;
-      bump(state, "battle:vp:" + command.side);
+      state.vp[command.side] = command.value; bump(state, "battle:vp:" + command.side);
       events.push({ type: "VP_CHANGED", commandId: command.id, side: command.side });
       break;
   }
