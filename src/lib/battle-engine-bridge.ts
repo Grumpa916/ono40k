@@ -34,7 +34,13 @@ function ensure(game: Game): BridgeRecord {
 }
 
 function rebuild(game: Game, reason: string) {
-  const record: BridgeRecord = { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: reason, commands: 0 };
+  const record = hydrateObjectiveState(game, {
+    engine: new BattleEngine(game),
+    gameId: game.id,
+    syncedAt: Date.now(),
+    desync: reason,
+    commands: 0,
+  });
   records.set(game.id, record);
   return record;
 }
