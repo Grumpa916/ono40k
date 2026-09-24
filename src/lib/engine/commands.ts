@@ -34,6 +34,7 @@ export function createBattleRuntime(game: Game): BattleRuntime {
       opponent: game.scores.opponent.primaryByRound.reduce((a, b) => a + b, 0) + game.scores.opponent.tactical + game.scores.opponent.painted,
     },
     units: makeUnits(game),
+    missionEvents: [...(game.missionEvents ?? [])],
     objectives: Object.fromEntries(definitions.map((d) => [d.id, emptyObjective(d)])),
     mission: { disposition: { me: primary?.mine ?? null, opponent: primary?.theirs ?? null }, primaryId: primary?.info.name ?? null, scoringWindow: null },
     versions: {},
