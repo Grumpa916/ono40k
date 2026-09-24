@@ -1,5 +1,5 @@
-import type { UnitDef, Weapon } from "@/data/types";
-import type { ResolutionResult, RuleEffect, RuntimeUnit } from "./types";
+import type { UnitDef, Weapon } from "../../data/types.ts";
+import type { ResolutionResult, RuleEffect, RuntimeUnit } from "./types.ts";
 
 function numeric(value: number | string | undefined) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
