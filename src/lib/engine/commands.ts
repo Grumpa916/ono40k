@@ -2,7 +2,7 @@ import { getUnit } from "../../data/codex.ts";
 import { primaryForSide } from "../validation.ts";
 import { evaluatePrimaryCheckpoint } from "./mission.ts";
 import type { Game } from "../../data/types.ts";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective.ts";
+import { objectiveDefinitions, emptyObjective, setContribution, setSideAbsent, confirmObjective, staleObjective, findContestConflicts } from "./objective.ts";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types.ts";
 
 function bump(state: BattleRuntime, key: string) {
@@ -110,7 +110,7 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       events.push({ type: "OBJECTIVE_CONTRIBUTION_CHANGED", commandId: command.id, objectiveId: command.objectiveId, unitId: command.contribution.unitId });
       break;
     }
-    case "CONFIRM_OBJECTIVE": {
+    case "SET_OBJECTIVE_SIDE_ABSENT": {\n      const objective = state.objectives[command.objectiveId];\n      if (!objective) return { ok: false, events, error: "Unknown objective." };\n      state.objectives[command.objectiveId] = setSideAbsent(objective, command.side);\n      bump(state, "objective:" + command.objectiveId);\n      events.push({ type: "OBJECTIVE_CONTRIBUTION_CHANGED", commandId: command.id, objectiveId: command.objectiveId, unitId: "__side_absent__:" + command.side });\n      break;\n    }\n    case "CONFIRM_OBJECTIVE": {
       const objective = state.objectives[command.objectiveId];
       if (!objective) return { ok: false, events, error: "Unknown objective." };
       if (contestConflicts(state).length) return { ok: false, events, error: "A unit is assigned to multiple objectives; choose one before confirming control." };
