@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { missionConditions, evaluatePrimaryCheckpoint } from "@/lib/engine/mission";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { missionConditions, evaluatePrimaryCheckpoint } from "./engine/mission";
 import type { BattleRuntime } from "@/lib/engine/types";
 
 function runtime(): BattleRuntime {
@@ -15,22 +16,21 @@ function runtime(): BattleRuntime {
   };
 }
 
-describe("P2 mission scoring",()=>{
-  it("preserves command vs end-of-turn windows",()=>{
+
+test("P2 preserves command vs end-of-turn windows",()=>{
     const cs=missionConditions("Take and Hold","Purge the Foe");
     const command=cs.find(c=>c.sourceText.includes("3 VP for each objective you control"))!;
-    expect(command.windows).toEqual([{checkpoint:"COMMAND",rounds:[2,3,4,5]},{checkpoint:"END_OF_TURN",rounds:[5]}]);
-  });
-  it("calculates objective-count VP and applies the 15VP round cap",()=>{
+    assert.deepEqual(command?.windows,[{checkpoint:"COMMAND",rounds:[2,3,4,5]},{checkpoint:"END_OF_TURN",rounds:[5]}]);
+});
+test("P2 calculates objective-count VP and applies the 15VP round cap",()=>{
     const preview=evaluatePrimaryCheckpoint(runtime(),"me",2,"COMMAND",14);
-    expect(preview.eligibleVp).toBeGreaterThan(0);
-    expect(preview.awardedVp).toBeLessThanOrEqual(1);
-    expect(preview.overscore).toBeGreaterThanOrEqual(0);
-  });
-  it("does not score from stale objective data",()=>{
+    assert.ok(preview.eligibleVp > 0);
+    assert.ok(preview.awardedVp <= 1);
+    assert.ok(preview.overscore >= 0);
+});
+test("P2 does not score from stale objective data",()=>{
     const r=runtime();
     r.objectives.O2.status="STALE";
     const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
-    expect(preview.unresolved.length).toBeGreaterThan(0);
-  });
+    assert.ok(preview.unresolved.length > 0);
 });
