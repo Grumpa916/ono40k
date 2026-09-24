@@ -4,9 +4,7 @@ import type { Game } from "@/data/types";
 import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types";
 
-function bump(state: BattleRuntime, key: string) {
-  state.versions[key] = (state.versions[key] ?? 0) + 1;
-}
+function bump(state: BattleRuntime, key: string) { state.versions[key] = (state.versions[key] ?? 0) + 1; }
 
 function makeUnits(game: Game): Record<string, RuntimeUnit> {
   const out: Record<string, RuntimeUnit> = {};
@@ -55,7 +53,6 @@ function contestConflicts(state: BattleRuntime) {
 export function executeCommand(previous: BattleRuntime, command: BattleCommand): CommandResult {
   const state = structuredClone(previous);
   const events: BattleEvent[] = [];
-
   switch (command.type) {
     case "MOVE_UNIT": {
       if (!state.units[command.unitId]) return { ok: false, events, error: "Unknown unit." };
@@ -78,6 +75,20 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       events.push({ type: "MODEL_DESTROYED", commandId: command.id, unitId: command.unitId, count: command.count });
       events.push({ type: "UNIT_OC_CHANGED", commandId: command.id, unitId: command.unitId });
       if (unit.destroyed) events.push({ type: "UNIT_DESTROYED", commandId: command.id, unitId: command.unitId });
+      for (const objective of Object.values(state.objectives)) {
+        if (!Object.values(objective.contributions).some((c) => c.unitId === command.unitId)) continue;
+        state.objectives[objective.definition.id] = staleObjective(objective);
+        events.push({ type: "OBJECTIVE_STALE", commandId: command.id, objectiveId: objective.definition.id });
+      }
+      break;
+    }
+    case "SET_BATTLE_SHOCK": {
+      const unit = state.units[command.unitId];
+      if (!unit) return { ok: false, events, error: "Unknown unit." };
+      if (unit.battleShocked === command.battleShocked) return { ok: true, state, events };
+      unit.battleShocked = command.battleShocked;
+      bump(state, "unit:" + command.unitId);
+      events.push({ type: "UNIT_BATTLE_SHOCK_CHANGED", commandId: command.id, unitId: command.unitId, battleShocked: command.battleShocked });
       for (const objective of Object.values(state.objectives)) {
         if (!Object.values(objective.contributions).some((c) => c.unitId === command.unitId)) continue;
         state.objectives[objective.definition.id] = staleObjective(objective);
@@ -126,6 +137,5 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       events.push({ type: "VP_CHANGED", commandId: command.id, side: command.side });
       break;
   }
-
   return { ok: true, state, events };
 }
