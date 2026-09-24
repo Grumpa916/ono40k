@@ -28,6 +28,9 @@ export function ScorePanel({
   const checkpoint = game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN";
   const preview = getPrimaryScorePreview(game, side, checkpoint);
   const primaryPts = mission ? objectiveVp(score.primaryChecks, mission.scoring.map(parseObjective)) : score.primaryByRound.reduce((a, b) => a + b, 0);
+  const scoringBlockedObjectives = preview.requiredObjectiveIds.filter(
+    (id) => runtime.objectives[id]?.status !== "CONFIRMED",
+  );
 
   return (
     <div className="space-y-4">
@@ -44,13 +47,13 @@ export function ScorePanel({
           <p className="mt-2 text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
             15 VP / round · 45 primary max · {primaryPts} VP
           </p>
-          <ObjectiveControlPanel runtime={runtime} />
+          <ObjectiveControlPanel runtime={runtime} requiredObjectiveIds={preview.requiredObjectiveIds} />
           <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-2">
             <div className="min-w-0">
               <p className="text-[11px] font-medium">Engine scoring</p>
               <p className="text-[10px] text-muted-foreground">
                 {preview.unresolved.length
-                  ? `${preview.unresolved.length} input${preview.unresolved.length === 1 ? "" : "s"} unresolved · objectives ${preview.requiredObjectiveIds.join(", ") || "—"}`
+                  ? `${preview.unresolved.length} input${preview.unresolved.length === 1 ? "" : "s"} unresolved · ${scoringBlockedObjectives.length ? `update ${scoringBlockedObjectives.join(", ")}` : "check mission inputs"}`
                   : `${preview.awardedVp} VP now · ${preview.overscore} capped`}
               </p>
             </div>
