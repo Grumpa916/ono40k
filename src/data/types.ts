@@ -194,7 +194,7 @@ export type ScoringAction = {
 };
 
 export type ObjectiveControlRecord = {
-  definition: { id: string; layoutId: string; index: number; kind: "home" | "expansion" | "centre"; owner?: "me" | "opponent"; anchor: { x: number; y: number }; terrainAreaId: string | null };
+  definition: { id: string; layoutId: string; index: number; kind: "home" | "expansion" | "centre"; owner?: "me" | "opponent"; territory: "me" | "opponent"; anchor: { x: number; y: number }; terrainAreaId: string | null };
   contributions: Record<string, { componentId: string; unitId: string; side: "me" | "opponent"; modelsContributing: number; effectiveOcPerModel: number | null; totalOc: number | null; updatedAt: number }>;
   youOc: number | null; opponentOc: number | null; controller: "me" | "opponent" | "contested" | "unknown";
   status: "CONFIRMED" | "STALE" | "UNKNOWN"; lastConfirmedAt: number | null; version: number;
