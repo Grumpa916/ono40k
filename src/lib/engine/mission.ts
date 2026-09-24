@@ -89,9 +89,10 @@ function controlled(runtime: BattleRuntime, side: "me"|"opponent"): ObjectiveRun
 
 function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition): ConditionResult {
   const deps = Object.keys(runtime.objectives).map(id => "objective:" + id);
-  const turnEvents = runtime.missionEvents.filter(e => e.round === runtime.round && e.turn === runtime.activeSide);
+  const missionEvents = runtime.missionEvents ?? [];
+  const turnEvents = missionEvents.filter(e => e.round === runtime.round && e.turn === runtime.activeSide);
   const previousTurn = runtime.activeSide === "me" ? "opponent" : "me";
-  const previousEvents = runtime.missionEvents.filter(e => e.round === runtime.round && e.turn === previousTurn);
+  const previousEvents = missionEvents.filter(e => e.round === runtime.round && e.turn === previousTurn);
   if (c.kind === "UNSUPPORTED") return { status:"UNKNOWN", dependencies:deps, reason:"Mission condition is not represented by the engine yet." };
   if (c.kind === "DESTROYED_DURING_WINDOW") {
     const destroyed = turnEvents.filter(e => e.kind === "unitDestroyed" && e.side === side);
@@ -109,7 +110,7 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
     return { status: matches.length ? "PASS" : "FAIL", value: matches.length, dependencies:["mission:action:"+String(c.actionName ?? "any").toLowerCase()] };
   }
   if (c.kind === "OPERATION_MARKER_COUNT") {
-    const matches = runtime.missionEvents.filter(e => e.kind === "operationMarker" && e.side === side && (!c.markerLocation || e.markerLocation === c.markerLocation));
+    const matches = missionEvents.filter(e => e.kind === "operationMarker" && e.side === side && (!c.markerLocation || e.markerLocation === c.markerLocation));
     const value = matches.length;
     return { status: value >= (c.count ?? 1) ? "PASS" : "FAIL", value, dependencies:["mission:operation-markers"] };
   }
