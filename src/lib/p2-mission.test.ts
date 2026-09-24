@@ -72,6 +72,23 @@ test("P2 does not score from stale objective data",()=>{
 });
 
 
+test("P2 absent-side observation replaces prior contributors for that side",()=>{
+    const r=runtime();
+    const withOpponent = setContribution(r.objectives.O1,{
+      componentId:"opp-unit",
+      unitId:"opp-unit",
+      side:"opponent",
+      modelsContributing:2,
+      effectiveOcPerModel:2,
+      totalOc:4,
+      updatedAt:2
+    });
+    const absent = setSideAbsent(withOpponent,"opponent",3);
+    assert.equal(absent.opponentOc,0);
+    assert.equal(absent.contributions["opp-unit"],undefined);
+    assert.equal(absent.contributions["__side_absent__:opponent"]?.totalOc,0);
+});
+
 test("P2 home-control bonus requires confirmed home control",()=>{
     const r=runtime();
     r.objectives.O1 = {...r.objectives.O1, controller:"opponent"};
