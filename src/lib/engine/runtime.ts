@@ -1,7 +1,7 @@
-import type { Game } from "@/data/types";
-import { DependencyManager, DerivedCache } from "./dependency";
-import { createBattleRuntime, executeCommand } from "./commands";
-import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, DerivedRecord } from "./types";
+import type { Game } from "../../data/types.ts";
+import { DependencyManager, DerivedCache } from "./dependency.ts";
+import { createBattleRuntime, executeCommand } from "./commands.ts";
+import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, DerivedRecord } from "./types.ts";
 
 export class BattleEngine {
   private state: BattleRuntime;
