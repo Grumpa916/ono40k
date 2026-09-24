@@ -4,7 +4,7 @@ import type { RosterUnit } from "@/data/types";
 import { resolveModelOc } from "./resolution";
 import type { ObjectiveContribution, ObjectiveDefinition, ObjectiveRuntime, RuntimeUnit } from "./types";
 
-export function objectiveDefinitions(layoutId: string | null | undefined): ObjectiveDefinition[] {
+export function objectiveDefinitions(layoutId: string | null | undefined, attackerSide?: "me" | "opponent"): ObjectiveDefinition[] {
   const layout = getMap(layoutId);
   if (!layout) return [];
   return layout.markers.map((marker, index) => ({
@@ -12,7 +12,7 @@ export function objectiveDefinitions(layoutId: string | null | undefined): Objec
     layoutId: layout.id,
     index: index + 1,
     kind: marker.kind,
-    owner: marker.owner === "attacker" ? "me" : marker.owner === "defender" ? "opponent" : undefined,
+    owner: marker.owner && attackerSide ? marker.owner === "attacker" ? attackerSide : attackerSide === "me" ? "opponent" : "me" : undefined,
     anchor: { x: marker.x, y: marker.y },
     terrainAreaId: null,
   }));
@@ -73,14 +73,16 @@ export function attachedUnitComponents(units: RuntimeUnit[], unitId: string) {
   return [root, ...units.filter((unit) => unit.attachedTo === unitId)];
 }
 
-/** 11e control rule: each unit can contest only one objective when control is determined. */
-export function enforceSingleObjectiveContest(contributions: ObjectiveContribution[]) {
-  const chosen = new Set<string>();
-  return contributions.map((contribution) => {
-    if (chosen.has(contribution.unitId)) return { ...contribution, modelsContributing: 0, totalOc: 0 };
-    if (contribution.modelsContributing > 0) chosen.add(contribution.unitId);
-    return contribution;
-  });
+/** 11e control rule: a unit can contest only one objective when control is determined. */
+export function findContestConflicts(contributions: ObjectiveContribution[]) {
+  const seen = new Set<string>();
+  const conflicts = new Set<string>();
+  for (const contribution of contributions) {
+    if (contribution.modelsContributing <= 0) continue;
+    if (seen.has(contribution.unitId)) conflicts.add(contribution.unitId);
+    seen.add(contribution.unitId);
+  }
+  return [...conflicts];
 }
 
 export function objectiveContributionFromRosterUnit(factionId: string, rosterUnit: RosterUnit, side: "me" | "opponent") {
