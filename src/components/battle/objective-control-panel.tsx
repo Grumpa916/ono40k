@@ -3,7 +3,13 @@ import type { BattleRuntime } from "@/lib/engine/types";
 import { cn } from "@/lib/utils";
 import { useWarStore } from "@/lib/store";
 
-export function ObjectiveControlPanel({ runtime }: { runtime: BattleRuntime }) {
+export function ObjectiveControlPanel({
+  runtime,
+  requiredObjectiveIds = [],
+}: {
+  runtime: BattleRuntime;
+  requiredObjectiveIds?: string[];
+}) {
   const objectives = Object.values(runtime.objectives);
   const setAbsent = useWarStore((s) => s.setObjectiveSideAbsent);
   const setContribution = useWarStore((s) => s.setObjectiveContribution);
@@ -18,6 +24,8 @@ export function ObjectiveControlPanel({ runtime }: { runtime: BattleRuntime }) {
   }), [runtime.units]);
 
   if (!objectives.length) return null;
+
+  const needsScoringUpdate = requiredObjectiveIds.filter((id) => runtime.objectives[id]?.status !== "CONFIRMED");
 
   const beginEdit = (objectiveId: string, side: "me" | "opponent") => {
     const objective = runtime.objectives[objectiveId];
@@ -52,6 +60,26 @@ export function ObjectiveControlPanel({ runtime }: { runtime: BattleRuntime }) {
         <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">Objective control</p>
         <p className="text-[10px] text-muted-foreground">tap only when changed</p>
       </div>
+
+      {needsScoringUpdate.length > 0 ? (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded border border-warning/40 bg-warning/10 px-2 py-1.5">
+          <span className="min-w-0 text-[9px] text-warning">
+            Scoring needs {needsScoringUpdate.join(", ")}
+          </span>
+          <div className="flex shrink-0 gap-1">
+            {needsScoringUpdate.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="h-6 rounded border border-warning/40 px-2 text-[9px] font-medium"
+                onClick={() => beginEdit(id, "me")}
+              >
+                Update {id}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-1">
         {objectives.map((objective) => {
