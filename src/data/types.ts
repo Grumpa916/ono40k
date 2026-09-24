@@ -204,7 +204,7 @@ export type GameUndoSlice = {
   activeStrats: ActiveStrat[];
   status: "active" | "complete";
   finishedAt?: number;
-  scoringActions?: ScoringAction[];
+  scoringActions?: ScoringAction[];\n  primaryScoreTransactions?: PrimaryScoreRecord[];
   scores?: { me: SideScore; opponent: SideScore };
 };
 
@@ -213,7 +213,7 @@ export type SecondaryStamp = {
   completedRound?: 1 | 2 | 3 | 4 | 5;
 };
 
-export type SideScore = {
+export type PrimaryScoreRecord = {\n  transactionId: string;\n  side: "me" | "opponent";\n  round: 1 | 2 | 3 | 4 | 5;\n  checkpoint: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE";\n  missionId: string | null;\n  eligibleVp: number;\n  awardedVp: number;\n  overscore: number;\n  conditionIds: string[];\n  committedAt: number;\n};\n\nexport type SideScore = {
   primaryByRound: [number, number, number, number, number];
   primaryChecks?: number[][];
   secondaryMode?: "fixed" | "tactical" | null;
