@@ -13,17 +13,17 @@ function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: n
   const out: Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> = [];
   const clauses = line.split(";");
   for (const clause of clauses) {
-    const match = clause.match(/(R\d(?:–R\d)?)\s*,?\s*(Command|end of (?:your|the) turn)/i);
+    const match = clause.match(/(R\d(?:–R\d)?)\s*,?\s*(Command|end of (?:(?:your|the) )?turn)/i);
     if (!match) continue;
     out.push({
       checkpoint: match[2]!.toLowerCase() === "command" ? "COMMAND" : "END_OF_TURN",
       rounds: rounds(match[1]!),
     });
   }
-  for (const endClause of line.matchAll(/(R\\d(?:–R\\d)?)\\s+end of (?:your|the) turn/gi)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(endClause[1]!) });
+  for (const endClause of line.matchAll(/(R\\d(?:–R\\d)?)\\s+end of (?:(?:your|the) )?turn/gi)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(endClause[1]!) });
   if (/end of battle/i.test(line)) out.push({ checkpoint: "END_OF_BATTLE", rounds: [5] });
   if (!out.length && /Command/i.test(line)) out.push({ checkpoint: "COMMAND", rounds: rounds(line) });
-  if (!out.length && /end of (?:your|the) turn/i.test(line)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(line) });
+  if (!out.length && /end of (?:(?:your|the) )?turn/i.test(line)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(line) });
   return out;
 }
 
