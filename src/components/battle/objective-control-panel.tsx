@@ -42,6 +42,7 @@ export function ObjectiveControlPanel({ runtime }: { runtime: BattleRuntime }) {
         setContribution(objectiveId, unit.rosterUnit.id, selected[unit.rosterUnit.id] ?? 0);
       }
     }
+    confirm(objectiveId);
     setEditing(null);
   };
 
