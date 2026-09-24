@@ -20,6 +20,7 @@ export type ObjectiveDefinition = {
   id: string; layoutId: string; index: number;
   kind: "home" | "expansion" | "centre";
   owner?: "me" | "opponent";
+  territory: "me" | "opponent";
   anchor: { x: number; y: number };
   terrainAreaId: string | null;
 };
