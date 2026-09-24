@@ -56,9 +56,14 @@ export function setSideAbsent(runtime: ObjectiveRuntime, side: "me" | "opponent"
     totalOc: 0,
     updatedAt,
   };
+  const contributions = Object.fromEntries(
+    Object.entries(runtime.contributions).filter(([id, existing]) =>
+      existing.side !== side || id === componentId
+    ),
+  );
   return recalculate({
     ...runtime,
-    contributions: { ...runtime.contributions, [componentId]: contribution },
+    contributions: { ...contributions, [componentId]: contribution },
     status: "STALE",
   });
 }
@@ -66,9 +71,16 @@ export function setSideAbsent(runtime: ObjectiveRuntime, side: "me" | "opponent"
 export function setContribution(runtime: ObjectiveRuntime, contribution: ObjectiveContribution): ObjectiveRuntime {
   const models = Math.max(0, contribution.modelsContributing);
   const totalOc = contribution.effectiveOcPerModel == null ? null : models * Math.max(0, contribution.effectiveOcPerModel);
+  const absentId = `__side_absent__:${contribution.side}`;
+  const contributions = Object.fromEntries(
+    Object.entries(runtime.contributions).filter(([id]) => id !== absentId),
+  );
   return recalculate({
     ...runtime,
-    contributions: { ...runtime.contributions, [contribution.componentId]: { ...contribution, modelsContributing: models, totalOc, updatedAt: Date.now() } },
+    contributions: {
+      ...contributions,
+      [contribution.componentId]: { ...contribution, modelsContributing: models, totalOc, updatedAt: Date.now() },
+    },
     status: "STALE",
   });
 }
