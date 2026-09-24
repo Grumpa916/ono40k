@@ -25,6 +25,7 @@ import { parseObjective } from "@/data/missions";
 import { getMap } from "@/data/maps";
 import { primaryForSide, rosterDisposition } from "@/lib/validation";
 import { battleElapsedMs, uid, unitCopyMarks } from "@/lib/utils";
+import { reconcileBattle, registerBattle, unregisterBattle } from "@/lib/battle-engine-bridge";
 
 const emptyScore = (): SideScore => ({
   primaryByRound: [0, 0, 0, 0, 0],
@@ -1362,6 +1363,21 @@ export const useWarStore = create<State>()(
     },
   ),
 );
+
+// P1 engine bridge: reconcile every persisted/live Game mutation without replacing the existing store.
+useWarStore.subscribe((state, previous) => {
+  const nextGame = state.activeGameId ? state.games.find((g) => g.id === state.activeGameId) : undefined;
+  const previousGame = previous.activeGameId ? previous.games.find((g) => g.id === previous.activeGameId) : undefined;
+  if (!nextGame) {
+    if (previousGame) unregisterBattle(previousGame.id);
+    return;
+  }
+  if (!previousGame || previousGame.id !== nextGame.id) {
+    registerBattle(nextGame);
+    return;
+  }
+  reconcileBattle(previousGame, nextGame);
+});
 
 export function useActiveGame(): Game | undefined {
   return useWarStore((s) => s.games.find((g) => g.id === s.activeGameId));
