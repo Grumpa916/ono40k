@@ -18,8 +18,8 @@ function runtime(): BattleRuntime {
 
 
 test("P2 preserves command vs end-of-turn windows",()=>{
-    const cs=missionConditions("Take and Hold","Purge the Foe");
-    const command=cs.find(c=>c.sourceText.includes("3 VP for each objective you control"))!;
+    const cs=missionConditions("Take and Hold","Take and Hold");
+    const command=cs.find(c=>c.sourceText.includes("5 VP for each objective you control excluding your home"))!;
     assert.deepEqual(command?.windows,[{checkpoint:"COMMAND",rounds:[2,3,4,5]},{checkpoint:"END_OF_TURN",rounds:[5]}]);
 });
 test("P2 calculates objective-count VP and applies the 15VP round cap",()=>{
