@@ -37,6 +37,11 @@ export function createBattleRuntime(game: Game): BattleRuntime {
     objectives: Object.fromEntries(definitions.map((d) => [d.id, emptyObjective(d)])),
     mission: { disposition: { me: primary?.mine ?? null, opponent: primary?.theirs ?? null }, primaryId: primary?.info.name ?? null, scoringWindow: null },
     versions: {},
+    primaryTransactions: Object.fromEntries((game.primaryScoreTransactions ?? []).map((tx) => [tx.transactionId, { ...tx }])),
+    primaryAwardedByRound: {
+      me: [...game.scores.me.primaryByRound] as [number, number, number, number, number],
+      opponent: [...game.scores.opponent.primaryByRound] as [number, number, number, number, number],
+    },
   };
 }
 
