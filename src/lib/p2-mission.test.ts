@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { missionConditions, evaluatePrimaryCheckpoint } from "./engine/mission";
-import type { BattleRuntime } from "@/lib/engine/types";
+import type { BattleRuntime } from "./engine/types";
 
 function runtime(): BattleRuntime {
   return {
