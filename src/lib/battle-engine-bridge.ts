@@ -28,7 +28,7 @@ function hydrateObjectiveState(game: Game, record: BridgeRecord) {
 function ensure(game: Game): BridgeRecord {
   const existing = records.get(game.id);
   if (existing) return existing;
-  const record: BridgeRecord = { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 };
+  const record = hydrateObjectiveState(game, { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 });
   records.set(game.id, record);
   return record;
 }
