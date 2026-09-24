@@ -1,7 +1,7 @@
-import { getDetachment, getFaction, getUnit } from "@/data/codex";
-import { missionFor } from "@/data/missions";
-import { BATTLE_SIZES, type Disposition, type Roster, type RosterUnit, type UnitDef } from "@/data/types";
-import { wargearPoints } from "@/data/wargear";
+import { getDetachment, getFaction, getUnit } from "../data/codex.ts";
+import { missionFor } from "../data/missions.ts";
+import { BATTLE_SIZES, type Disposition, type Roster, type RosterUnit, type UnitDef } from "../data/types.ts";
+import { wargearPoints } from "../data/wargear.ts";
 
 export type Issue = { level: "error" | "warn"; text: string };
 
