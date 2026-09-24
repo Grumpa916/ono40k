@@ -278,6 +278,7 @@ function hydrateGame(g: Game): Game {
     log: g.log ?? [],
     activeStrats: g.activeStrats ?? [],
     scoringActions: g.scoringActions ?? [],
+    primaryScoreTransactions: g.primaryScoreTransactions ?? [],
     undoStack: g.undoStack ?? [],
     elapsedMs,
     runningSince,
@@ -630,6 +631,7 @@ export const useWarStore = create<State>()(
           unitState: initUnitState(myRoster, opponentRoster),
           activeStrats: [],
           scoringActions: [],
+          primaryScoreTransactions: [],
           log: briefing
             ? [
                 {
