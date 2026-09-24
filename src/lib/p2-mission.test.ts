@@ -182,3 +182,30 @@ test("P2 rejects primary scoring at the wrong live checkpoint",()=>{
     assert.equal(result.ok,false);
     assert.match(result.error ?? "",/end of the turn/i);
 });
+
+
+test("P2 evaluates destroyed-this-turn conditions from structured mission events",()=>{
+  const r=runtime();
+  r.activeSide="me";
+  r.missionEvents=[{
+    id:"destroy-1",kind:"unitDestroyed",at:10,round:2,turn:"me",phase:"shooting",side:"me",unitId:"enemy-1"
+  }];
+  const c=missionConditions("Purge the Foe","Take and Hold").find(x=>x.kind==="DESTROYED_DURING_WINDOW");
+  assert.ok(c);
+  const result = evaluatePrimaryCheckpoint(r,"me",2,"END_OF_TURN",0);
+  const item = result.items.find(x=>x.conditionId===c!.id);
+  assert.equal(item?.status,"PASS");
+});
+
+test("P2 evaluates completed mission actions from structured state",()=>{
+  const r=runtime();
+  r.activeSide="me";
+  r.missionEvents=[{
+    id:"action-1",kind:"actionCompleted",at:10,round:2,turn:"me",phase:"end",side:"me",actionName:"Secure Asset"
+  }];
+  const c=missionConditions("Priority Assets","Take and Hold").find(x=>x.kind==="ACTION_COMPLETED");
+  assert.ok(c);
+  const result = evaluatePrimaryCheckpoint(r,"me",2,"END_OF_TURN",0);
+  const item = result.items.find(x=>x.conditionId===c!.id);
+  assert.equal(item?.status,"PASS");
+});
