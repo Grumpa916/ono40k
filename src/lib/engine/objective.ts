@@ -24,16 +24,20 @@ export function emptyObjective(definition: ObjectiveDefinition): ObjectiveRuntim
 
 function recalculate(runtime: ObjectiveRuntime): ObjectiveRuntime {
   const totals = { me: 0, opponent: 0 };
+  const knownSides = { me: false, opponent: false };
   let unknown = false;
   for (const contribution of Object.values(runtime.contributions)) {
+    knownSides[contribution.side] = true;
     if (contribution.effectiveOcPerModel == null || contribution.totalOc == null) {
       unknown = true;
       continue;
     }
     totals[contribution.side] += contribution.totalOc;
   }
-  const controller = unknown ? "unknown" : totals.me > totals.opponent ? "me" : totals.opponent > totals.me ? "opponent" : "contested";
-  return { ...runtime, youOc: totals.me, opponentOc: totals.opponent, controller, status: unknown ? "UNKNOWN" : runtime.status, version: runtime.version + 1 };
+  const bothSidesKnown = knownSides.me && knownSides.opponent;
+  const controlUnknown = !bothSidesKnown || unknown;
+  const controller = controlUnknown ? "unknown" : totals.me > totals.opponent ? "me" : totals.opponent > totals.me ? "opponent" : "contested";
+  return { ...runtime, youOc: totals.me, opponentOc: totals.opponent, controller, status: controlUnknown ? "UNKNOWN" : runtime.status, version: runtime.version + 1 };
 }
 
 export function setContribution(runtime: ObjectiveRuntime, contribution: ObjectiveContribution): ObjectiveRuntime {
