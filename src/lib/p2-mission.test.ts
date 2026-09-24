@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { missionConditions, evaluatePrimaryCheckpoint } from "./engine/mission.ts";
+import { setContribution, setSideAbsent, confirmObjective } from "./engine/objective.ts";
 import type { BattleRuntime } from "./engine/types.ts";
 
 function runtime(): BattleRuntime {
@@ -31,6 +32,33 @@ test("P2 calculates objective-count VP and applies the 15VP round cap",()=>{
     assert.ok(preview.awardedVp <= 1);
     assert.ok(preview.overscore >= 0);
 });
+test("P2 can confirm an objective with a one-tap absent-side observation",()=>{
+    const r=runtime();
+    r.objectives.O1 = {
+      ...r.objectives.O1,
+      youOc: null,
+      opponentOc: null,
+      controller:"unknown",
+      status:"UNKNOWN",
+      contributions:{}
+    };
+    const withOpponentAbsent = setSideAbsent(r.objectives.O1,"opponent",2);
+    const withMe = setContribution(withOpponentAbsent,{
+      componentId:"me-unit",
+      unitId:"me-unit",
+      side:"me",
+      modelsContributing:5,
+      effectiveOcPerModel:2,
+      totalOc:10,
+      updatedAt:3
+    });
+    const confirmed = confirmObjective(withMe,4);
+    assert.equal(confirmed.controller,"me");
+    assert.equal(confirmed.youOc,10);
+    assert.equal(confirmed.opponentOc,0);
+    assert.equal(confirmed.status,"CONFIRMED");
+});
+
 test("P2 does not score from stale objective data",()=>{
     const r=runtime();
     r.objectives.O2.status="STALE";
