@@ -41,6 +41,9 @@ function parseLine(text: string, index: number): MissionCondition {
     const count = ({two:2,three:3,four:4,five:5} as Record<string,number>)[key] ?? Number(key);
     return { ...base, kind: "CONTROL_OBJECTIVE_COUNT", count };
   }
+  if (/each non-home objective if you also control (?:your )?home/i.test(text)) {
+    return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, count: undefined, each: true, requiresHomeControl: true };
+  }
   if (/objectives? you control excluding (?:your )?home|control (?:one or more )?objectives? excluding (?:your )?home/i.test(text)) {
     const each = /for each|per (?:objective|non-home)/i.test(text);
     return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, count: each ? undefined : 1, each };
@@ -77,6 +80,11 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
     if (!target) return { status:"UNKNOWN", dependencies:deps, reason:"Required objective does not exist." };
     if (target.status !== "CONFIRMED") return { status:"UNKNOWN", dependencies:["objective:"+target.definition.id], reason:"Required objective control is not confirmed." };
     return { status:target.controller === side ? "PASS":"FAIL", value:target.controller === side ? 1:0, dependencies:["objective:"+target.definition.id] };
+  }
+  if (c.requiresHomeControl) {
+    const home = Object.values(runtime.objectives).find(o => o.definition.kind === "home" && o.definition.owner === side);
+    if (!home || home.status !== "CONFIRMED") return { status:"UNKNOWN", dependencies: home ? ["objective:"+home.definition.id] : deps, reason:"Required home-objective control is not confirmed." };
+    if (home.controller !== side) return { status:"FAIL", value:0, dependencies:["objective:"+home.definition.id], reason:"Home objective is not controlled." };
   }
   const relevant = Object.values(runtime.objectives).filter(o => {
     if (c.excludeHome && o.definition.kind === "home" && o.definition.owner === side) return false;
