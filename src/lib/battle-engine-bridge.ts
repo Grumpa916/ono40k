@@ -1,6 +1,6 @@
 import { BattleEngine, evaluatePrimaryCheckpoint } from "./engine/index.ts";
 import type { BattleCommand, BattleRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "./engine/index.ts";
-import type { Game } from "../data/types.ts";
+import type { Game, ObjectiveControlRecord } from "../data/types.ts";
 import { uid } from "./utils.ts";
 
 type BridgeRecord = {
@@ -17,7 +17,7 @@ function commandId() {
   return uid("eng");
 }
 
-function ensure(game: Game): BridgeRecord {
+function hydrateObjectiveState(game: Game, record: BridgeRecord) {\n  const persisted = game.objectiveControl;\n  if (!persisted) return record;\n  const state = record.engine.getState();\n  for (const [id, objective] of Object.entries(persisted)) if (state.objectives[id]) state.objectives[id] = objective as typeof state.objectives[string];\n  return record;\n}\n\nfunction ensure(game: Game): BridgeRecord {
   const existing = records.get(game.id);
   if (existing) return existing;
   const record: BridgeRecord = { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 };
@@ -41,7 +41,7 @@ function dispatch(record: BridgeRecord, command: BattleCommand) {
 }
 
 export function registerBattle(game: Game) {
-  records.set(game.id, { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 });
+  records.set(game.id, hydrateObjectiveState(game, { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 }));
 }
 
 export function unregisterBattle(gameId: string) {
@@ -112,7 +112,7 @@ export function reconcileBattle(previous: Game, next: Game) {
   if (failed) rebuild(next, "Legacy game mutation could not be represented by an engine command; runtime rebuilt.");
 }
 
-export function getBattleRuntime(game: Game): BattleRuntime {
+export function updateObjectiveControl(game: Game, command: BattleCommand) {\n  const record = ensure(game);\n  const result = record.engine.dispatch(command);\n  if (result.ok) { record.commands += 1; record.syncedAt = Date.now(); record.desync = null; }\n  return result;\n}\n\nexport function getBattleRuntime(game: Game): BattleRuntime {
   return ensure(game).engine.getState();
 }
 
