@@ -1,8 +1,8 @@
-import { getUnit } from "@/data/codex";
-import { primaryForSide } from "@/lib/validation";
-import type { Game } from "@/data/types";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective";
-import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types";
+import { getUnit } from "../../data/codex.ts";
+import { primaryForSide } from "../validation.ts";
+import type { Game } from "../../data/types.ts";
+import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective.ts";
+import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types.ts";
 
 function bump(state: BattleRuntime, key: string) {
   state.versions[key] = (state.versions[key] ?? 0) + 1;
