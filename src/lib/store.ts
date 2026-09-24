@@ -26,7 +26,7 @@ import { parseObjective } from "@/data/missions";
 import { getMap } from "@/data/maps";
 import { primaryForSide, rosterDisposition } from "@/lib/validation";
 import { battleElapsedMs, uid, unitCopyMarks } from "@/lib/utils";
-import { commitPrimaryScoreTransaction, reconcileBattle, registerBattle, unregisterBattle } from "@/lib/battle-engine-bridge";
+import { commitPrimaryScoreTransaction, reconcileBattle, registerBattle, unregisterBattle, getBattleRuntime, updateObjectiveControl } from "@/lib/battle-engine-bridge";\nimport { contributionFromUnit } from "@/lib/engine/objective";\nimport type { BattleCommand } from "@/lib/engine/types";
 
 const emptyScore = (): SideScore => ({
   primaryByRound: [0, 0, 0, 0, 0],
@@ -477,7 +477,7 @@ type State = {
   prevTurn: () => void;
   jumpRound: (round: 1 | 2 | 3 | 4 | 5) => void;
   adjustPrimary: (side: "me" | "opponent", round: number, delta: number) => void;
-  setPrimary: (side: "me" | "opponent", round: number, value: number) => void;\n  commitPrimaryScore: (side?: "me" | "opponent", checkpoint?: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE") => { ok: boolean; error?: string };
+  setPrimary: (side: "me" | "opponent", round: number, value: number) => void;\n  commitPrimaryScore: (side?: "me" | "opponent", checkpoint?: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE") => { ok: boolean; error?: string };\n  setObjectiveSideAbsent: (objectiveId: string, side: "me" | "opponent") => { ok: boolean; error?: string };\n  setObjectiveContribution: (objectiveId: string, unitId: string, modelsContributing: number) => { ok: boolean; error?: string };\n  confirmObjective: (objectiveId: string) => { ok: boolean; error?: string };
   togglePrimaryCheck: (side: "me" | "opponent", objIndex: number, slot: number, max?: number) => void;
   setSecondaryMode: (side: "me" | "opponent", mode: "fixed" | "tactical") => void;
   toggleFixedSecondary: (side: "me" | "opponent", id: string) => void;
@@ -878,7 +878,7 @@ export const useWarStore = create<State>()(
           }),
         });
       },
-      commitPrimaryScore: (side, checkpoint) => {
+      setObjectiveSideAbsent: (objectiveId, side) => {\n        const id = get().activeGameId;\n        const raw = get().games.find((g) => g.id === id);\n        if (!id || !raw || raw.status === "complete") return { ok: false, error: "No active game." };\n        const command: BattleCommand = { id: uid("obj"), type: "SET_OBJECTIVE_SIDE_ABSENT", objectiveId, side };\n        const result = updateObjectiveControl(raw, command);\n        if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Objective update failed." };\n        const summary = side === "me" ? `You report no models on ${objectiveId}.` : `Opponent has no models on ${objectiveId}.`;\n        applyTracked(get, set, "action", summary, (g) => ({ ...g, objectiveControl: result.state!.objectives }));\n        return { ok: true };\n      },\n      setObjectiveContribution: (objectiveId, unitId, modelsContributing) => {\n        const id = get().activeGameId;\n        const raw = get().games.find((g) => g.id === id);\n        if (!id || !raw || raw.status === "complete") return { ok: false, error: "No active game." };\n        const runtime = getBattleRuntime(raw);\n        const unit = runtime.units[unitId];\n        if (!unit) return { ok: false, error: "Unknown unit." };\n        const command: BattleCommand = { id: uid("obj"), type: "SET_OBJECTIVE_CONTRIBUTION", objectiveId, contribution: contributionFromUnit(unit, unit.side, modelsContributing) };\n        const result = updateObjectiveControl(raw, command);\n        if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Objective update failed." };\n        const name = getUnit(unit.rosterUnit.unitId === unit.rosterUnit.unitId ? (unit.side === "me" ? raw.myRoster.factionId : raw.opponentRoster.factionId) : "", unit.rosterUnit.unitId)?.name ?? "unit";\n        applyTracked(get, set, "action", `${name}: ${modelsContributing} models contributing to ${objectiveId}.`, (g) => ({ ...g, objectiveControl: result.state!.objectives }));\n        return { ok: true };\n      },\n      confirmObjective: (objectiveId) => {\n        const id = get().activeGameId;\n        const raw = get().games.find((g) => g.id === id);\n        if (!id || !raw || raw.status === "complete") return { ok: false, error: "No active game." };\n        const result = updateObjectiveControl(raw, { id: uid("obj"), type: "CONFIRM_OBJECTIVE", objectiveId });\n        if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Objective cannot be confirmed." };\n        applyTracked(get, set, "action", `${objectiveId} control confirmed.`, (g) => ({ ...g, objectiveControl: result.state!.objectives }));\n        return { ok: true };\n      },\n      commitPrimaryScore: (side, checkpoint) => {
         const id = get().activeGameId;
         const raw = get().games.find((g) => g.id === id);
         if (!id || !raw || raw.status === "complete") return { ok: false, error: "No active game." };
