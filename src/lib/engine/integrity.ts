@@ -45,7 +45,6 @@ export function validateUnit(faction: Faction, unit: UnitDef) {
   const names = new Set<string>();
   for (const weapon of weapons) {
     errors.push(...validateWeapon(unit, weapon, faction.id));
-    if (names.has(weapon.name)) errors.push(faction.id + "/" + unit.id + ": duplicate weapon " + weapon.name);
     names.add(weapon.name);
   }
   for (const id of unit.leaderOf ?? []) {
