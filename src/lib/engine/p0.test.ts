@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateCanonicalCatalogue } from "./integrity";
-import { DependencyManager } from "./dependency";
-import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, findContestConflicts } from "./objective";
-import { resolveWeapon } from "./resolution";
-import { executeCommand } from "./commands";
-import type { BattleRuntime, RuntimeUnit } from "./types";
+import { validateCanonicalCatalogue } from "./integrity.ts";
+import { DependencyManager } from "./dependency.ts";
+import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, findContestConflicts } from "./objective.ts";
+import { resolveWeapon } from "./resolution.ts";
+import { executeCommand } from "./commands.ts";
+import type { BattleRuntime, RuntimeUnit } from "./types.ts";
 
 test("canonical catalogue validates", () => {
   const audit = validateCanonicalCatalogue();
