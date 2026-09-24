@@ -80,7 +80,7 @@ export type BattleCommand =
   | { id: string; type: "CHANGE_PHASE"; phase: PhaseId }
   | { id: string; type: "CHANGE_TURN"; round: 1 | 2 | 3 | 4 | 5; side: "me" | "opponent" }
   | { id: string; type: "SET_CP"; side: "me" | "opponent"; value: number }
-  | { id: string; type: "SET_VP"; side: "me" | "opponent"; value: number };
+  | { id: string; type: "SET_VP"; side: "me" | "opponent"; value: number }\n  | { id: string; type: "SCORE_PRIMARY"; side: "me" | "opponent"; round: 1 | 2 | 3 | 4 | 5; checkpoint: PrimaryCheckpoint };
 
 export type PrimaryCheckpoint = "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE";\n\nexport type PrimaryScoreTransaction = { transactionId: string; side: "me" | "opponent"; round: number; checkpoint: PrimaryCheckpoint; missionId: string | null; eligibleVp: number; awardedVp: number; overscore: number; conditionIds: string[]; committedAt: number; };
 export type MissionConditionKind =
