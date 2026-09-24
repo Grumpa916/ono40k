@@ -1,8 +1,10 @@
 import { ScoreLines } from "@/components/battle/score-lines";
+import { ObjectiveControlPanel } from "@/components/battle/objective-control-panel";
 import { SecondaryPanel } from "@/components/battle/secondary-panel";
 import { Card } from "@/components/ui/card";
 import { objectiveVp, parseObjective, type MissionInfo } from "@/data/missions";
 import type { Game } from "@/data/types";
+import { getBattleRuntime, getPrimaryScorePreview } from "@/lib/battle-engine-bridge";
 import { useWarStore } from "@/lib/store";
 
 export function ScorePanel({
@@ -21,6 +23,10 @@ export function ScorePanel({
   const side = game.viewing;
   const score = game.scores[side];
   const togglePrimaryCheck = useWarStore((s) => s.togglePrimaryCheck);
+  const commitPrimaryScore = useWarStore((s) => s.commitPrimaryScore);
+  const runtime = getBattleRuntime(game);
+  const checkpoint = game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN";
+  const preview = getPrimaryScorePreview(game, side, checkpoint);
   const primaryPts = mission ? objectiveVp(score.primaryChecks, mission.scoring.map(parseObjective)) : score.primaryByRound.reduce((a, b) => a + b, 0);
 
   return (
@@ -38,6 +44,18 @@ export function ScorePanel({
           <p className="mt-2 text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
             15 VP / round · 45 primary max · {primaryPts} VP
           </p>
+          <ObjectiveControlPanel runtime={runtime} />
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium">Engine scoring</p>
+              <p className="text-[10px] text-muted-foreground">
+                {preview.unresolved.length ? `${preview.unresolved.length} input${preview.unresolved.length === 1 ? "" : "s"} unresolved` : `${preview.awardedVp} VP now · ${preview.overscore} capped`}
+              </p>
+            </div>
+            <button type="button" disabled={locked || preview.unresolved.length > 0 || preview.awardedVp <= 0} onClick={() => commitPrimaryScore(side, checkpoint)} className="h-8 shrink-0 rounded-md border border-ok/50 bg-ok/15 px-3 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-40">
+              Score {preview.awardedVp} VP
+            </button>
+          </div>
           <ScoreLines
             lines={mission.scoring}
             checks={score.primaryChecks}
