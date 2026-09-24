@@ -126,6 +126,27 @@ export function resetBattleEngineRegistry() {
   records.clear();
 }
 
+export function commitPrimaryScoreTransaction(
+  game: Game,
+  side: "me" | "opponent" = game.activeSide,
+  checkpoint: PrimaryCheckpoint = game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN",
+) {
+  const record = ensure(game);
+  const result = record.engine.dispatch({
+    id: commandId(),
+    type: "SCORE_PRIMARY",
+    side,
+    round: game.round,
+    checkpoint,
+  });
+  if (result.ok) {
+    record.commands += 1;
+    record.syncedAt = Date.now();
+    record.desync = null;
+  }
+  return result;
+}
+
 export function getPrimaryScorePreview(
   game: Game,
   side: "me" | "opponent" = game.activeSide,
