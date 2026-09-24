@@ -168,8 +168,8 @@ test("P2 does not require unrelated stale objectives for a one-or-more condition
     const r=runtime();
     r.objectives.O3.status="STALE";
     const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
-    const eachObjective=preview.items.find(i=>i.sourceText.includes("3 VP for each objective you control"));
-    assert.equal(eachObjective?.status,"UNKNOWN");
-    const homeBonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
-    assert.equal(homeBonus?.status,"UNKNOWN");
+    const oneOrMore=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
+    assert.equal(oneOrMore?.status,"UNKNOWN");
+    const objectiveCount=preview.items.find(i=>i.sourceText.includes("3 VP for each objective you control"));
+    assert.equal(objectiveCount?.status,"UNKNOWN");
 });
