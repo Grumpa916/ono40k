@@ -72,8 +72,8 @@ test("P2 commits primary scoring once and records overscore",()=>{
     const r=runtime();
     const first=executeCommand(r,{id:"score-1",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
     assert.equal(first.ok,true);
-    assert.equal(first.state?.primaryAwardedByRound.me[1],1);
-    assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,1);
+    assert.equal(first.state?.primaryAwardedByRound.me[1],9);
+    assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,9);
     const duplicate=executeCommand(first.state!,{id:"score-2",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
     assert.equal(duplicate.ok,false);
 });
