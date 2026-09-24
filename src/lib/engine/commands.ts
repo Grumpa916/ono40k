@@ -154,7 +154,7 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       if (state.primaryTransactions[transactionId]) return { ok: false, events, error: "Primary scoring checkpoint already committed." };
       const alreadyAwarded = state.primaryAwardedByRound[command.side][command.round - 1] ?? 0;
       const preview = evaluatePrimaryCheckpoint(state, command.side, command.round, command.checkpoint, alreadyAwarded);
-      if (preview.unresolved.length) return { ok: false, events, error: "Primary scoring has unresolved objective or mission data." };
+      if (preview.unresolved.length) return { ok: false, events, error: "Primary scoring has unresolved objective or mission data: " + preview.unresolved.join(" | ") };
       const transaction = {
         transactionId, side: command.side, round: command.round, checkpoint: command.checkpoint,
         missionId: preview.missionId, eligibleVp: preview.eligibleVp, awardedVp: preview.awardedVp,
