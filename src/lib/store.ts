@@ -929,7 +929,7 @@ export const useWarStore = create<State>()(
         if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Primary scoring failed." };
         const transaction = result.state.primaryTransactions[`primary:${targetSide}:${game.round}:${targetCheckpoint}`];
         if (!transaction) return { ok: false, error: "Primary scoring transaction was not created." };
-        const persisted: PrimaryScoreRecord = { ...transaction };
+        const persisted: PrimaryScoreRecord = { ...transaction, round: game.round };
         const summary = `${sideName(game, targetSide)} scores ${persisted.awardedVp} VP primary${persisted.overscore ? ` (${persisted.overscore} VP lost to round cap)` : ""} · ${targetCheckpoint.replaceAll("_", " ")}`;
         applyTracked(get, set, "score", summary, (g) => ({
           ...g,
