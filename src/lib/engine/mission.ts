@@ -41,6 +41,9 @@ function parseLine(text: string, index: number): MissionCondition {
     const count = ({two:2,three:3,four:4,five:5} as Record<string,number>)[key] ?? Number(key);
     return { ...base, kind: "CONTROL_OBJECTIVE_COUNT", count };
   }
+  if (/each of those objectives? (?:that is )?within (?:your )?opponent'?s territory|each (?:non-home )?objective.*(?:within|in) (?:your )?opponent'?s territory/i.test(text)) {
+    return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, territory: "opponent", count: undefined, each: true };
+  }
   if (/each non-home objective if you also control (?:your )?home/i.test(text)) {
     return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, count: undefined, each: true, requiresHomeControl: true };
   }
@@ -88,6 +91,7 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
   }
   const relevant = Object.values(runtime.objectives).filter(o => {
     if (c.excludeHome && o.definition.kind === "home" && o.definition.owner === side) return false;
+    if (c.territory && o.definition.territory !== (c.territory === "opponent" ? (side === "me" ? "opponent" : "me") : side)) return false;
     return !c.objectiveKind || o.definition.kind === c.objectiveKind;
   });
   if (relevant.some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:relevant.map(o => "objective:"+o.definition.id), reason:"Required objective control is not confirmed." };
