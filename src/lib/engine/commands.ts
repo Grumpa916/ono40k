@@ -2,7 +2,7 @@ import { getUnit } from "../../data/codex.ts";
 import { primaryForSide } from "../validation.ts";
 import { evaluatePrimaryCheckpoint } from "./mission.ts";
 import type { Game } from "../../data/types.ts";
-import { objectiveDefinitions, emptyObjective, setContribution, setSideAbsent, confirmObjective, staleObjective, findContestConflicts } from "./objective.ts";
+import { objectiveDefinitions, emptyObjective, setContribution, setSideAbsent, confirmObjective, staleObjective } from "./objective.ts";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types.ts";
 
 function bump(state: BattleRuntime, key: string) {
@@ -52,10 +52,6 @@ function validateContribution(state: BattleRuntime, contribution: ObjectiveContr
   if (contribution.modelsContributing > unit.modelsRemaining) return "Contributing models exceed models remaining.";
   if (contribution.effectiveOcPerModel != null && contribution.effectiveOcPerModel < 0) return "Effective OC cannot be negative.";
   return null;
-}
-
-function contestConflicts(state: BattleRuntime) {
-  return findContestConflicts(Object.values(state.objectives).flatMap((objective) => Object.values(objective.contributions)));
 }
 
 export function executeCommand(previous: BattleRuntime, command: BattleCommand): CommandResult {
@@ -126,7 +122,6 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
     case "CONFIRM_OBJECTIVE": {
       const objective = state.objectives[command.objectiveId];
       if (!objective) return { ok: false, events, error: "Unknown objective." };
-      if (contestConflicts(state).length) return { ok: false, events, error: "A unit is assigned to multiple objectives; choose one before confirming control." };
       const next = confirmObjective(objective);
       if (next.status !== "CONFIRMED") return { ok: false, events, error: "Objective control is unknown; required contribution data is incomplete." };
       state.objectives[command.objectiveId] = next;
