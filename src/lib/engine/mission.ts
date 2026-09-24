@@ -20,6 +20,8 @@ function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: n
       rounds: rounds(match[1]!),
     });
   }
+  const endClause = line.match(/;\\s*(R\\d(?:–R\\d)?)\\s+end of (?:your|the) turn/i);
+  if (endClause) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(endClause[1]!) });
   if (/end of battle/i.test(line)) out.push({ checkpoint: "END_OF_BATTLE", rounds: [5] });
   if (!out.length && /Command/i.test(line)) out.push({ checkpoint: "COMMAND", rounds: rounds(line) });
   if (!out.length && /end of (?:your|the) turn/i.test(line)) out.push({ checkpoint: "END_OF_TURN", rounds: rounds(line) });
