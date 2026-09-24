@@ -69,7 +69,7 @@ export type BattleEvent =
   | { type: "OBJECTIVE_CONFIRMED"; commandId: string; objectiveId: string }
   | { type: "OBJECTIVE_STALE"; commandId: string; objectiveId: string }
   | { type: "CP_CHANGED"; commandId: string; side: "me" | "opponent" }
-  | { type: "VP_CHANGED"; commandId: string; side: "me" | "opponent" };
+  | { type: "VP_CHANGED"; commandId: string; side: "me" | "opponent" }\n  | { type: "PRIMARY_SCORE_COMMITTED"; commandId: string; transactionId: string; side: "me" | "opponent"; round: number; checkpoint: PrimaryCheckpoint; awardedVp: number; overscore: number };
 
 export type BattleCommand =
   | { id: string; type: "MOVE_UNIT"; unitId: string }
@@ -82,7 +82,7 @@ export type BattleCommand =
   | { id: string; type: "SET_CP"; side: "me" | "opponent"; value: number }
   | { id: string; type: "SET_VP"; side: "me" | "opponent"; value: number };
 
-export type PrimaryCheckpoint = "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE";
+export type PrimaryCheckpoint = "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE";\n\nexport type PrimaryScoreTransaction = { transactionId: string; side: "me" | "opponent"; round: number; checkpoint: PrimaryCheckpoint; missionId: string | null; eligibleVp: number; awardedVp: number; overscore: number; conditionIds: string[]; committedAt: number; };
 export type MissionConditionKind =
   | "CONTROL_OBJECTIVE"
   | "CONTROL_OBJECTIVE_COUNT"
