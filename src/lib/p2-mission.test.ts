@@ -14,7 +14,9 @@ function runtime(): BattleRuntime {
       O2:{definition:{id:"O2",layoutId:"test",index:2,kind:"expansion",owner:"opponent",anchor:{x:0,y:0},terrainAreaId:"B"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
       O3:{definition:{id:"O3",layoutId:"test",index:3,kind:"centre",anchor:{x:0,y:0},terrainAreaId:"C"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
     },
-    mission:{disposition:{me:"Take and Hold",opponent:"Take and Hold"},primaryId:"test",scoringWindow:null},versions:{},\n    primaryTransactions:{},\n    primaryAwardedByRound:{me:[0,0,0,0,0],opponent:[0,0,0,0,0]}
+    mission:{disposition:{me:"Take and Hold",opponent:"Take and Hold"},primaryId:"test",scoringWindow:null},versions:{},
+    primaryTransactions:{},
+    primaryAwardedByRound:{me:[0,0,0,0,0],opponent:[0,0,0,0,0]}
   };
 }
 
