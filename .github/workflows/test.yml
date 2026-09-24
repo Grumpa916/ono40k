@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Engine regression tests
-        run: node --experimental-strip-types --test src/lib/engine/p0.test.ts src/lib/p1-bridge.test.ts src/lib/p2-mission.test.ts
+        run: npx --yes tsx@4.20.6 --test src/lib/engine/p0.test.ts src/lib/p1-bridge.test.ts src/lib/p2-mission.test.ts
 
       - name: Typecheck
         run: npm run typecheck
