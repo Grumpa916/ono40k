@@ -43,7 +43,7 @@ function parseLine(text: string, index: number): MissionCondition {
     return { ...base, kind: "DESTROYED_DURING_WINDOW", count: 1, comparePreviousTurn: true };
   }
   const action = text.match(/completed the ([^".]+?) action/i);
-  if (action && !/operation|vanguard/i.test(action[1]!)) {
+  if (action) {
     return { ...base, kind: "ACTION_COMPLETED", actionName: action[1]!.trim() };
   }
   const op = text.match(/(three or more|one or more|only one|none of the opponent'?s) (?:of your |of the opponent'?s )?operation markers?/i);
