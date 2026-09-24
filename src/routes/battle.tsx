@@ -1,4 +1,4 @@
-import { ChevronLeft, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { ArmyPanel } from "@/components/battle/army-panel";
@@ -278,18 +278,13 @@ function BattleTable({ game }: { game: Game }) {
             </TabsContent>
           </Tabs>
 
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" asChild>
-          <Link to="/">
-            <ChevronLeft className="size-4" /> Lists
-          </Link>
-        </Button>
-        {locked ? null : (
+      {locked ? null : (
+        <div className="flex gap-2 pt-2">
           <Button variant="outline" className="ml-auto" onClick={endGame}>
             Close ledger
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <LedgerTape game={game} log={log} undoCount={undoStack.length} onUndo={undoLast} />
         </>

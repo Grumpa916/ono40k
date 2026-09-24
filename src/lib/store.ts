@@ -1229,12 +1229,30 @@ export const useWarStore = create<State>()(
       },
       dismissStrat: (activeId) => {
         const id = get().activeGameId;
-        if (!id) return;
-        set({
-          games: get().games.map((g) =>
-            g.id === id ? { ...hydrateGame(g), activeStrats: (g.activeStrats ?? []).filter((s) => s.id !== activeId) } : g,
-          ),
-        });
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return;
+        const game = hydrateGame(raw);
+        const strat = (game.activeStrats ?? []).find((s) => s.id === activeId);
+        if (!strat) return;
+        const firstTurn = game.preBattle?.firstTurn === "opponent" ? "opponent" : "me";
+        const liveR = (game.liveRound ?? game.round) as 1 | 2 | 3 | 4 | 5;
+        const liveS = game.liveSide ?? game.activeSide;
+        const onLive = game.round === liveR && game.activeSide === liveS;
+        const liveKey = turnKey(liveR, liveS, firstTurn);
+        const liveCp = onLive ? game.cp : (game.cpHistory?.[liveKey] ?? game.cp);
+        const nextCp = strat.cp > 0 ? { ...liveCp, [strat.side]: liveCp[strat.side] + strat.cp } : liveCp;
+        const who = sideName(game, strat.side);
+        const you = who.trim().toLowerCase() === "you";
+        const summary =
+          strat.cp > 0
+            ? `${you ? "You gain" : `${who} gains`} ${strat.cp} CP · ${strat.name} cancelled`
+            : `${strat.name} cancelled`;
+        applyTracked(get, set, strat.cp > 0 ? "cp" : "stratagem", summary, (g) => ({
+          ...g,
+          cp: onLive ? nextCp : g.cp,
+          cpHistory: { ...(g.cpHistory ?? {}), [liveKey]: nextCp },
+          activeStrats: (g.activeStrats ?? []).filter((s) => s.id !== activeId),
+        }));
       },
       undoLast: () => {
         const id = get().activeGameId;
