@@ -6,6 +6,7 @@ import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective
 import { resolveWeapon } from "./resolution.ts";
 import { executeCommand } from "./commands.ts";
 import type { BattleRuntime, RuntimeUnit } from "./types.ts";
+import { GW_LAYOUTS } from "../../data/gw-layouts.ts";
 
 test("canonical catalogue validates", () => {
   const audit = validateCanonicalCatalogue();
@@ -126,15 +127,18 @@ test("objective-changing commands invalidate confirmed control", () => {
 });
 
 
-test("layouts with paired centre objectives are identified for multi-objective validation", () => {
-  const paired = [
-    ["th-pf-a", 5.0], ["th-pf-b", 5.2], ["th-pf-c", 6.6],
-    ["th-pa-a", 13.0], ["th-pa-b", 8.3], ["th-pa-c", 3.3],
-    ["pf-di-a", 17.1], ["pf-di-b", 5.7], ["pf-di-c", 7.7],
-    ["pf-re-a", 11.0], ["pf-re-b", 15.8], ["pf-re-c", 7.0],
-    ["pf-pa-a", 5.1], ["pf-pa-b", 7.5], ["pf-pa-c", 5.5],
-    ["di-re-a", 15.9], ["di-re-b", 10.7], ["di-re-c", 12.5],
-    ["re-re-a", 5.0], ["re-re-b", 7.0], ["re-re-c", 5.9],
-  ];
-  assert.ok(paired.length >= 1);
+test("some official layouts place paired centre objectives close enough to require multi-objective handling", () => {
+  const paired = GW_LAYOUTS.filter((layout) => {
+    const centres = layout.markers.filter((marker) => marker.kind === "centre");
+    if (centres.length < 2) return false;
+    for (let i = 0; i < centres.length; i++) {
+      for (let j = i + 1; j < centres.length; j++) {
+        const distance = Math.hypot(centres[i]!.x - centres[j]!.x, centres[i]!.y - centres[j]!.y);
+        if (distance <= 8) return true;
+      }
+    }
+    return false;
+  });
+  assert.ok(paired.length > 0);
+  assert.ok(paired.some((layout) => layout.id === "th-pf-a"));
 });
