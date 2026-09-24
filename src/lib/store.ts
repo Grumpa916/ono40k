@@ -903,7 +903,15 @@ export const useWarStore = create<State>()(
         const runtime = getBattleRuntime(raw);
         const unit = runtime.units[unitId];
         if (!unit) return { ok: false, error: "Unknown unit." };
-        const command: BattleCommand = { id: uid("obj"), type: "SET_OBJECTIVE_CONTRIBUTION", objectiveId, contribution: contributionFromUnit(unit, unit.side, modelsContributing) };
+        const current = runtime.objectives[objectiveId]?.contributions[unitId];
+        const next = contributionFromUnit(unit, unit.side, modelsContributing);
+        if (
+          current &&
+          current.modelsContributing === next.modelsContributing &&
+          current.effectiveOcPerModel === next.effectiveOcPerModel
+        ) return { ok: true };
+        if (!current && next.modelsContributing === 0) return { ok: true };
+        const command: BattleCommand = { id: uid("obj"), type: "SET_OBJECTIVE_CONTRIBUTION", objectiveId, contribution: next };
         const result = updateObjectiveControl(raw, command);
         if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Objective update failed." };
         const name = unitLabel(raw, unitId);
