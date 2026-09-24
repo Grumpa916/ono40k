@@ -8,37 +8,51 @@ export type ResolutionResult<T> =
   | { status: "INVALID"; dependencies: string[]; provenance: string[]; reason: string };
 
 export type RuleEffect = {
-  id: string; kind: "SET" | "ADD" | "MULTIPLY" | "CAP" | "FLOOR" | "AVAILABLE" | "UNAVAILABLE" | "RESTRICTION";
-  target: string; value?: number; source: string;
+  id: string;
+  kind: "SET" | "ADD" | "MULTIPLY" | "CAP" | "FLOOR" | "AVAILABLE" | "UNAVAILABLE" | "RESTRICTION";
+  target: string;
+  value?: number;
+  source: string;
   scope?: "battle" | "player" | "unit" | "model" | "weapon" | "objective" | "attack" | "target";
 };
 
 export type ObjectiveDefinition = {
-  id: string; layoutId: string; index: number; kind: "home" | "expansion" | "centre";
-  owner?: "me" | "opponent"; anchor: { x: number; y: number }; terrainAreaId: string | null;
+  id: string; layoutId: string; index: number;
+  kind: "home" | "expansion" | "centre";
+  owner?: "me" | "opponent";
+  anchor: { x: number; y: number };
+  terrainAreaId: string | null;
 };
 
 export type ObjectiveContribution = {
-  componentId: string; unitId: string; side: "me" | "opponent"; modelsContributing: number;
-  effectiveOcPerModel: number | null; totalOc: number | null; updatedAt: number;
+  componentId: string; unitId: string; side: "me" | "opponent";
+  modelsContributing: number; effectiveOcPerModel: number | null; totalOc: number | null; updatedAt: number;
 };
 
 export type ObjectiveRuntime = {
-  definition: ObjectiveDefinition; contributions: Record<string, ObjectiveContribution>;
-  youOc: number | null; opponentOc: number | null; controller: "me" | "opponent" | "contested" | "unknown";
-  status: "CONFIRMED" | "STALE" | "UNKNOWN"; lastConfirmedAt: number | null; version: number;
+  definition: ObjectiveDefinition;
+  contributions: Record<string, ObjectiveContribution>;
+  youOc: number | null; opponentOc: number | null;
+  controller: "me" | "opponent" | "contested" | "unknown";
+  status: "CONFIRMED" | "STALE" | "UNKNOWN";
+  lastConfirmedAt: number | null; version: number;
 };
 
 export type RuntimeUnit = {
-  rosterUnit: RosterUnit; definition: UnitDef; side: "me" | "opponent"; modelsRemaining: number;
-  woundsOnCurrent: number; battleShocked: boolean; destroyed: boolean; attachedTo?: string;
+  rosterUnit: RosterUnit; definition: UnitDef; side: "me" | "opponent";
+  modelsRemaining: number; woundsOnCurrent: number; battleShocked: boolean; destroyed: boolean; attachedTo?: string;
 };
 
 export type BattleRuntime = {
-  battleId: string; edition: 11; rulesVersion: string; round: 1 | 2 | 3 | 4 | 5;
-  activeSide: "me" | "opponent"; phase: PhaseId; cp: { me: number; opponent: number };
-  vp: { me: number; opponent: number }; units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>;
-  mission: { disposition: { me: Disposition | null; opponent: Disposition | null }; primaryId: string | null; scoringWindow: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE" | null };
+  battleId: string; edition: 11; rulesVersion: string;
+  round: 1 | 2 | 3 | 4 | 5; activeSide: "me" | "opponent"; phase: PhaseId;
+  cp: { me: number; opponent: number }; vp: { me: number; opponent: number };
+  units: Record<string, RuntimeUnit>; objectives: Record<string, ObjectiveRuntime>;
+  mission: {
+    disposition: { me: Disposition | null; opponent: Disposition | null };
+    primaryId: string | null;
+    scoringWindow: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE" | null;
+  };
   versions: Record<string, number>;
 };
 
@@ -50,7 +64,7 @@ export type BattleEvent =
   | { type: "MODEL_DESTROYED"; commandId: string; unitId: string; count: number }
   | { type: "UNIT_DESTROYED"; commandId: string; unitId: string }
   | { type: "UNIT_OC_CHANGED"; commandId: string; unitId: string }
-  | { type: "UNIT_BATTLE_SHOCK_CHANGED"; commandId: string; unitId: string; battleShocked: boolean }
+  | { type: "UNIT_BATTLE_SHOCK_CHANGED"; commandId: string; unitId: string; battleShocked: boolean };
   | { type: "OBJECTIVE_CONTRIBUTION_CHANGED"; commandId: string; objectiveId: string; unitId: string }
   | { type: "OBJECTIVE_CONFIRMED"; commandId: string; objectiveId: string }
   | { type: "OBJECTIVE_STALE"; commandId: string; objectiveId: string }
