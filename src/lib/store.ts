@@ -12,6 +12,7 @@ import type {
   LedgerEventKind,
   PhaseId,
   PreBattle,
+  PrimaryScoreRecord,
   Roster,
   RosterUnit,
   SideScore,
@@ -25,7 +26,7 @@ import { parseObjective } from "@/data/missions";
 import { getMap } from "@/data/maps";
 import { primaryForSide, rosterDisposition } from "@/lib/validation";
 import { battleElapsedMs, uid, unitCopyMarks } from "@/lib/utils";
-import { reconcileBattle, registerBattle, unregisterBattle } from "@/lib/battle-engine-bridge";
+import { commitPrimaryScoreTransaction, reconcileBattle, registerBattle, unregisterBattle } from "@/lib/battle-engine-bridge";
 
 const emptyScore = (): SideScore => ({
   primaryByRound: [0, 0, 0, 0, 0],
@@ -474,7 +475,7 @@ type State = {
   prevTurn: () => void;
   jumpRound: (round: 1 | 2 | 3 | 4 | 5) => void;
   adjustPrimary: (side: "me" | "opponent", round: number, delta: number) => void;
-  setPrimary: (side: "me" | "opponent", round: number, value: number) => void;
+  setPrimary: (side: "me" | "opponent", round: number, value: number) => void;\n  commitPrimaryScore: (side?: "me" | "opponent", checkpoint?: "COMMAND" | "END_OF_TURN" | "END_OF_BATTLE") => { ok: boolean; error?: string };
   togglePrimaryCheck: (side: "me" | "opponent", objIndex: number, slot: number, max?: number) => void;
   setSecondaryMode: (side: "me" | "opponent", mode: "fixed" | "tactical") => void;
   toggleFixedSecondary: (side: "me" | "opponent", id: string) => void;
@@ -873,6 +874,32 @@ export const useWarStore = create<State>()(
             return { ...g, scores: { ...g.scores, [side]: score } };
           }),
         });
+      },
+      commitPrimaryScore: (side, checkpoint) => {
+        const id = get().activeGameId;
+        const raw = get().games.find((g) => g.id === id);
+        if (!id || !raw || raw.status === "complete") return { ok: false, error: "No active game." };
+        const game = hydrateGame(raw);
+        const targetSide = side ?? game.activeSide;
+        const targetCheckpoint = checkpoint ?? (game.phase === "command" ? "COMMAND" : game.phase === "end" ? "END_OF_TURN" : "END_OF_TURN");
+        const result = commitPrimaryScoreTransaction(game, targetSide, targetCheckpoint);
+        if (!result.ok || !result.state) return { ok: false, error: result.error ?? "Primary scoring failed." };
+        const transaction = result.state.primaryTransactions[`primary:${targetSide}:${game.round}:${targetCheckpoint}`];
+        if (!transaction) return { ok: false, error: "Primary scoring transaction was not created." };
+        const persisted: PrimaryScoreRecord = { ...transaction };
+        const summary = `${sideName(game, targetSide)} scores ${persisted.awardedVp} VP primary${persisted.overscore ? ` (${persisted.overscore} VP lost to round cap)` : ""} · ${targetCheckpoint.replaceAll("_", " ")}`;
+        applyTracked(get, set, "score", summary, (g) => ({
+          ...g,
+          scores: {
+            ...g.scores,
+            [targetSide]: {
+              ...g.scores[targetSide],
+              primaryByRound: Object.assign([...g.scores[targetSide].primaryByRound] as SideScore["primaryByRound"], { [game.round - 1]: persisted.awardedVp + (g.scores[targetSide].primaryByRound[game.round - 1] ?? 0) }),
+            },
+          },
+          primaryScoreTransactions: [...(g.primaryScoreTransactions ?? []).filter((x) => x.transactionId !== persisted.transactionId), persisted],
+        }));
+        return { ok: true };
       },
       setPrimary: (side, round, value) => {
         const id = get().activeGameId;
