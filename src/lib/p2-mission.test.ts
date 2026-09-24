@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { missionConditions, evaluatePrimaryCheckpoint } from "./engine/mission.ts";
 import { setContribution, setSideAbsent, confirmObjective } from "./engine/objective.ts";
+import { executeCommand } from "./engine/commands.ts";
 import type { BattleRuntime } from "./engine/types.ts";
 
 function runtime(): BattleRuntime {
@@ -13,7 +14,7 @@ function runtime(): BattleRuntime {
       O2:{definition:{id:"O2",layoutId:"test",index:2,kind:"expansion",owner:"opponent",anchor:{x:0,y:0},terrainAreaId:"B"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
       O3:{definition:{id:"O3",layoutId:"test",index:3,kind:"centre",anchor:{x:0,y:0},terrainAreaId:"C"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
     },
-    mission:{disposition:{me:"Take and Hold",opponent:"Take and Hold"},primaryId:"test",scoringWindow:null},versions:{}
+    mission:{disposition:{me:"Take and Hold",opponent:"Take and Hold"},primaryId:"test",scoringWindow:null},versions:{},\n    primaryTransactions:{},\n    primaryAwardedByRound:{me:[0,0,0,0,0],opponent:[0,0,0,0,0]}
   };
 }
 
@@ -64,4 +65,15 @@ test("P2 does not score from stale objective data",()=>{
     r.objectives.O2.status="STALE";
     const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
     assert.ok(preview.unresolved.length > 0);
+});
+
+
+test("P2 commits primary scoring once and records overscore",()=>{
+    const r=runtime();
+    const first=executeCommand(r,{id:"score-1",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
+    assert.equal(first.ok,true);
+    assert.equal(first.state?.primaryAwardedByRound.me[1],1);
+    assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,1);
+    const duplicate=executeCommand(first.state!,{id:"score-2",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
+    assert.equal(duplicate.ok,false);
 });
