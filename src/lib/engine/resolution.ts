@@ -31,7 +31,12 @@ export function resolveEffectiveNumber(base: number | string | undefined, depend
 }
 
 export function resolveModelOc(unit: RuntimeUnit, effects: RuleEffect[] = []) {
-  return resolveEffectiveNumber(unit.definition.stats.oc, "unit:" + unit.rosterUnit.id + ":oc", effects);
+  const baseDependencies = ["unit:" + unit.rosterUnit.id + ":oc", "unit:" + unit.rosterUnit.id + ":battle-shocked"];
+  if (unit.battleShocked) {
+    return { status: "RESOLVED" as const, value: 0, dependencies: baseDependencies, provenance: ["battle-shocked => OC 0"] };
+  }
+  const result = resolveEffectiveNumber(unit.definition.stats.oc, baseDependencies[0]!, effects);
+  return { ...result, dependencies: [...new Set([...result.dependencies, ...baseDependencies.slice(1)])] };
 }
 
 export function resolveWeapon(unit: RuntimeUnit, weaponName: string, effects: RuleEffect[] = []): ResolutionResult<Weapon> {
@@ -55,12 +60,7 @@ export function resolveAvailableRangedWeapons(unit: RuntimeUnit, effects: RuleEf
 }
 
 export function resolveUnitComponents(units: RuntimeUnit[]) {
-  return units.map((unit) => ({
-    unitId: unit.rosterUnit.id,
-    attachedTo: unit.attachedTo ?? null,
-    modelsRemaining: unit.modelsRemaining,
-    definitionId: unit.definition.id,
-  }));
+  return units.map((unit) => ({ unitId: unit.rosterUnit.id, attachedTo: unit.attachedTo ?? null, modelsRemaining: unit.modelsRemaining, definitionId: unit.definition.id }));
 }
 
 export type CanonicalWeaponCheck = Pick<Weapon, "name" | "kind" | "range"> & { unitId: string };
