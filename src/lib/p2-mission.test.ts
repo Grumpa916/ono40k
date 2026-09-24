@@ -11,9 +11,9 @@ function runtime(): BattleRuntime {
     battleId:"test", edition:11, rulesVersion:"11e", round:2, activeSide:"me", phase:"command",
     cp:{me:0,opponent:0}, vp:{me:0,opponent:0}, units:{},
     objectives:{
-      O1:{definition:{id:"O1",layoutId:"test",index:1,kind:"home",owner:"me",anchor:{x:0,y:0},terrainAreaId:"A"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
-      O2:{definition:{id:"O2",layoutId:"test",index:2,kind:"expansion",owner:"opponent",anchor:{x:0,y:0},terrainAreaId:"B"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
-      O3:{definition:{id:"O3",layoutId:"test",index:3,kind:"centre",anchor:{x:0,y:0},terrainAreaId:"C"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
+      O1:{definition:{id:"O1",layoutId:"test",index:1,kind:"home",owner:"me",territory:"me",anchor:{x:0,y:0},terrainAreaId:"A"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
+      O2:{definition:{id:"O2",layoutId:"test",index:2,kind:"expansion",owner:"opponent",territory:"me",anchor:{x:0,y:0},terrainAreaId:"B"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
+      O3:{definition:{id:"O3",layoutId:"test",index:3,kind:"centre",territory:"me",anchor:{x:0,y:0},terrainAreaId:"C"},contributions:{},youOc:10,opponentOc:0,controller:"me",status:"CONFIRMED",lastConfirmedAt:1,version:1},
     },
     mission:{disposition:{me:"Take and Hold",opponent:"Take and Hold"},primaryId:"test",scoringWindow:null},versions:{},
     primaryTransactions:{},
@@ -117,4 +117,15 @@ test("P2 commits primary scoring once and records overscore",()=>{
     assert.equal(first.state?.primaryTransactions["primary:me:2:COMMAND"]?.awardedVp,10);
     const duplicate=executeCommand(first.state!,{id:"score-2",type:"SCORE_PRIMARY",side:"me",round:2,checkpoint:"COMMAND"});
     assert.equal(duplicate.ok,false);
+});
+
+test("P2 applies opponent-territory filtering to territory bonus scoring",()=>{
+    const r=runtime();
+    r.objectives.O1 = {...r.objectives.O1, territory:"me"};
+    r.objectives.O2 = {...r.objectives.O2, territory:"opponent"};
+    r.objectives.O3 = {...r.objectives.O3, territory:"opponent"};
+    const preview=evaluatePrimaryCheckpoint(r,"me",2,"COMMAND",0);
+    const bonus=preview.items.find(i=>i.sourceText.includes("2 VP extra for each non-home objective"));
+    assert.equal(bonus?.status,"PASS");
+    assert.equal(bonus?.eligibleVp,4);
 });
