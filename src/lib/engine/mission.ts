@@ -1,6 +1,6 @@
-import { missionFor, parseObjective } from "@/data/missions";
-import type { Disposition } from "@/data/types";
-import type { BattleRuntime, ConditionResult, MissionCondition, ObjectiveRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "./types";
+import { missionFor, parseObjective } from "../../data/missions.ts";
+import type { Disposition } from "../../data/types.ts";
+import type { BattleRuntime, ConditionResult, MissionCondition, ObjectiveRuntime, PrimaryCheckpoint, PrimaryScorePreview } from "./types.ts";
 
 function rounds(text: string): number[] {
   const r = text.match(/R(\d)–R(\d)/);
