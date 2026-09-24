@@ -1,6 +1,6 @@
-import { FACTIONS, getFaction, getUnit } from "@/data/codex";
-import type { Faction, UnitDef, Weapon } from "@/data/types";
-import type { CatalogueAudit } from "./types";
+import { FACTIONS, getFaction, getUnit } from "../../data/codex.ts";
+import type { Faction, UnitDef, Weapon } from "../../data/types.ts";
+import type { CatalogueAudit } from "./types.ts";
 
 const LEGACY_FIELDS = new Set([
   "objectiveRadius",
