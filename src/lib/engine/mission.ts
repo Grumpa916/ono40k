@@ -102,10 +102,11 @@ export function evaluatePrimaryCheckpoint(runtime: BattleRuntime, side:"me"|"opp
     const eligibleVp = result.status === "PASS" ? (c.each ? (result.value ?? 0) * c.vp : c.vp) : 0;
     return { conditionId:c.id, sourceText:c.sourceText, eligibleVp, awardedVp:0, overscore:0, status:result.status, dependencies:result.dependencies };
   });
+  const requiredObjectiveIds = [...new Set(items.flatMap(i => i.dependencies.filter(d => d.startsWith("objective:")).map(d => d.slice("objective:".length))))];
   const eligibleVp = items.reduce((n,i) => n+i.eligibleVp,0);
   const remainingRoundCap = Math.max(0,15-alreadyAwardedThisRound);
   const awardedVp = Math.min(eligibleVp, remainingRoundCap);
   let remaining = awardedVp;
   const resolved = items.map(i => { const awarded=Math.min(i.eligibleVp,remaining); remaining-=awarded; return {...i,awardedVp:awarded,overscore:i.eligibleVp-awarded}; });
-  return { side, round, checkpoint, missionId:runtime.mission.primaryId, items:resolved, eligibleVp, remainingRoundCap, awardedVp, overscore:eligibleVp-awardedVp, unresolved:items.filter(i=>i.status==="UNKNOWN").map(i=>i.sourceText) };
+  return { side, round, checkpoint, missionId:runtime.mission.primaryId, items:resolved, eligibleVp, remainingRoundCap, awardedVp, overscore:eligibleVp-awardedVp, unresolved:items.filter(i=>i.status==="UNKNOWN").map(i=>i.sourceText), requiredObjectiveIds };
 }
