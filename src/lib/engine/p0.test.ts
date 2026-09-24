@@ -24,7 +24,7 @@ test("dependency invalidation is targeted", () => {
 });
 
 test("objective stays unknown until both sides are known", () => {
-  const definition = { id: "O3", layoutId: "test", index: 3, kind: "centre" as const, anchor: { x: 0, y: 0 }, terrainAreaId: null };
+  const definition = { id: "O3", layoutId: "test", index: 3, kind: "centre" as const, territory: "me" as const, anchor: { x: 0, y: 0 }, terrainAreaId: null };
   let objective = emptyObjective(definition);
   objective = setContribution(objective, {
     componentId: "u1", unitId: "u1", side: "me", modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now(),
@@ -74,4 +74,9 @@ test("command rejects invalid casualty input", () => {
     mission: { disposition: { me: null, opponent: null }, primaryId: null, scoringWindow: null }, versions: {}, primaryTransactions: {}, primaryAwardedByRound: { me: [0,0,0,0,0], opponent: [0,0,0,0,0] },
   };
   assert.equal(executeCommand(state, { id: "c1", type: "REMOVE_MODELS", unitId: "missing", count: 1 }).ok, false);
+});
+test("objective definitions distinguish territory from objective type",()=>{
+  const defs=objectiveDefinitions("th-th-a","me");
+  assert.equal(defs.length,5);
+  assert.ok(defs.every((d)=>d.territory==="me" || d.territory==="opponent"));
 });
