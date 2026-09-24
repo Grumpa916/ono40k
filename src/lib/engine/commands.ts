@@ -110,7 +110,15 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       events.push({ type: "OBJECTIVE_CONTRIBUTION_CHANGED", commandId: command.id, objectiveId: command.objectiveId, unitId: command.contribution.unitId });
       break;
     }
-    case "SET_OBJECTIVE_SIDE_ABSENT": {\n      const objective = state.objectives[command.objectiveId];\n      if (!objective) return { ok: false, events, error: "Unknown objective." };\n      state.objectives[command.objectiveId] = setSideAbsent(objective, command.side);\n      bump(state, "objective:" + command.objectiveId);\n      events.push({ type: "OBJECTIVE_CONTRIBUTION_CHANGED", commandId: command.id, objectiveId: command.objectiveId, unitId: "__side_absent__:" + command.side });\n      break;\n    }\n    case "CONFIRM_OBJECTIVE": {
+    case "SET_OBJECTIVE_SIDE_ABSENT": {
+      const objective = state.objectives[command.objectiveId];
+      if (!objective) return { ok: false, events, error: "Unknown objective." };
+      state.objectives[command.objectiveId] = setSideAbsent(objective, command.side);
+      bump(state, "objective:" + command.objectiveId);
+      events.push({ type: "OBJECTIVE_CONTRIBUTION_CHANGED", commandId: command.id, objectiveId: command.objectiveId, unitId: "__side_absent__:" + command.side });
+      break;
+    }
+    case "CONFIRM_OBJECTIVE": {
       const objective = state.objectives[command.objectiveId];
       if (!objective) return { ok: false, events, error: "Unknown objective." };
       if (contestConflicts(state).length) return { ok: false, events, error: "A unit is assigned to multiple objectives; choose one before confirming control." };
