@@ -125,18 +125,6 @@ export function attachedUnitComponents(units: RuntimeUnit[], unitId: string) {
   return [root, ...units.filter((unit) => unit.attachedTo === unitId)];
 }
 
-/** 11e control rule: a unit can contest only one objective when control is determined. */
-export function findContestConflicts(contributions: ObjectiveContribution[]) {
-  const seen = new Set<string>();
-  const conflicts = new Set<string>();
-  for (const contribution of contributions) {
-    if (contribution.modelsContributing <= 0) continue;
-    if (seen.has(contribution.unitId)) conflicts.add(contribution.unitId);
-    seen.add(contribution.unitId);
-  }
-  return [...conflicts];
-}
-
 export function objectiveContributionFromRosterUnit(factionId: string, rosterUnit: RosterUnit, side: "me" | "opponent") {
   const definition = getUnit(factionId, rosterUnit.unitId);
   if (!definition) return null;
