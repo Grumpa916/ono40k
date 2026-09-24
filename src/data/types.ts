@@ -159,6 +159,22 @@ export type UnitBattleState = {
 
 export type LedgerEventKind = "phase" | "turn" | "destroyed" | "battleShock" | "stratagem" | "prebattle" | "action" | "unit" | "score" | "cp";
 
+export type MissionEventKind = "unitDestroyed" | "actionCompleted" | "operationMarker";
+
+export type MissionEvent = {
+  id: string;
+  kind: MissionEventKind;
+  at: number;
+  round: 1 | 2 | 3 | 4 | 5;
+  turn: "me" | "opponent";
+  phase: PhaseId;
+  side: "me" | "opponent";
+  unitId?: string;
+  actionName?: string;
+  markerId?: string;
+  markerLocation?: "battlefield" | "opponentHome" | "myHome" | "centreObjective";
+};
+
 export type LedgerEvent = {
   id: string;
   at: number;
@@ -214,6 +230,7 @@ export type GameUndoSlice = {
   scoringActions?: ScoringAction[];
   primaryScoreTransactions?: PrimaryScoreRecord[];
   objectiveControl?: Record<string, ObjectiveControlRecord>;
+  missionEvents?: MissionEvent[];
   scores?: { me: SideScore; opponent: SideScore };
 };
 
@@ -279,6 +296,7 @@ export type Game = {
   scoringActions?: ScoringAction[];
   primaryScoreTransactions?: PrimaryScoreRecord[];
   objectiveControl?: Record<string, ObjectiveControlRecord>;
+  missionEvents?: MissionEvent[];
   log: LedgerEvent[];
   undoStack: GameUndoSlice[];
   notes: string;
