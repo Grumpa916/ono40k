@@ -4,7 +4,9 @@ import type { Game } from "@/data/types";
 import { objectiveDefinitions, emptyObjective, setContribution, confirmObjective, staleObjective, findContestConflicts } from "./objective";
 import type { BattleCommand, BattleEvent, BattleRuntime, CommandResult, ObjectiveContribution, RuntimeUnit } from "./types";
 
-function bump(state: BattleRuntime, key: string) { state.versions[key] = (state.versions[key] ?? 0) + 1; }
+function bump(state: BattleRuntime, key: string) {
+  state.versions[key] = (state.versions[key] ?? 0) + 1;
+}
 
 function makeUnits(game: Game): Record<string, RuntimeUnit> {
   const out: Record<string, RuntimeUnit> = {};
@@ -53,6 +55,7 @@ function contestConflicts(state: BattleRuntime) {
 export function executeCommand(previous: BattleRuntime, command: BattleCommand): CommandResult {
   const state = structuredClone(previous);
   const events: BattleEvent[] = [];
+
   switch (command.type) {
     case "MOVE_UNIT": {
       if (!state.units[command.unitId]) return { ok: false, events, error: "Unknown unit." };
@@ -137,5 +140,6 @@ export function executeCommand(previous: BattleRuntime, command: BattleCommand):
       events.push({ type: "VP_CHANGED", commandId: command.id, side: command.side });
       break;
   }
+
   return { ok: true, state, events };
 }
