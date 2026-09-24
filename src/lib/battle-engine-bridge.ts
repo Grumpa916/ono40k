@@ -17,7 +17,15 @@ function commandId() {
   return uid("eng");
 }
 
-function hydrateObjectiveState(game: Game, record: BridgeRecord) {\n  const persisted = game.objectiveControl;\n  if (!persisted) return record;\n  const state = record.engine.getState();\n  for (const [id, objective] of Object.entries(persisted)) if (state.objectives[id]) state.objectives[id] = objective as typeof state.objectives[string];\n  return record;\n}\n\nfunction ensure(game: Game): BridgeRecord {
+function hydrateObjectiveState(game: Game, record: BridgeRecord) {
+  const persisted = game.objectiveControl;
+  if (!persisted) return record;
+  const state = record.engine.getState();
+  for (const [id, objective] of Object.entries(persisted)) if (state.objectives[id]) state.objectives[id] = objective as typeof state.objectives[string];
+  return record;
+}
+
+function ensure(game: Game): BridgeRecord {
   const existing = records.get(game.id);
   if (existing) return existing;
   const record: BridgeRecord = { engine: new BattleEngine(game), gameId: game.id, syncedAt: Date.now(), desync: null, commands: 0 };
@@ -112,7 +120,14 @@ export function reconcileBattle(previous: Game, next: Game) {
   if (failed) rebuild(next, "Legacy game mutation could not be represented by an engine command; runtime rebuilt.");
 }
 
-export function updateObjectiveControl(game: Game, command: BattleCommand) {\n  const record = ensure(game);\n  const result = record.engine.dispatch(command);\n  if (result.ok) { record.commands += 1; record.syncedAt = Date.now(); record.desync = null; }\n  return result;\n}\n\nexport function getBattleRuntime(game: Game): BattleRuntime {
+export function updateObjectiveControl(game: Game, command: BattleCommand) {
+  const record = ensure(game);
+  const result = record.engine.dispatch(command);
+  if (result.ok) { record.commands += 1; record.syncedAt = Date.now(); record.desync = null; }
+  return result;
+}
+
+export function getBattleRuntime(game: Game): BattleRuntime {
   return ensure(game).engine.getState();
 }
 
