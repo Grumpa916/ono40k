@@ -11,8 +11,7 @@ function rounds(text: string): number[] {
 
 function windows(line: string): Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> {
   const out: Array<{ checkpoint: PrimaryCheckpoint; rounds: number[] }> = [];
-  const body = line.match(/\(([^)]*)\)/)?.[1];
-  const clauses = body ? body.split(";") : [line];
+  const clauses = line.split(";");
   for (const clause of clauses) {
     const match = clause.match(/(R\d(?:–R\d)?)\s*,?\s*(Command|end of (?:your|the) turn)/i);
     if (!match) continue;
@@ -41,11 +40,11 @@ function parseLine(text: string, index: number): MissionCondition {
     const count = ({two:2,three:3,four:4,five:5} as Record<string,number>)[key] ?? Number(key);
     return { ...base, kind: "CONTROL_OBJECTIVE_COUNT", count };
   }
-  if (/control (?:one or more )?objectives? excluding (?:your )?home/i.test(text)) {
+  if (/objectives? you control excluding (?:your )?home|control (?:one or more )?objectives? excluding (?:your )?home/i.test(text)) {
     const each = /for each|per (?:objective|non-home)/i.test(text);
     return { ...base, kind: "CONTROL_OBJECTIVE_IN_ZONE", excludeHome: true, count: each ? undefined : 1, each };
   }
-  if (/control (?:one or more )?objectives?/i.test(text)) {
+  if (/objectives? you control|control (?:one or more )?objectives?/i.test(text)) {
     const each = /for each|per objective/i.test(text);
     return { ...base, kind: "CONTROL_ANY_OBJECTIVE", count: each ? undefined : 1, each };
   }
