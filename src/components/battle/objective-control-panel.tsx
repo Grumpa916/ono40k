@@ -121,10 +121,11 @@ export function ObjectiveControlPanel({
 
               {isEditing ? (
                 <div className="mt-2 border-t border-border/60 pt-2">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-[9px] uppercase tracking-wide text-muted-foreground">
-                      {editSide === "me" ? "Your" : "Opponent"} contributors
-                    </span>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <button type="button" className={cn("h-6 rounded border px-2 text-[9px]", editSide === "me" ? "bg-muted font-medium" : "text-muted-foreground")} onClick={() => beginEdit(objective.definition.id, "me")}>You</button>
+                      <button type="button" className={cn("h-6 rounded border px-2 text-[9px]", editSide === "opponent" ? "bg-muted font-medium" : "text-muted-foreground")} onClick={() => beginEdit(objective.definition.id, "opponent")}>Opp</button>
+                    </div>
                     <button type="button" className="text-[9px] underline" onClick={() => setSelected({})}>None</button>
                   </div>
                   <div className="space-y-1">
