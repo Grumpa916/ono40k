@@ -193,6 +193,13 @@ export type ScoringAction = {
   round: 1 | 2 | 3 | 4 | 5;
 };
 
+export type ObjectiveControlRecord = {
+  definition: { id: string; layoutId: string; index: number; kind: "home" | "expansion" | "centre"; owner?: "me" | "opponent"; anchor: { x: number; y: number }; terrainAreaId: string | null };
+  contributions: Record<string, { componentId: string; unitId: string; side: "me" | "opponent"; modelsContributing: number; effectiveOcPerModel: number | null; totalOc: number | null; updatedAt: number }>;
+  youOc: number | null; opponentOc: number | null; controller: "me" | "opponent" | "contested" | "unknown";
+  status: "CONFIRMED" | "STALE" | "UNKNOWN"; lastConfirmedAt: number | null; version: number;
+};
+
 export type GameUndoSlice = {
   round: 1 | 2 | 3 | 4 | 5;
   phase: PhaseId;
@@ -206,6 +213,7 @@ export type GameUndoSlice = {
   finishedAt?: number;
   scoringActions?: ScoringAction[];
   primaryScoreTransactions?: PrimaryScoreRecord[];
+  objectiveControl?: Record<string, ObjectiveControlRecord>;
   scores?: { me: SideScore; opponent: SideScore };
 };
 
@@ -269,6 +277,8 @@ export type Game = {
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
   scoringActions?: ScoringAction[];
+  primaryScoreTransactions?: PrimaryScoreRecord[];
+  objectiveControl?: Record<string, ObjectiveControlRecord>;
   log: LedgerEvent[];
   undoStack: GameUndoSlice[];
   notes: string;
