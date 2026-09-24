@@ -53,7 +53,7 @@ test("resolver never invents ranged weapon range", () => {
 });
 
 test("objective definitions have no circular-radius field", () => {
-  const defs = objectiveDefinitions("th-th-a");
+  const defs = objectiveDefinitions("th-th-a", "me");
   assert.equal(defs.length, 5);
   assert.ok(defs.every((d) => d.terrainAreaId === null));
   assert.equal("radius" in defs[0]!, false);
@@ -79,4 +79,38 @@ test("objective definitions distinguish territory from objective type",()=>{
   const defs=objectiveDefinitions("th-th-a","me");
   assert.equal(defs.length,5);
   assert.ok(defs.every((d)=>d.territory==="me" || d.territory==="opponent"));
+});
+
+
+test("territory mapping is valid across all three layouts and both attacker orientations", () => {
+  for (const layoutId of ["th-th-a", "th-th-b", "th-th-c"]) {
+    for (const attackerSide of ["me", "opponent"] as const) {
+      const defs = objectiveDefinitions(layoutId, attackerSide);
+      assert.equal(defs.length, 5, layoutId + " / " + attackerSide);
+      const home = defs.filter((d) => d.kind === "home");
+      assert.equal(home.length, 2);
+      const attackerHome = home.find((d) => d.owner === attackerSide);
+      const defenderHome = home.find((d) => d.owner !== attackerSide);
+      assert.equal(attackerHome?.territory, "me");
+      assert.equal(defenderHome?.territory, "opponent");
+      assert.ok(defs.every((d) => d.territory === "me" || d.territory === "opponent"));
+    }
+  }
+});
+
+test("objective-changing commands invalidate confirmed control", () => {
+  const definition = { id: "O3", layoutId: "test", index: 3, kind: "centre" as const, territory: "me" as const, anchor: { x: 0, y: 0 }, terrainAreaId: null };
+  let objective = emptyObjective(definition);
+  objective = setContribution(objective, {
+    componentId: "u1", unitId: "u1", side: "me", modelsContributing: 5, effectiveOcPerModel: 1, totalOc: 5, updatedAt: Date.now(),
+  });
+  objective = setContribution(objective, {
+    componentId: "u2", unitId: "u2", side: "opponent", modelsContributing: 3, effectiveOcPerModel: 1, totalOc: 3, updatedAt: Date.now(),
+  });
+  const confirmed = confirmObjective(objective);
+  assert.equal(confirmed.status, "CONFIRMED");
+  const stale = { ...confirmed, status: "STALE" as const };
+  assert.equal(stale.controller, "me");
+  assert.equal(stale.youOc, 5);
+  assert.equal(stale.opponentOc, 3);
 });
