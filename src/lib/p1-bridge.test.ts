@@ -7,7 +7,8 @@ import { registerBattle, reconcileBattle, getBattleRuntime, getBattleEngineDiagn
 function fixture(): Game {
   const mine = structuredClone(SEED_LISTS[0]!);
   const theirs = structuredClone(SEED_LISTS[1] ?? SEED_LISTS[0]!);
-  const firstUnit = mine.units[0]!;
+  const firstUnit = mine.units.find((unit) => unit.models > 1) ?? mine.units[0]!;
+
   const unitState = Object.fromEntries(
     [...mine.units, ...theirs.units].map((unit) => [
       unit.id,
@@ -60,7 +61,7 @@ test("P1 bridge registers an engine runtime", () => {
 test("P1 bridge mirrors casualty and battle-shock changes", () => {
   const before = fixture();
   const after = structuredClone(before);
-  const unit = after.myRoster.units[0]!;
+  const unit = after.myRoster.units.find((unit) => unit.models > 1) ?? after.myRoster.units[0]!;
   after.unitState[unit.id]!.modelsRemaining -= 1;
   after.unitState[unit.id]!.battleShocked = true;
 
