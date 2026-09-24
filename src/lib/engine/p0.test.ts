@@ -71,7 +71,7 @@ test("command rejects invalid casualty input", () => {
   const state: BattleRuntime = {
     battleId: "b1", edition: 11, rulesVersion: "11e", round: 1, activeSide: "me", phase: "movement",
     cp: { me: 0, opponent: 0 }, vp: { me: 0, opponent: 0 }, units: {}, objectives: {},
-    mission: { disposition: { me: null, opponent: null }, primaryId: null, scoringWindow: null }, versions: {},
+    mission: { disposition: { me: null, opponent: null }, primaryId: null, scoringWindow: null }, versions: {}, primaryTransactions: {}, primaryAwardedByRound: { me: [0,0,0,0,0], opponent: [0,0,0,0,0] },
   };
   assert.equal(executeCommand(state, { id: "c1", type: "REMOVE_MODELS", unitId: "missing", count: 1 }).ok, false);
 });
