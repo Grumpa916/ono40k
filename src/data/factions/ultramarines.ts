@@ -129,9 +129,9 @@ const uniqueUnits: UnitDef[] = [
       lead: ["um-victrix"],
     },
   ),
-  u("um-titus", "Captain Titus", "character", 90, { m: 6, t: 5, sv: 3, w: 5, ld: 6, oc: 1 }, [...KW_UM_CHAR.slice(0, 4), "Captain", ...KW_UM_CHAR.slice(4)], {
+  u("um-titus", "Captain Titus", "character", 100, { m: 6, t: 4, sv: 3, w: 6, ld: 6, oc: 1 }, [...KW_UM_CHAR.slice(0, 4), "Captain", ...KW_UM_CHAR.slice(4)], {
     inv: 4,
-    fnp: 6,
+    fnp: 5,
     r: [w("Boltstorm gauntlets", "ranged", 12, 4, 2, 5, -1, 1, ["Pistol", "Twin-linked"])],
     m: [w("Power fists", "melee", "Melee", 5, 2, 8, -2, 2, ["Twin-linked"]), w("Chainsword", "melee", "Melee", 6, 2, 5, -1, 1, [])],
     ab: [
@@ -155,8 +155,8 @@ const uniqueUnits: UnitDef[] = [
     ],
     lead: ["um-victrix", "um-assault-intercessors", "um-bladeguard", "um-sternguard"],
   }),
-  u("um-victrix", "Victrix Honour Guard", "infantry", 110, { m: 6, t: 5, sv: 2, w: 3, ld: 6, oc: 2 }, KW_UM_INF, {
-    sizes: [[3, 110], [6, 220]],
+  u("um-victrix", "Victrix Honour Guard", "infantry", 110, { m: 6, t: 4, sv: 2, w: 3, ld: 6, oc: 2 }, KW_UM_INF, {
+    sizes: [[3, 110], [6, 230]],
     r: [w("Master-crafted bolt carbine", "ranged", 24, 2, 2, 5, -1, 2, [])],
     m: [
       w("Master-crafted power weapon", "melee", "Melee", 5, 2, 5, -2, 2, []),

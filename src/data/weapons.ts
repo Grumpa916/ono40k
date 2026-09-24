@@ -12,12 +12,11 @@ export const w = (
   keywords: string[] = [],
 ): Weapon => ({ name, kind, range, attacks, skill, strength, ap, damage, keywords });
 
-export const boltRifle = w("Bolt rifle — saturation", "ranged", 24, 2, 3, 5, -1, 1, ["Assault", "Rapid Fire 1"]);
-export const boltRifleFocused = w("Bolt rifle — focused", "ranged", 24, 1, 3, 6, -1, 2, ["Heavy", "Rapid Fire 1"]);
-export const boltPistol = w("Bolt pistol", "ranged", 12, 1, 3, 5, 0, 1, ["Pistol"]);
-export const heavyBoltPistol = w("Heavy bolt pistol", "ranged", 18, 1, 3, 5, -1, 1, ["Pistol"]);
-export const closeCombat = w("Close combat weapon", "melee", "Melee", 3, 3, 5, 0, 1, []);
-export const astartesChainsword = w("Astartes chainsword", "melee", "Melee", 4, 3, 5, -1, 1, []);
+export const boltRifle = w("Bolt rifle", "ranged", 24, 2, 3, 4, -1, 1, ["Assault", "Heavy"]);
+export const boltPistol = w("Bolt pistol", "ranged", 12, 1, 3, 4, 0, 1, ["Pistol"]);
+export const heavyBoltPistol = w("Heavy bolt pistol", "ranged", 18, 1, 3, 4, -1, 1, ["Pistol"]);
+export const closeCombat = w("Close combat weapon", "melee", "Melee", 3, 3, 4, 0, 1, []);
+export const astartesChainsword = w("Astartes chainsword", "melee", "Melee", 4, 3, 4, -1, 1, []);
 export const powerFist = w("Power fist", "melee", "Melee", 4, 3, 8, -2, 2, []);
 export const powerWeapon = w("Power weapon", "melee", "Melee", 5, 2, 5, -2, 1, []);
 export const thunderHammer = w("Thunder hammer", "melee", "Melee", 3, 4, 8, -2, 3, ["Devastating Wounds"]);

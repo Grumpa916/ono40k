@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { totalScore } from "@/data/missions";
 import { decodeRoster } from "@/lib/share";
+import { incomingShares, type IncomingShare } from "@/lib/list-shares";
 import { useWarStore } from "@/lib/store";
 import { useSupabaseConfig } from "@/lib/use-supabase-session";
 import { rosterPoints } from "@/lib/validation";
@@ -34,7 +35,21 @@ function Home() {
   const [importOpen, setImportOpen] = useState(false);
   const [importCode, setImportCode] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [shared, setShared] = useState<IncomingShare[]>([]);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    let cancelled = false;
+    incomingShares()
+      .then((rows) => {
+        if (!cancelled) setShared(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setShared([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const shown = useMemo(() => {
     return lists.slice().sort((a, b) => Number(b.favorite) - Number(a.favorite) || b.updatedAt - a.updatedAt);
@@ -96,6 +111,36 @@ function Home() {
           </Button>
         </div>
       </div>
+
+      {shared.length > 0 ? (
+        <section className="space-y-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold tracking-wide">Shared with you</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">Import a copy. Revoking the share later does not remove that copy.</p>
+          </div>
+          <ul className="grid min-w-0 gap-3 sm:grid-cols-2">
+            {shared.map((share) => (
+              <li key={share.id} className="rounded-xl border border-border bg-card p-4">
+                <p className="font-medium">{share.list.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {getFaction(share.list.factionId)?.name ?? share.list.factionId}
+                  {share.from ? ` · ${share.from}` : ""}
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => {
+                    importList(share.list);
+                    toast.success("List imported", { description: share.list.name });
+                  }}
+                >
+                  Import
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {shown.length === 0 ? (
         <Card className="p-8 text-center">

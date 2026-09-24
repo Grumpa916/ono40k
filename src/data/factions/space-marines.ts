@@ -4,7 +4,6 @@ import {
   astartesChainsword,
   boltPistol,
   boltRifle,
-  boltRifleFocused,
   closeCombat,
   forceWeapon,
   heavyBoltPistol,
@@ -28,11 +27,11 @@ const infiltrate = a("Infiltrators", "This unit can be set up anywhere on the ba
 const support = a("Support", "This model can be attached to a unit that already has a Leader.");
 const objSec = a("Objective Secured", "This unit can perform Actions while within Engagement Range of enemy units.");
 
-const stormBolter = w("Storm bolter", "ranged", 24, 2, 3, 5, 0, 1, ["Rapid Fire 2"]);
+const stormBolter = w("Storm bolter", "ranged", 24, 2, 3, 4, 0, 1, ["Rapid Fire 2"]);
 const armouredHull = w("Armoured hull", "melee", "Melee", 3, 4, 6, 0, 1, []);
 const fragstorm = w("Fragstorm grenade launcher", "ranged", 18, "D6", 3, 4, 0, 1, ["Blast"]);
 const ironhail = w("Ironhail heavy stubber", "ranged", 36, 3, 3, 4, 0, 1, ["Rapid Fire 3"]);
-const mcBoltRifle = w("Master-crafted bolt rifle", "ranged", 24, 2, 2, 5, -1, 2, ["Assault", "Heavy"]);
+const mcBoltRifle = w("Master-crafted bolt rifle", "ranged", 24, 2, 2, 4, -1, 2, ["Assault", "Heavy"]);
 
 const tacticusLeaders = [
   "sm-intercessors",
@@ -45,12 +44,12 @@ const tacticusLeaders = [
   "sm-company-heroes",
 ];
 
-const s = { m: 6, t: 5, sv: 3, w: 2, ld: 6, oc: 1 };
-const sChar = { m: 6, t: 5, sv: 3, w: 4, ld: 6, oc: 1 };
+const s = { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 1 };
+const sChar = { m: 6, t: 4, sv: 3, w: 4, ld: 6, oc: 1 };
 const sGravis = { m: 5, t: 6, sv: 3, w: 3, ld: 6, oc: 1 };
 
 const units: UnitDef[] = [
-  u("sm-captain", "Captain", "character", 80, { m: 6, t: 5, sv: 3, w: 5, ld: 6, oc: 1 }, KW_CHAR_TAC, {
+  u("sm-captain", "Captain", "character", 80, { m: 6, t: 4, sv: 3, w: 5, ld: 6, oc: 1 }, KW_CHAR_TAC, {
     inv: 4,
     r: [mcBoltRifle, heavyBoltPistol],
     m: [powerFist],
@@ -61,14 +60,13 @@ const units: UnitDef[] = [
     ],
     lead: tacticusLeaders,
   }),
-  u("sm-lieutenant", "Lieutenant", "character", 55, sChar, KW_CHAR_TAC, {
+  u("sm-lieutenant", "Lieutenant", "character", 45, sChar, KW_CHAR_TAC, {
     r: [w("Master-crafted bolter", "ranged", 24, 2, 2, 5, -1, 2, []), heavyBoltPistol],
     m: [powerWeapon],
     ab: [a("Tactical Precision", "While leading a unit, weapons in that unit have Lethal Hits."), support],
     lead: ["sm-intercessors", "sm-assault-intercessors", "sm-sternguard", "sm-hellblasters", "sm-bladeguard"],
   }),
   u("sm-librarian", "Librarian", "character", 70, sChar, ["Infantry", "Character", "Psyker", "Grenades", "Imperium", AA], {
-    inv: 4,
     r: [w("Smite", "ranged", 24, "D6", 3, 5, -1, "D3", ["Psychic"])],
     m: [forceWeapon],
     ab: [
@@ -77,9 +75,9 @@ const units: UnitDef[] = [
     ],
     lead: ["sm-intercessors", "sm-sternguard", "sm-hellblasters"],
   }),
-  u("sm-chaplain", "Chaplain", "character", 75, { m: 6, t: 5, sv: 3, w: 4, ld: 5, oc: 1 }, KW_CHAR_TAC, {
+  u("sm-chaplain", "Chaplain", "character", 60, { m: 6, t: 4, sv: 3, w: 4, ld: 5, oc: 1 }, KW_CHAR_TAC, {
     inv: 4,
-    r: [w("Absolvor bolt pistol", "ranged", 18, 1, 2, 5, -1, 2, ["Pistol"])],
+    r: [w("Absolvor bolt pistol", "ranged", 18, 1, 3, 5, -1, 2, ["Pistol"])],
     m: [w("Crozius arcanum", "melee", "Melee", 5, 2, 6, -1, 2, [])],
     ab: [
       a("Litany of Hate", "While leading a unit, melee weapons in that unit have +1 to Wound."),
@@ -96,14 +94,14 @@ const units: UnitDef[] = [
     ],
     lead: ["sm-intercessors", "sm-hellblasters", "sm-sternguard", "sm-assault-intercessors"],
   }),
-  u("sm-intercessors", "Intercessor Squad", "battleline", 85, { ...s, oc: 2 }, KW_BL_TAC, {
-    sizes: [[5, 85], [10, 170]],
-    r: [boltRifle, boltRifleFocused, boltPistol],
+  u("sm-intercessors", "Intercessor Squad", "battleline", 80, { ...s, oc: 2 }, KW_BL_TAC, {
+    sizes: [[5, 80], [10, 150]],
+    r: [boltRifle, boltPistol],
     m: [closeCombat],
     ab: [objSec],
   }),
-  u("sm-assault-intercessors", "Assault Intercessor Squad", "battleline", 80, { ...s, oc: 2 }, KW_BL_TAC, {
-    sizes: [[5, 80], [10, 160]],
+  u("sm-assault-intercessors", "Assault Intercessor Squad", "battleline", 75, { ...s, oc: 2 }, KW_BL_TAC, {
+    sizes: [[5, 75], [10, 150]],
     r: [heavyBoltPistol],
     m: [astartesChainsword],
     ab: [
@@ -111,7 +109,7 @@ const units: UnitDef[] = [
       a("On the Charge", "If this unit charged this turn, until the end of the Fight phase add 1 to the Strength and AP of melee weapons in this unit (including attached Characters)."),
     ],
   }),
-  u("sm-jump-intercessors", "Jump Pack Intercessor Squad", "infantry", 95, { m: 12, t: 5, sv: 3, w: 2, ld: 6, oc: 1 }, [
+  u("sm-jump-intercessors", "Jump Pack Intercessor Squad", "infantry", 85, { m: 12, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, [
     "Infantry",
     "Jump Pack",
     "Fly",
@@ -120,7 +118,7 @@ const units: UnitDef[] = [
     "Tacticus",
     AA,
   ], {
-    sizes: [[5, 95], [10, 190]],
+    sizes: [[5, 85], [10, 160]],
     r: [heavyBoltPistol],
     m: [astartesChainsword],
     ab: [
@@ -128,9 +126,9 @@ const units: UnitDef[] = [
       deepStrike,
     ],
   }),
-  u("sm-infiltrators", "Infiltrator Squad", "battleline", 100, { m: 8, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_PHOBOS_BL, {
-    sizes: [[5, 100], [10, 200]],
-    r: [w("Marksman bolt carbine", "ranged", 24, 2, 3, 5, 0, 1, [])],
+  u("sm-infiltrators", "Infiltrator Squad", "battleline", 110, { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_PHOBOS_BL, {
+    sizes: [[5, 110], [10, 180]],
+    r: [w("Marksman bolt carbine", "ranged", 24, 2, 3, 4, 0, 1, [])],
     m: [closeCombat],
     ab: [a("Omni-scrambler", "Enemy units that set up as Reinforcements cannot be set up within 12\" of this unit."), infiltrate],
   }),
@@ -147,7 +145,7 @@ const units: UnitDef[] = [
     m: [closeCombat],
     ab: [a("Unyielding", "While this unit is within range of an objective you control, add 1 to its Save characteristic.")],
   }),
-  u("sm-scouts", "Scout Squad", "infantry", 70, { m: 6, t: 4, sv: 4, w: 2, ld: 6, oc: 1 }, [
+  u("sm-scouts", "Scout Squad", "infantry", 65, { m: 6, t: 4, sv: 4, w: 2, ld: 6, oc: 1 }, [
     "Infantry",
     "Grenades",
     "Imperium",
@@ -155,19 +153,19 @@ const units: UnitDef[] = [
     "Smoke",
     AA,
   ], {
-    sizes: [[5, 70], [10, 140]],
-    r: [w("Boltgun", "ranged", 24, 2, 3, 5, 0, 1, ["Rapid Fire 1"]), boltPistol],
+    sizes: [[5, 65], [10, 120]],
+    r: [w("Boltgun", "ranged", 24, 2, 3, 4, 0, 1, ["Rapid Fire 1"]), boltPistol],
     m: [closeCombat],
     ab: [infiltrate, a("Guerrilla Tactics", "This unit is eligible to perform Actions in a turn in which it Advanced or Fell Back.")],
   }),
-  u("sm-terminators", "Terminator Squad", "infantry", 190, { m: 5, t: 6, sv: 2, w: 3, ld: 6, oc: 1 }, [
+  u("sm-terminators", "Terminator Squad", "infantry", 160, { m: 5, t: 5, sv: 2, w: 3, ld: 6, oc: 1 }, [
     "Infantry",
     "Imperium",
     "Terminator",
     AA,
   ], {
     inv: 4,
-    sizes: [[5, 190], [10, 380]],
+    sizes: [[5, 160], [10, 320]],
     r: [stormBolter],
     m: [powerFist],
     ab: [
@@ -184,23 +182,23 @@ const units: UnitDef[] = [
     m: [closeCombat],
     ab: [a("Bolter Drill", "Unmodified Hit rolls of 6 with ranged attacks score one additional hit.")],
   }),
-  u("sm-hellblasters", "Hellblaster Squad", "infantry", 115, s, KW_INF_TAC, {
-    sizes: [[5, 115], [10, 230]],
+  u("sm-hellblasters", "Hellblaster Squad", "infantry", 110, s, KW_INF_TAC, {
+    sizes: [[5, 110], [10, 220]],
     r: [
-      w("Plasma incinerator", "ranged", 24, 2, 3, 7, -2, 1, ["Rapid Fire 1"]),
-      w("Plasma incinerator — supercharge", "ranged", 24, 2, 3, 8, -3, 2, ["Hazardous", "Rapid Fire 1"]),
+      w("Plasma incinerator", "ranged", 24, 2, 3, 7, -2, 1, ["Assault", "Heavy"]),
+      w("Plasma incinerator — supercharge", "ranged", 24, 2, 3, 8, -3, 2, ["Assault", "Heavy", "Hazardous"]),
     ],
     m: [closeCombat],
     ab: [a("Plasma Discipline", "Add 1 to Hazardous tests made for plasma weapons in this unit.")],
   }),
-  u("sm-eradicators", "Eradicator Squad", "infantry", 100, sGravis, KW_GRAVIS, {
-    sizes: [[3, 100], [6, 200]],
-    r: [w("Melta rifle", "ranged", 18, 1, 3, 10, -4, "D6", ["Heavy", "Melta 2"])],
+  u("sm-eradicators", "Eradicator Squad", "infantry", 90, sGravis, KW_GRAVIS, {
+    sizes: [[3, 90], [6, 180]],
+    r: [w("Melta rifle", "ranged", 18, 1, 3, 9, -4, "D6", ["Heavy", "Melta 2"])],
     m: [closeCombat],
     ab: [a("Total Obliteration", "Each time this unit targets a Monster or Vehicle, add 1 to the Hit roll, treat the weapon's Strength as 12, and you can re-roll the Damage roll.")],
   }),
-  u("sm-aggressors", "Aggressor Squad", "infantry", 110, sGravis, KW_GRAVIS, {
-    sizes: [[3, 110], [6, 220]],
+  u("sm-aggressors", "Aggressor Squad", "infantry", 80, sGravis, KW_GRAVIS, {
+    sizes: [[3, 80], [6, 165]],
     r: [
       w("Auto boltstorm gauntlets", "ranged", 18, 3, 3, 5, -1, 1, ["Twin-linked", "Pistol"]),
       fragstorm,
@@ -211,13 +209,13 @@ const units: UnitDef[] = [
       a("Point-blank", "Add 1 to the Strength of ranged attacks that target the closest eligible enemy within 9\"."),
     ],
   }),
-  u("sm-infernus", "Infernus Squad", "infantry", 90, s, KW_INF_TAC, {
-    sizes: [[5, 90], [10, 180]],
-    r: [w("Pyreblaster", "ranged", 12, "D6", 0, 5, 0, 1, ["Ignores Cover", "Torrent"])],
+  u("sm-infernus", "Infernus Squad", "infantry", 85, s, KW_INF_TAC, {
+    sizes: [[5, 85], [10, 180]],
+    r: [w("Pyreblaster", "ranged", 12, "D6", 0, 5, -1, 1, ["Ignores Cover", "Torrent"])],
     m: [closeCombat],
     ab: [a("Incinerate", "Targets of this unit's shooting do not receive the Benefit of Cover.")],
   }),
-  u("sm-inceptors", "Inceptor Squad", "infantry", 110, { m: 10, t: 6, sv: 3, w: 3, ld: 6, oc: 1 }, [
+  u("sm-inceptors", "Inceptor Squad", "infantry", 125, { m: 10, t: 6, sv: 3, w: 3, ld: 6, oc: 1 }, [
     "Infantry",
     "Fly",
     "Jump Pack",
@@ -225,7 +223,7 @@ const units: UnitDef[] = [
     "Gravis",
     AA,
   ], {
-    sizes: [[3, 110], [6, 220]],
+    sizes: [[3, 125], [6, 250]],
     r: [w("Assault bolters", "ranged", 18, 3, 3, 5, -1, 2, ["Assault", "Twin-linked"])],
     m: [closeCombat],
     ab: [
@@ -233,15 +231,15 @@ const units: UnitDef[] = [
       a("Drop Back", "At the end of your opponent's Fight phase, if this unit is not engaged it can be placed into Strategic Reserves."),
     ],
   }),
-  u("sm-bladeguard", "Bladeguard Veteran Squad", "infantry", 90, { m: 6, t: 5, sv: 3, w: 3, ld: 6, oc: 1 }, KW_INF_TAC, {
+  u("sm-bladeguard", "Bladeguard Veteran Squad", "infantry", 80, { m: 6, t: 4, sv: 3, w: 3, ld: 6, oc: 1 }, KW_INF_TAC, {
     inv: 4,
-    sizes: [[3, 90], [6, 180]],
+    sizes: [[3, 80], [6, 160]],
     r: [heavyBoltPistol],
     m: [w("Master-crafted power weapon", "melee", "Melee", 4, 3, 5, -2, 2, [])],
     ab: [a("Bladeguard", "This unit has a 4+ invulnerable save. Subtract 1 from the Attacks characteristic of melee weapons that target this unit.")],
   }),
-  u("sm-company-heroes", "Company Heroes", "infantry", 125, { m: 6, t: 5, sv: 3, w: 4, ld: 6, oc: 2 }, KW_INF_TAC, {
-    sizes: [[4, 125]],
+  u("sm-company-heroes", "Company Heroes", "infantry", 105, { m: 6, t: 4, sv: 3, w: 4, ld: 6, oc: 1 }, KW_INF_TAC, {
+    sizes: [[4, 105]],
     r: [
       w("Master-crafted bolt rifle", "ranged", 24, 2, 3, 5, -1, 2, ["Assault", "Heavy"]),
       w("Heavy bolter", "ranged", 36, 3, 3, 5, -1, 2, ["Heavy", "Sustained Hits 1", "Rapid Fire 2"]),
@@ -252,8 +250,8 @@ const units: UnitDef[] = [
       a("Company Ancient", "At the end of your Movement phase, if this unit is within range of an objective you do not control, you take control of it."),
     ],
   }),
-  u("sm-eliminators", "Eliminator Squad", "infantry", 85, { m: 8, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_PHOBOS, {
-    sizes: [[3, 85]],
+  u("sm-eliminators", "Eliminator Squad", "infantry", 75, { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_PHOBOS, {
+    sizes: [[3, 75]],
     r: [w("Bolt sniper rifle", "ranged", 36, 1, 3, 5, -2, 3, ["Heavy", "Precision"])],
     m: [closeCombat],
     ab: [
@@ -261,34 +259,34 @@ const units: UnitDef[] = [
       infiltrate,
     ],
   }),
-  u("sm-outriders", "Outrider Squad", "mounted", 80, { m: 12, t: 6, sv: 3, w: 4, ld: 6, oc: 2 }, ["Mounted", "Grenades", "Imperium", AA], {
-    sizes: [[3, 80], [6, 160]],
-    r: [w("Twin bolt rifle", "ranged", 24, 2, 3, 5, -1, 1, ["Twin-linked"]), heavyBoltPistol],
+  u("sm-outriders", "Outrider Squad", "mounted", 70, { m: 12, t: 5, sv: 3, w: 4, ld: 6, oc: 2 }, ["Mounted", "Grenades", "Imperium", AA], {
+    sizes: [[3, 70], [6, 140]],
+    r: [w("Twin bolt rifle", "ranged", 24, 2, 3, 4, -1, 1, ["Twin-linked"]), heavyBoltPistol],
     m: [astartesChainsword],
     ab: [
       a("Turbo-boost", "When this unit Advances, add 6\" instead of rolling."),
       a("Shock Cavalry", "If this unit charged this turn, until the end of the Fight phase its melee weapons have Sustained Hits 1 and +1 Damage."),
     ],
   }),
-  u("sm-redemptor", "Redemptor Dreadnought", "vehicle", 210, { m: 8, t: 10, sv: 2, w: 12, ld: 6, oc: 4 }, KW_WALKER, {
+  u("sm-redemptor", "Redemptor Dreadnought", "vehicle", 195, { m: 8, t: 10, sv: 2, w: 12, ld: 6, oc: 4 }, KW_WALKER, {
     r: [
       w("Macro plasma incinerator", "ranged", 36, "D6+1", 3, 8, -3, 2, ["Blast"]),
       w("Onslaught gatling cannon", "ranged", 24, 8, 3, 5, 0, 1, []),
       w("Icarus rocket pod", "ranged", 24, "D3", 3, 8, -1, 2, ["Anti-Fly 2+"]),
     ],
-    m: [w("Redemptor fist", "melee", "Melee", 5, 3, 12, -2, "D6+1", [])],
+    m: [w("Redemptor fist", "melee", "Melee", 5, 3, 12, -2, 3, [])],
     ab: [a("Duty Eternal", "Each time an attack is allocated to this model, subtract 1 from the Damage.")],
   }),
-  u("sm-ballistus", "Ballistus Dreadnought", "vehicle", 140, { m: 8, t: 10, sv: 2, w: 10, ld: 6, oc: 3 }, KW_WALKER, {
+  u("sm-ballistus", "Ballistus Dreadnought", "vehicle", 150, { m: 8, t: 10, sv: 2, w: 12, ld: 6, oc: 4 }, KW_WALKER, {
     r: [
-      w("Ballistus lascannon", "ranged", 48, 2, 3, 12, -3, "D3+3", []),
+      w("Ballistus lascannon", "ranged", 48, 2, 3, 12, -3, "D6+1", []),
       w("Ballistus missile launcher — krak", "ranged", 48, 2, 3, 10, -2, "D6", []),
-      w("Ballistus missile launcher — frag", "ranged", 48, "2D6", 3, 4, 0, 1, ["Blast"]),
+      w("Ballistus missile launcher — frag", "ranged", 48, "2D6", 3, 5, 0, 1, ["Blast"]),
     ],
-    m: [w("Armoured feet", "melee", "Melee", 4, 3, 6, 0, 1, [])],
+    m: [w("Armoured feet", "melee", "Melee", 5, 3, 7, 0, 1, [])],
     ab: [a("Ballistus Targeting", "Re-roll Hit rolls with ranged attacks that target a Monster or Vehicle.")],
   }),
-  u("sm-gladiator-lancer", "Gladiator Lancer", "vehicle", 160, { m: 10, t: 10, sv: 3, w: 11, ld: 6, oc: 3 }, KW_VEH, {
+  u("sm-gladiator-lancer", "Gladiator Lancer", "vehicle", 160, { m: 10, t: 10, sv: 3, w: 12, ld: 6, oc: 3 }, KW_VEH, {
     r: [
       w("Lancer laser destroyer", "ranged", 72, 2, 3, 14, -4, "D6+3", ["Heavy"]),
       fragstorm,
@@ -297,7 +295,7 @@ const units: UnitDef[] = [
     m: [armouredHull],
     ab: [a("Aquilon Optics", "Re-roll Hit rolls with the Lancer laser destroyer.")],
   }),
-  u("sm-impulsor", "Impulsor", "transport", 80, { m: 12, t: 9, sv: 3, w: 11, ld: 6, oc: 2 }, [
+  u("sm-impulsor", "Impulsor", "transport", 70, { m: 12, t: 9, sv: 3, w: 11, ld: 6, oc: 2 }, [
     "Vehicle",
     "Transport",
     "Dedicated Transport",

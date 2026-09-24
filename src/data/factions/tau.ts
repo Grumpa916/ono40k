@@ -25,7 +25,7 @@ const units: UnitDef[] = [
       a("Battlesuit Support", "Friendly Battlesuit units within 6\" of this model can re-roll Hit rolls of 1 with ranged attacks."),
     ],
   }),
-  u("tau-shadowsun", "Commander Shadowsun", "character", 100, { m: 10, t: 4, sv: 3, w: 7, ld: 6, oc: 1 }, ["Infantry", "Character", "Epic Hero", "Fly", "Battlesuit", "Stealth", "T'au"], {
+  u("tau-shadowsun", "Commander Shadowsun", "character", 100, { m: 10, t: 4, sv: 3, w: 6, ld: 6, oc: 1 }, ["Infantry", "Character", "Epic Hero", "Fly", "Battlesuit", "Stealth", "T'au"], {
     inv: 5,
     r: [
       w("Flechette blasters", "ranged", 18, 6, 2, 3, 0, 1, ["Assault", "Pistol"]),
@@ -40,15 +40,15 @@ const units: UnitDef[] = [
   }),
   u("tau-breachers", "Breacher Team", "battleline", 90, { m: 6, t: 3, sv: 4, w: 1, ld: 7, oc: 2 }, KW_INF, {
     sizes: [[10, 90]],
-    r: [w("Pulse blaster — close range", "ranged", 10, 2, 3, 6, -1, 1, ["Assault"]), w("Pulse blaster — standard", "ranged", 14, 2, 4, 5, 0, 1, ["Assault"]), pulsePistol],
+    r: [w("Pulse blaster", "ranged", 10, 2, 3, 6, -1, 1, ["Assault"]), pulsePistol],
     m: [cc],
     ab: [
       a("Breach and Clear", "Each time this unit makes a ranged attack that targets a unit within range of an objective marker, add 1 to the Wound roll."),
       a("Bonded Crew", "This unit can perform Actions while within Engagement Range of enemy units."),
     ],
   }),
-  u("tau-strike-team", "Strike Team", "battleline", 75, { m: 6, t: 3, sv: 4, w: 1, ld: 7, oc: 2 }, KW_INF, {
-    sizes: [[10, 75]],
+  u("tau-strike-team", "Strike Team", "battleline", 70, { m: 6, t: 3, sv: 4, w: 1, ld: 7, oc: 2 }, KW_INF, {
+    sizes: [[10, 70]],
     r: [w("Pulse rifle", "ranged", 30, 1, 4, 5, 0, 1, ["Rapid Fire 1"]), pulsePistol],
     m: [cc],
     ab: [
@@ -97,7 +97,7 @@ const units: UnitDef[] = [
       a("Battlesuit Shield Generator", "This model has a 4+ invulnerable save."),
     ],
   }),
-  u("tau-hammerhead", "Hammerhead Gunship", "vehicle", 145, { m: 12, t: 10, sv: 3, w: 14, ld: 7, oc: 3 }, ["Vehicle", "Fly", "Smoke", "T'au"], {
+  u("tau-hammerhead", "Hammerhead Gunship", "vehicle", 150, { m: 10, t: 10, sv: 3, w: 14, ld: 7, oc: 3 }, ["Vehicle", "Fly", "Smoke", "T'au"], {
     r: [w("Railgun", "ranged", 72, 1, 4, 20, -5, "D6+6", ["Heavy", "Devastating Wounds"]), w("Accelerator burst cannon", "ranged", 18, 4, 4, 6, -1, 1, []), seeker],
     m: [armouredHull],
     ab: [
@@ -105,8 +105,8 @@ const units: UnitDef[] = [
       a("Hover Tank", "This model can move over terrain and other models as if they were not there."),
     ],
   }),
-  u("tau-devilfish", "Devilfish", "transport", 85, { m: 12, t: 9, sv: 3, w: 13, ld: 7, oc: 2 }, ["Vehicle", "Transport", "Dedicated Transport", "Fly", "Smoke", "T'au"], {
-    r: [w("Burst cannon", "ranged", 18, 4, 4, 5, 0, 1, []), seeker, w("Twin pulse carbine", "ranged", 20, 2, 4, 5, 0, 1, ["Assault", "Twin-linked"])],
+  u("tau-devilfish", "Devilfish", "transport", 75, { m: 12, t: 9, sv: 3, w: 13, ld: 7, oc: 2 }, ["Vehicle", "Transport", "Dedicated Transport", "Fly", "Smoke", "T'au"], {
+    r: [w("Accelerator burst cannon", "ranged", 18, 4, 4, 6, -1, 1, []), seeker, w("Twin pulse carbine", "ranged", 20, 2, 4, 5, 0, 1, ["Assault", "Twin-linked"])],
     m: [armouredHull],
     ab: [
       a("Assault Boat", "Units can disembark from this Transport after it has Advanced. Units that disembark this way can still shoot."),

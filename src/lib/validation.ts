@@ -78,8 +78,14 @@ export function validateRoster(roster: Roster): Issue[] {
     counts.set(ru.unitId, cur);
   }
   for (const [id, { n, def }] of counts) {
-    const cap = def?.role === "battleline" ? size.battlelineCopies : size.copies;
-    if (n > cap) issues.push({ level: "error", text: `${def?.name ?? id}: ${n} copies (max ${cap}).` });
+    const epic = def?.keywords.includes("Epic Hero");
+    const cap = epic ? 1 : def?.role === "battleline" ? size.battlelineCopies : size.copies;
+    if (n > cap) {
+      issues.push({
+        level: "error",
+        text: epic ? `${def?.name ?? id}: only one copy of an Epic Hero.` : `${def?.name ?? id}: ${n} copies (max ${cap}).`,
+      });
+    }
   }
 
   const enhCount = roster.units.filter((u) => u.enhancementId).length;

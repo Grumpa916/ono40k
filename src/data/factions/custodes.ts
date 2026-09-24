@@ -73,7 +73,7 @@ const units: UnitDef[] = [
   }),
   u("custodes-allarus", "Allarus Custodians", "infantry", 110, { m: 5, t: 7, sv: 2, w: 4, ld: 6, oc: 2 }, ["Infantry", "Terminator", "Imperium", "Adeptus Custodes"], {
     inv: 4,
-    sizes: [[2, 110], [3, 165], [5, 280]],
+    sizes: [[2, 110], [3, 165], [5, 280], [6, 340]],
     r: [w("Balistus grenade launcher", "ranged", 18, "D6", 2, 4, -1, 1, ["Blast"]), guardianSpearRanged, castellanAxeRanged],
     m: [guardianSpearMelee, castellanAxeMelee],
     ab: [
@@ -82,7 +82,7 @@ const units: UnitDef[] = [
     ],
   }),
   u("custodes-prosecutors", "Prosecutors", "infantry", 45, { m: 6, t: 3, sv: 3, w: 1, ld: 6, oc: 2 }, ["Infantry", "Imperium", "Anathema Psykana", "Sisters of Silence"], {
-    sizes: [[4, 45], [5, 50], [10, 85]],
+    sizes: [[4, 45], [5, 50], [9, 75], [10, 85]],
     r: [w("Boltgun", "ranged", 24, 1, 3, 4, 0, 1, ["Rapid Fire 1"])],
     m: [w("Close combat weapon", "melee", "Melee", 2, 3, 3, 0, 1, [])],
     ab: [

@@ -65,7 +65,13 @@ function unitLine(summary: string): string | null {
   const known = head.match(/^(.*) (destroyed|restored|Battle-shocked|rallied|hidden|revealed|models \d+ → \d+|wounds \d+ → \d+)$/);
   if (!known) return null;
   const name = known[1];
-  const actions = [shiftClause(known[2]), ...bits.slice(1).map(shiftClause)].filter((part): part is string => Boolean(part));
+  const clauses = [known[2], ...bits.slice(1)];
+  const modelLoss = clauses.some((clause) => {
+    const models = clause.match(/^models (\d+) → (\d+)$/);
+    return models ? Number(models[2]) < Number(models[1]) : false;
+  });
+  const shown = modelLoss ? clauses.filter((clause) => !clause.startsWith("wounds ")) : clauses;
+  const actions = shown.map(shiftClause).filter((part): part is string => Boolean(part));
   if (actions.length === 0) return null;
   const [first, ...rest] = actions;
   const sentence = rest.length === 0 ? first : `${first} and ${rest.join(" and ")}`;

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BookOpen, Check, ChevronDown, Minus, Plus, Save, Search, Star, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Minus, Plus, Save, Search, Star, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Datasheet } from "@/components/Datasheet";
@@ -16,12 +16,14 @@ import { DISPOSITIONS, missionFor } from "@/data/missions";
 import { BATTLE_SIZES, type Disposition, type UnitDef, type UnitRole } from "@/data/types";
 import { resolvedWargearIds, rosterLoadout, setWargearGroup, wargearGroups } from "@/data/wargear";
 import { encodeRoster } from "@/lib/share";
+import { outgoingShares, revokeShare, shareList, type OutgoingShare } from "@/lib/list-shares";
 import { useWarStore } from "@/lib/store";
 import { rosterDp, rosterPoints, unitTotalPoints, validateRoster } from "@/lib/validation";
 import { cn, roleLabel, unitCopyMarks } from "@/lib/utils";
 
-const ADD_UNIT_SECTIONS: { title: string; roles: UnitRole[] }[] = [
-  { title: "Characters", roles: ["character"] },
+const ADD_UNIT_SECTIONS: { title: string; roles: UnitRole[]; epic?: boolean }[] = [
+  { title: "Epic Heroes", roles: ["character"], epic: true },
+  { title: "Characters", roles: ["character"], epic: false },
   { title: "Battleline", roles: ["battleline"] },
   { title: "Infantry", roles: ["infantry"] },
   { title: "Monsters", roles: ["monster"] },
@@ -46,6 +48,9 @@ function ListBuilder() {
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [detOpen, setDetOpen] = useState<Record<string, boolean>>({});
   const [oppDisp, setOppDisp] = useState<Disposition | null>(null);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [outgoing, setOutgoing] = useState<OutgoingShare[]>([]);
   const faction = list ? getFaction(list.factionId) : undefined;
   const copies = useMemo(() => (list ? unitCopyMarks(list.units) : {}), [list]);
 
@@ -57,11 +62,32 @@ function ListBuilder() {
     return ADD_UNIT_SECTIONS.map((section) => ({
       ...section,
       units: faction.units
-        .filter((u) => section.roles.includes(u.role) && matches(u))
+        .filter((u) => {
+          if (!section.roles.includes(u.role) || !matches(u)) return false;
+          const epic = u.keywords.includes("Epic Hero");
+          if (section.epic === true) return epic;
+          if (section.epic === false) return !epic;
+          return true;
+        })
         .slice()
         .sort((a, b) => a.points - b.points || a.name.localeCompare(b.name)),
     })).filter((section) => section.units.length > 0);
   }, [faction, query]);
+
+  useEffect(() => {
+    if (!list) return;
+    let cancelled = false;
+    outgoingShares({ data: list.id })
+      .then((rows) => {
+        if (!cancelled) setOutgoing(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setOutgoing([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [list?.id]);
 
   if (!list) {
     return (
@@ -89,6 +115,120 @@ function ListBuilder() {
   const enhancements = selectedDets.flatMap((d) => d!.enhancements);
   const inspectRu = inspectId ? list.units.find((u) => u.id === inspectId) : undefined;
   const inspectUnit = inspectRu ? getUnit(list.factionId, inspectRu.unitId) : undefined;
+
+  const unitCard = (ru: (typeof list.units)[number]) => {
+    const def = getUnit(list.factionId, ru.unitId);
+    if (!def) return null;
+    const total = unitTotalPoints(list, ru);
+    const loadout = rosterLoadout(def, ru.wargearIds);
+    const enh = ru.enhancementId ? enhancements.find((e) => e.id === ru.enhancementId) : undefined;
+    const hosts =
+      def.role === "character" && def.leaderOf?.length
+        ? list.units.filter((other) => other.id !== ru.id && (def.leaderOf!.includes(other.unitId) || other.id === ru.attachedTo))
+        : [];
+    const facts = [ru.models > 1 ? `${ru.models} models` : null, enh?.name, loadout, ru.notes].filter(Boolean).join(" · ");
+    const hasControls = def.role === "character" || (def.sizes?.length ?? 0) > 1 || hosts.length > 0;
+    return (
+      <div className="min-w-0 rounded-lg border border-border bg-card px-2.5 py-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <button type="button" className="min-w-0 flex-1 truncate text-left text-sm font-medium leading-5" onClick={() => setInspectId(ru.id)}>
+            {def.name}
+            {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
+          </button>
+          <span className="w-12 shrink-0 text-right font-mono text-sm tabular-nums leading-5">{total}</span>
+          <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Remove" onClick={() => removeUnit(list.id, ru.id)}>
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+        {facts ? (
+          <button type="button" className="mt-0.5 block w-full min-w-0 truncate text-left text-xs leading-4 text-muted-foreground" onClick={() => setInspectId(ru.id)}>
+            {facts}
+          </button>
+        ) : null}
+        {hasControls ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {def.role === "character" ? (
+              <Button
+                size="sm"
+                className="h-7 shrink-0 px-2 text-[11px]"
+                variant={ru.warlord ? "default" : "outline"}
+                onClick={() => {
+                  useWarStore.setState({
+                    lists: useWarStore.getState().lists.map((l) =>
+                      l.id === list.id ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === ru.id })) } : l,
+                    ),
+                  });
+                }}
+              >
+                WL
+              </Button>
+            ) : null}
+            {enhancements.length > 0 && def.role === "character" ? (
+              <Select
+                value={ru.enhancementId ?? "none"}
+                onValueChange={(v) => updateUnit(list.id, ru.id, { enhancementId: v === "none" ? undefined : v })}
+              >
+                <SelectTrigger className="h-7 w-[8.5rem] shrink-0 px-2 text-[11px]">
+                  <SelectValue placeholder="Enhancement" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No enhancement</SelectItem>
+                  {enhancements.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.name} +{e.points}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            {def.sizes && def.sizes.length > 1 ? (
+              <Select
+                value={String(ru.models)}
+                onValueChange={(v) => {
+                  const sizeOpt = def.sizes!.find((s) => s.models === Number(v));
+                  if (sizeOpt) updateUnit(list.id, ru.id, { models: sizeOpt.models, points: sizeOpt.points });
+                }}
+              >
+                <SelectTrigger className="h-7 w-[5.5rem] shrink-0 px-2 text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {def.sizes.map((s) => (
+                    <SelectItem key={s.models} value={String(s.models)}>
+                      {s.models} · {s.points}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+            {hosts.length > 0 ? (
+              <Select
+                value={ru.attachedTo ?? "none"}
+                onValueChange={(v) => updateUnit(list.id, ru.id, { attachedTo: v === "none" ? undefined : v })}
+              >
+                <SelectTrigger className="h-7 w-[9.5rem] shrink-0 px-2 text-[11px]">
+                  <SelectValue placeholder="Bodyguard" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No bodyguard</SelectItem>
+                  {hosts.map((host) => {
+                    const hostDef = getUnit(list.factionId, host.unitId);
+                    const mark = copies[host.id] ? ` [${copies[host.id]}]` : "";
+                    return (
+                      <SelectItem key={host.id} value={host.id}>
+                        {hostDef?.name ?? "Unit"}
+                        {mark}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-5 pb-8">
@@ -126,12 +266,64 @@ function ListBuilder() {
           >
             Copy code
           </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/battle">
-              <BookOpen className="size-4" /> View ledger
-            </Link>
-          </Button>
         </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card p-3">
+        <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Share with a player</p>
+        <p className="mt-1 text-xs text-muted-foreground">They must already have an Ono40k account. They receive this list only.</p>
+        <form
+          className="mt-2 flex flex-wrap items-center gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setShareBusy(true);
+            try {
+              const result = await shareList({ data: { email: shareEmail, list } });
+              if (!result.ok) {
+                toast.error(result.error === "self" ? "That is your own email." : "No account uses that email.");
+                return;
+              }
+              setShareEmail("");
+              setOutgoing(await outgoingShares({ data: list.id }));
+              toast.success("List shared");
+            } catch {
+              toast.error("Sign in to share a list.");
+            } finally {
+              setShareBusy(false);
+            }
+          }}
+        >
+          <Input
+            type="email"
+            value={shareEmail}
+            onChange={(event) => setShareEmail(event.target.value)}
+            placeholder="player@email"
+            className="h-8 w-56 text-xs"
+            required
+          />
+          <Button type="submit" size="sm" disabled={shareBusy}>
+            Share
+          </Button>
+        </form>
+        {outgoing.length > 0 ? (
+          <ul className="mt-2 space-y-1">
+            {outgoing.map((share) => (
+              <li key={share.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="truncate">{share.email ?? "Account"}</span>
+                <button
+                  type="button"
+                  className="shrink-0 uppercase tracking-wide"
+                  onClick={async () => {
+                    await revokeShare({ data: share.id });
+                    setOutgoing((rows) => rows.filter((row) => row.id !== share.id));
+                  }}
+                >
+                  Revoke
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -335,102 +527,36 @@ function ListBuilder() {
         {list.units.length === 0 ? (
           <Card className="p-6 text-center text-sm text-muted-foreground">No units yet. Add from the catalog.</Card>
         ) : (
-          <ul className="grid grid-cols-2 items-start gap-1">
-            {[...list.units]
-              .sort((a, b) => {
-                if (Boolean(a.warlord) !== Boolean(b.warlord)) return a.warlord ? -1 : 1;
-                const na = getUnit(list.factionId, a.unitId)?.name ?? "";
-                const nb = getUnit(list.factionId, b.unitId)?.name ?? "";
-                const byName = na.localeCompare(nb);
-                if (byName !== 0) return byName;
-                return (copies[a.id] ?? "").localeCompare(copies[b.id] ?? "");
-              })
-              .map((ru) => {
-              const def = getUnit(list.factionId, ru.unitId);
-              if (!def) return null;
-              const total = unitTotalPoints(list, ru);
-              const loadout = rosterLoadout(def, ru.wargearIds);
-              const enh = ru.enhancementId ? enhancements.find((e) => e.id === ru.enhancementId) : undefined;
-              return (
-                <li key={ru.id} className="min-w-0 rounded-lg border border-border bg-card px-2.5 py-1.5">
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <button type="button" className="min-w-0 truncate text-left text-sm font-medium leading-5" onClick={() => setInspectId(ru.id)}>
-                      {def.name}
-                      {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
-                    </button>
-                    {def.role === "character" ? (
-                      <Button
-                        size="sm"
-                        className="h-7 shrink-0 px-2 text-[11px]"
-                        variant={ru.warlord ? "default" : "outline"}
-                        onClick={() => {
-                          useWarStore.setState({
-                            lists: useWarStore.getState().lists.map((l) =>
-                              l.id === list.id
-                                ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === ru.id })) }
-                                : l,
-                            ),
-                          });
-                        }}
-                      >
-                        WL
-                      </Button>
-                    ) : null}
-                    {enhancements.length > 0 && def.role === "character" ? (
-                      <Select
-                        value={ru.enhancementId ?? "none"}
-                        onValueChange={(v) => updateUnit(list.id, ru.id, { enhancementId: v === "none" ? undefined : v })}
-                      >
-                        <SelectTrigger className="h-7 w-[8.5rem] shrink-0 px-2 text-[11px]">
-                          <SelectValue placeholder="Enhancement" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No enhancement</SelectItem>
-                          {enhancements.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
-                              {e.name} +{e.points}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : null}
-                    {def.sizes && def.sizes.length > 1 ? (
-                      <Select
-                        value={String(ru.models)}
-                        onValueChange={(v) => {
-                          const sizeOpt = def.sizes!.find((s) => s.models === Number(v));
-                          if (sizeOpt) updateUnit(list.id, ru.id, { models: sizeOpt.models, points: sizeOpt.points });
-                        }}
-                      >
-                        <SelectTrigger className="h-7 w-[5.5rem] shrink-0 px-2 text-[11px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {def.sizes.map((s) => (
-                            <SelectItem key={s.models} value={String(s.models)}>
-                              {s.models} · {s.points}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : null}
-                    <span className="ml-auto shrink-0 font-mono text-sm tabular-nums leading-5">{total}</span>
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Remove" onClick={() => removeUnit(list.id, ru.id)}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                  <button type="button" className="mt-0.5 w-full min-w-0 text-left" onClick={() => setInspectId(ru.id)}>
-                    {ru.models > 1 || enh ? (
-                      <p className="truncate text-xs leading-4 text-muted-foreground">
-                        {[ru.models > 1 ? `${ru.models} models` : null, enh?.name].filter(Boolean).join(" · ")}
-                      </p>
-                    ) : null}
-                    {loadout ? <p className="truncate text-xs leading-4 text-muted-foreground">{loadout}</p> : null}
-                    {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
-                  </button>
-                </li>
-              );
-            })}
+          <ul className="space-y-1">
+            {(() => {
+              const hosted = new Set(list.units.map((u) => u.attachedTo).filter((id): id is string => Boolean(id)));
+              const placed = new Set<string>();
+              const rank = (ru: (typeof list.units)[number]) => {
+                if (ru.warlord) return 0;
+                return getUnit(list.factionId, ru.unitId)?.role === "character" ? 1 : 2;
+              };
+              return [...list.units]
+                .filter((ru) => !hosted.has(ru.id))
+                .sort((a, b) => {
+                  const byRank = rank(a) - rank(b);
+                  if (byRank !== 0) return byRank;
+                  const na = getUnit(list.factionId, a.unitId)?.name ?? "";
+                  const nb = getUnit(list.factionId, b.unitId)?.name ?? "";
+                  const byName = na.localeCompare(nb);
+                  if (byName !== 0) return byName;
+                  return (copies[a.id] ?? "").localeCompare(copies[b.id] ?? "");
+                })
+                .map((ru) => {
+                  const host = ru.attachedTo ? list.units.find((u) => u.id === ru.attachedTo && !placed.has(u.id)) : undefined;
+                  if (host) placed.add(host.id);
+                  return (
+                    <li key={ru.id} className="min-w-0 space-y-1">
+                      {unitCard(ru)}
+                      {host ? <div className="w-4/5">{unitCard(host)}</div> : null}
+                    </li>
+                  );
+                });
+            })()}
           </ul>
         )}
       </section>
@@ -487,6 +613,16 @@ function ListBuilder() {
                   <ul className="space-y-2">
                     {section.units.map((u) => {
                       const n = pending[u.id] ?? 0;
+                      const epic = u.keywords.includes("Epic Hero");
+                      const owned = list.units.filter((ru) => ru.unitId === u.id).length;
+                      const atCap = epic && owned + n >= 1;
+                      const takeOne = () => {
+                        if (atCap) {
+                          toast("Only one copy of an Epic Hero.");
+                          return;
+                        }
+                        setPending((p) => ({ ...p, [u.id]: (p[u.id] ?? 0) + 1 }));
+                      };
                       return (
                         <li key={u.id}>
                           <div
@@ -498,7 +634,7 @@ function ListBuilder() {
                             <button
                               type="button"
                               className="min-w-0 flex-1 text-left"
-                              onClick={() => setPending((p) => ({ ...p, [u.id]: (p[u.id] ?? 0) + 1 }))}
+                              onClick={takeOne}
                             >
                               <span className="block truncate font-medium">{u.name}</span>
                               <span className="text-xs text-muted-foreground">
@@ -529,7 +665,8 @@ function ListBuilder() {
                                   size="icon-sm"
                                   variant="outline"
                                   aria-label={`Add another ${u.name}`}
-                                  onClick={() => setPending((p) => ({ ...p, [u.id]: (p[u.id] ?? 0) + 1 }))}
+                                  disabled={atCap}
+                                  onClick={takeOne}
                                 >
                                   <Plus className="size-4" />
                                 </Button>
@@ -567,7 +704,10 @@ function ListBuilder() {
                   for (const [id, n] of Object.entries(pending)) {
                     const u = faction.units.find((x) => x.id === id);
                     if (!u) continue;
-                    for (let i = 0; i < n; i++) {
+                    const epic = u.keywords.includes("Epic Hero");
+                    const owned = list.units.filter((ru) => ru.unitId === u.id).length;
+                    const count = epic ? Math.min(n, Math.max(0, 1 - owned)) : n;
+                    for (let i = 0; i < count; i++) {
                       addSized(u, list.id, addUnit);
                       added += 1;
                     }

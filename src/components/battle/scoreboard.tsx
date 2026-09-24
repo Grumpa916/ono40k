@@ -1,7 +1,7 @@
 import { ChevronLeft, Minus, Plus } from "lucide-react";
 import { BattleClock, SideClock } from "@/components/battle/clock";
 import { Button } from "@/components/ui/button";
-import { PHASES, type Game } from "@/data/types";
+import { type Game } from "@/data/types";
 import { useWarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -21,8 +21,6 @@ export function Scoreboard({
   const setViewing = useWarStore((s) => s.setViewing);
   const endTurn = useWarStore((s) => s.endTurn);
   const prevTurn = useWarStore((s) => s.prevTurn);
-  const prevPhase = useWarStore((s) => s.prevPhase);
-  const nextPhase = useWarStore((s) => s.nextPhase);
   const jumpRound = useWarStore((s) => s.jumpRound);
   return (
           <div className="rounded-xl border border-border bg-card p-4">
@@ -138,32 +136,7 @@ export function Scoreboard({
                   );
                 })}
               </div>
-              <div className="mt-3 rounded-lg border border-border bg-muted/40 p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    aria-label="Previous phase"
-                    disabled={game.status === "complete" || (game.phase === "command" && game.round === 1 && game.activeSide === (game.preBattle?.firstTurn ?? "me"))}
-                    onClick={prevPhase}
-                  >
-                    <ChevronLeft className="size-4" />
-                  </Button>
-                  <div className="text-center">
-                    <p className="text-[10px] tracking-[0.16em] text-muted-foreground uppercase">Phase</p>
-                    <p className="text-sm font-medium">{PHASES.find((p) => p.id === game.phase)?.label ?? game.phase}</p>
-                  </div>
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    aria-label="Next phase"
-                    disabled={game.status === "complete"}
-                    onClick={nextPhase}
-                  >
-                    <span className="rotate-180"><ChevronLeft className="size-4" /></span>
-                  </Button>
-                </div>
-              </div>
+              {/* Ledger has no phase selector. Do not add one back. */}
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button
                   size="sm"

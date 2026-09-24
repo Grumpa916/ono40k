@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FACTIONS } from "@/data/codex";
 import { CORE_RULES, CORE_STRATAGEMS } from "@/data/core";
+import { RULE_SOURCES } from "@/data/sources";
 
 export const Route = createFileRoute("/codex")({ component: CodexPage });
 
@@ -53,6 +54,18 @@ function CodexPage() {
         <h1 className="font-display mt-1 text-3xl font-semibold">Codex</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Unofficial 11th edition fan reference — datasheets, modular detachments, and the core rules that changed from 10th.
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sources:{" "}
+          {RULE_SOURCES.map((source, i) => (
+            <span key={source.href}>
+              {i > 0 ? " · " : null}
+              <a href={source.href} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                {source.name}
+              </a>
+              {source.primary ? " (primary)" : null}
+            </span>
+          ))}
         </p>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1">

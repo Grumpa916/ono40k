@@ -2,7 +2,6 @@ import { Minus, Plus, Skull } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { wargearSummary } from "@/data/wargear";
-import { actionCards } from "@/data/secondaries";
 import { getUnit } from "@/data/codex";
 import type { Game, Roster, RosterUnit, UnitBattleState, UnitDef } from "@/data/types";
 import { useWarStore } from "@/lib/store";
@@ -117,14 +116,6 @@ export function ArmyPanel({
   onOpen: (unitId: string) => void;
 }) {
   const setUnitState = useWarStore((s) => s.setUnitState);
-  const startScoringAction = useWarStore((s) => s.startScoringAction);
-  const resolveScoringAction = useWarStore((s) => s.resolveScoringAction);
-  const score = game.scores[game.viewing];
-  const actionOptions = useMemo(() => {
-    const ids =
-      score.secondaryMode === "fixed" ? (score.fixedIds ?? []) : score.secondaryMode === "tactical" ? (score.tacticalActive ?? []) : [];
-    return actionCards(ids);
-  }, [score.secondaryMode, score.fixedIds, score.tacticalActive]);
   const ordered = useMemo(() => {
     const rank = (ru: (typeof roster.units)[number]) => {
       const st = game.unitState[ru.id];
@@ -144,17 +135,38 @@ export function ArmyPanel({
       return level.belowHalf ? 1 : 2;
     };
     const nameOf = (ru: (typeof roster.units)[number]) => getUnit(roster.factionId, ru.unitId)?.name ?? "";
-    return [...roster.units].sort((a, b) => {
-      const byRank = rank(a) - rank(b);
-      if (byRank !== 0) return byRank;
-      return nameOf(a).localeCompare(nameOf(b));
+    const byId = new Map(roster.units.map((unit) => [unit.id, unit]));
+    const used = new Set<string>();
+    const groups: (typeof roster.units)[] = [];
+    for (const ru of roster.units) {
+      if (used.has(ru.id) || !ru.attachedTo) continue;
+      const host = byId.get(ru.attachedTo);
+      if (!host) continue;
+      const leaders = roster.units
+        .filter((unit) => unit.attachedTo === host.id)
+        .sort((a, b) => Number(b.warlord) - Number(a.warlord) || nameOf(a).localeCompare(nameOf(b)));
+      const units = [...leaders, host];
+      for (const unit of units) used.add(unit.id);
+      groups.push(units);
+    }
+    for (const ru of roster.units) {
+      if (!used.has(ru.id)) groups.push([ru]);
+    }
+    return groups.sort((a, b) => {
+      const rankA = Math.min(...a.map(rank));
+      const rankB = Math.min(...b.map(rank));
+      if (rankA !== rankB) return rankA - rankB;
+      return nameOf(a[0]).localeCompare(nameOf(b[0]));
     });
   }, [roster.units, roster.factionId, game.unitState]);
   const copies = useMemo(() => unitCopyMarks(roster.units), [roster.units]);
 
   return (
     <ul className="space-y-2">
-      {ordered.map((ru) => {
+      {ordered.map((group) => (
+        <li key={group.map((unit) => unit.id).join("-")} className={group.length > 1 ? "grid grid-cols-2 items-start gap-2" : undefined}>
+          {group.map((ru) => {
+        const paired = group.length > 1;
         const def = getUnit(roster.factionId, ru.unitId);
         const st = game.unitState[ru.id];
         if (!def || !st) return null;
@@ -183,21 +195,20 @@ export function ArmyPanel({
         });
         const penalised = effects.some((e) => e.kind === "penalty");
         const buffed = effects.some((e) => e.kind === "buff");
-        const running = (game.scoringActions ?? []).find((a) => a.unitId === ru.id);
         return (
-          <li
+          <div
             key={ru.id}
             onClick={() => onOpen(def.id)}
             className={cn(
-              "army-row cursor-pointer rounded-lg border border-border bg-card px-2.5 py-1.5",
+              "army-row min-w-0 cursor-pointer rounded-lg border border-border bg-card px-2.5 py-1.5",
               st.destroyed && "opacity-50",
               !st.destroyed && st.battleShocked && "border-blood/50 bg-blood/10",
               !st.destroyed && !st.battleShocked && penalised && "border-blood/40 bg-blood/10",
               !st.destroyed && !penalised && buffed && "border-ok/50 bg-ok/10",
             )}
           >
-            <div className="grid grid-cols-12 items-center">
-              <div className="col-span-4 flex min-w-0 items-center gap-1.5">
+            <div className={cn("grid items-center", paired ? "grid-cols-1 gap-1.5" : "grid-cols-12")}>
+              <div className={cn("flex min-w-0 items-center gap-1.5", !paired && "col-span-4")}>
                 <span className="min-w-0 truncate text-left text-sm font-medium leading-5">
                   {def.name}
                   {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
@@ -234,17 +245,19 @@ export function ArmyPanel({
                   <Skull className="size-3.5" />
                 </Button>
               </div>
-              <div className="col-span-8 col-start-5 flex min-w-0 items-center gap-1.5">
-                <WoundStepper
-                  value={wounds}
-                  max={maxW}
-                  locked={locked}
-                  alert={penalised}
-                  label="Wounds"
-                  onDec={() => applyWounds(-1)}
-                  onInc={() => applyWounds(1)}
-                />
-                {ru.models > 1 ? (
+              <div className={cn("flex min-w-0 flex-wrap items-center justify-end gap-1.5", !paired && "col-span-8 col-start-5")}>
+                {maxW > 1 ? (
+                  <WoundStepper
+                    value={wounds}
+                    max={maxW}
+                    locked={locked}
+                    alert={penalised}
+                    label="Wounds"
+                    onDec={() => applyWounds(-1)}
+                    onInc={() => applyWounds(1)}
+                  />
+                ) : null}
+                {ru.models > 1 || maxW === 1 ? (
                   <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
                     <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
                     <Button
@@ -287,7 +300,7 @@ export function ArmyPanel({
                 ) : null}
               </div>
             </div>
-            <div className="mt-1 grid w-1/2 min-w-0 grid-cols-6 gap-0.5">
+            <div className={cn("mt-1 grid min-w-0 grid-cols-6 gap-0.5", paired ? "w-full" : "w-1/2")}>
               <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
               <UnitStat label="T" value={def.stats.t} />
               <UnitStat label="SV" value={`${def.stats.sv}+`} />
@@ -295,34 +308,6 @@ export function ArmyPanel({
               <UnitStat label="LD" value={`${def.stats.ld}+`} />
               <UnitStat label="OC" value={def.stats.oc} />
             </div>
-            {running || (actionOptions.length > 0 && !st.destroyed) ? (
-              <div className="mt-1 flex flex-wrap items-center gap-1" onClick={(event) => event.stopPropagation()}>
-                <span className="text-[9px] tracking-wide text-muted-foreground uppercase">{running ? running.name : "Action"}</span>
-                {running ? (
-                  <>
-                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={() => resolveScoringAction(running.id, "complete")}>
-                      Done
-                    </Button>
-                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="ghost" disabled={locked} onClick={() => resolveScoringAction(running.id, "fail")}>
-                      Fail
-                    </Button>
-                  </>
-                ) : (
-                  actionOptions.map((card) => (
-                    <Button
-                      key={card.id}
-                      size="sm"
-                      className="h-7 px-2 text-[11px]"
-                      variant="outline"
-                      disabled={locked}
-                      onClick={() => startScoringAction(ru.id, card.id)}
-                    >
-                      {card.name}
-                    </Button>
-                  ))
-                )}
-              </div>
-            ) : null}
             {extras || ru.notes ? (
               <div className="mt-1 space-y-1">
                 {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
@@ -334,10 +319,11 @@ export function ArmyPanel({
                 {effects.map((e) => `${e.name}: ${e.text}`).join(" · ")}
               </p>
             ) : null}
-          </li>
+          </div>
         );
-      })}
+          })}
+        </li>
+      ))}
     </ul>
   );
 }
-

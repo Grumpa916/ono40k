@@ -13,7 +13,7 @@ const units: UnitDef[] = [
   u("csm-chaos-lord", "Chaos Lord", "character", 90, { m: 6, t: 4, sv: 3, w: 5, ld: 6, oc: 1 }, KW_HA_CHAR, {
     inv: 4,
     r: [plasmaPistol, boltPistol],
-    m: [w("Daemon hammer", "melee", "Melee", 4, 3, 8, -2, 2, ["Devastating Wounds"]), powerWeapon],
+    m: [w("Daemon hammer", "melee", "Melee", 5, 3, 8, -2, 2, ["Devastating Wounds"]), powerWeapon],
     ab: [
       a("Lord of Chaos", "While leading a unit, each time that unit makes a Dark Pact, it automatically passes the Leadership test."),
       a("Glory to the Dark Gods", "While leading a unit, weapons in that unit have Sustained Hits 1."),
@@ -38,7 +38,7 @@ const units: UnitDef[] = [
     lead: ["csm-possessed", "csm-legionaries"],
   }),
   u("csm-legionaries", "Legionaries", "battleline", 90, { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 2 }, KW_HA_BL, {
-    sizes: [[5, 90], [10, 180]],
+    sizes: [[5, 90], [10, 170]],
     r: [boltgun, boltPistol],
     m: [astartesChainsword, w("Heavy melee weapon", "melee", "Melee", 3, 3, 8, -2, 2, [])],
     ab: [
@@ -46,8 +46,8 @@ const units: UnitDef[] = [
       a("Objective Secured", "This unit can perform Actions while within Engagement Range of enemy units."),
     ],
   }),
-  u("csm-cultist-mob", "Cultist Mob", "battleline", 50, { m: 6, t: 3, sv: 5, w: 1, ld: 8, oc: 1 }, ["Infantry", "Battleline", "Chaos", "Cultist"], {
-    sizes: [[10, 50], [20, 100]],
+  u("csm-cultist-mob", "Cultist Mob", "battleline", 50, { m: 6, t: 3, sv: 6, w: 1, ld: 7, oc: 1 }, ["Infantry", "Battleline", "Chaos", "Cultist"], {
+    sizes: [[10, 50], [20, 90]],
     r: [w("Cultist firearm", "ranged", 18, 1, 4, 3, 0, 1, []), w("Autopistol", "ranged", 12, 1, 4, 3, 0, 1, ["Pistol"])],
     m: [w("Brutal assault weapon", "melee", "Melee", 2, 4, 3, 0, 1, [])],
     ab: [
@@ -55,8 +55,8 @@ const units: UnitDef[] = [
       a("For the Dark Gods", "This unit can be set up as a screen: friendly Heretic Astartes Character units within 3\" have the Benefit of Cover."),
     ],
   }),
-  u("csm-chosen", "Chosen", "infantry", 125, { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_HA, {
-    sizes: [[5, 125], [10, 250]],
+  u("csm-chosen", "Chosen", "infantry", 135, { m: 6, t: 4, sv: 3, w: 3, ld: 6, oc: 1 }, KW_HA, {
+    sizes: [[5, 135], [10, 270]],
     r: [boltPistol, w("Plasma pistol", "ranged", 12, 1, 3, 8, -3, 2, ["Pistol"]), boltgun],
     m: [w("Accursed weapon", "melee", "Melee", 4, 3, 5, -2, 1, ["Lethal Hits"])],
     ab: [
@@ -64,12 +64,13 @@ const units: UnitDef[] = [
       a("Mark of Favour", "Each time this unit makes a Dark Pact, you can re-roll one Hit roll and one Wound roll."),
     ],
   }),
-  u("csm-havocs", "Havocs", "infantry", 125, { m: 6, t: 4, sv: 3, w: 2, ld: 6, oc: 1 }, KW_HA, {
+  u("csm-havocs", "Havocs", "infantry", 125, { m: 5, t: 5, sv: 3, w: 2, ld: 6, oc: 1 }, KW_HA, {
     sizes: [[5, 125]],
     r: [
-      w("Lascannon", "ranged", 48, 1, 3, 12, -3, "D6+1", ["Heavy"]),
-      w("Havoc autocannon", "ranged", 48, 3, 3, 7, -1, 2, ["Heavy", "Sustained Hits 1"]),
-      w("Reaper chaincannon", "ranged", 24, 8, 3, 5, 0, 1, ["Heavy", "Sustained Hits 1"]),
+      w("Havoc lascannon", "ranged", 48, 1, 3, 12, -3, "D6+1", []),
+      w("Havoc autocannon", "ranged", 48, 2, 3, 9, -1, 3, []),
+      w("Havoc reaper chaincannon", "ranged", 24, 8, 3, 5, 0, 1, []),
+      w("Havoc heavy bolter", "ranged", 36, 3, 3, 5, -1, 2, ["Sustained Hits 1"]),
       krak,
     ],
     m: [closeCombat],
@@ -78,16 +79,15 @@ const units: UnitDef[] = [
       a("Heavy Firepower", "Ranged weapons in this unit have Heavy. If the target is a Monster or Vehicle, add 1 to the Wound roll."),
     ],
   }),
-  u("csm-possessed", "Possessed", "infantry", 140, { m: 9, t: 6, sv: 3, w: 3, ld: 6, oc: 1 }, ["Infantry", "Daemon", "Chaos", "Heretic Astartes"], {
+  u("csm-possessed", "Possessed", "infantry", 120, { m: 9, t: 6, sv: 3, w: 3, ld: 6, oc: 1 }, ["Infantry", "Daemon", "Chaos", "Heretic Astartes"], {
     inv: 5,
-    sizes: [[5, 140], [10, 280]],
+    sizes: [[5, 120], [10, 250]],
     m: [w("Hideous mutations", "melee", "Melee", 4, 3, 5, -1, 2, [])],
     ab: [
-      a("Unholy Speed", "This unit can Advance and charge. You can re-roll Charge rolls for this unit."),
-      a("Deep Strike", "This unit can make an Ingress move from Reserves more than 8\" from enemy models."),
+      a("Unholy Bloodshed", "Once per battle, when this unit makes a Dark Pact, its weapons have Devastating Wounds until the end of the phase."),
     ],
   }),
-  u("csm-venomcrawler", "Venomcrawler", "vehicle", 120, { m: 10, t: 9, sv: 3, w: 9, ld: 6, oc: 3 }, ["Vehicle", "Walker", "Daemon", "Chaos"], {
+  u("csm-venomcrawler", "Venomcrawler", "vehicle", 120, { m: 12, t: 9, sv: 3, w: 9, ld: 6, oc: 3 }, ["Vehicle", "Walker", "Daemon", "Chaos"], {
     inv: 5,
     r: [w("Excruciator cannon", "ranged", 36, 3, 3, 9, -2, 3, ["Twin-linked"])],
     m: [w("Soulflayer tendrils", "melee", "Melee", 8, 3, 6, -1, 1, [])],
@@ -96,7 +96,7 @@ const units: UnitDef[] = [
       a("Daemon Engine", "This model has a 5+ invulnerable save. Weapons equipped by this model have Lethal Hits."),
     ],
   }),
-  u("csm-vindicator", "Chaos Vindicator", "vehicle", 175, { m: 10, t: 11, sv: 2, w: 11, ld: 6, oc: 3 }, ["Vehicle", "Smoke", "Chaos", "Heretic Astartes"], {
+  u("csm-vindicator", "Chaos Vindicator", "vehicle", 185, { m: 9, t: 11, sv: 2, w: 11, ld: 6, oc: 3 }, ["Vehicle", "Smoke", "Chaos", "Heretic Astartes"], {
     r: [
       w("Demolisher cannon", "ranged", 24, "D6+3", 3, 14, -3, 4, ["Blast"]),
       w("Havoc launcher", "ranged", 48, "D6", 3, 5, 0, 1, ["Blast"]),

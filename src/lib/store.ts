@@ -577,7 +577,15 @@ export const useWarStore = create<State>()(
       removeUnit: (listId, unitId) =>
         set({
           lists: get().lists.map((l) =>
-            l.id === listId ? { ...l, units: l.units.filter((u) => u.id !== unitId), updatedAt: Date.now() } : l,
+            l.id === listId
+              ? {
+                  ...l,
+                  units: l.units
+                    .filter((u) => u.id !== unitId)
+                    .map((u) => (u.attachedTo === unitId ? { ...u, attachedTo: undefined } : u)),
+                  updatedAt: Date.now(),
+                }
+              : l,
           ),
         }),
       importList: (roster) => {
@@ -809,6 +817,7 @@ export const useWarStore = create<State>()(
             activeSide: otherSide,
             phase: "command",
             viewing: otherSide,
+            activeStrats: [],
             cp: { ...g.cp, [otherSide]: g.cp[otherSide] + 1 },
             liveRound: g.round,
             liveSide: otherSide,
@@ -832,6 +841,7 @@ export const useWarStore = create<State>()(
               phase: "command",
               activeSide: firstTurn,
               viewing: firstTurn,
+              activeStrats: [],
               cp: { ...g.cp, [firstTurn]: g.cp[firstTurn] + 1 },
               cpHistory: done
                 ? g.cpHistory
@@ -1069,7 +1079,9 @@ export const useWarStore = create<State>()(
         if (next.hidden !== prev.hidden) parts.push(next.hidden ? "hidden" : "revealed");
         if (next.destroyed === prev.destroyed) {
           if (next.modelsRemaining !== prev.modelsRemaining) parts.push(`models ${prev.modelsRemaining} → ${next.modelsRemaining}`);
-          if (next.woundsOnCurrent !== prev.woundsOnCurrent) parts.push(`wounds ${prev.woundsOnCurrent} → ${next.woundsOnCurrent}`);
+          if (next.modelsRemaining >= prev.modelsRemaining && next.woundsOnCurrent !== prev.woundsOnCurrent) {
+            parts.push(`wounds ${prev.woundsOnCurrent} → ${next.woundsOnCurrent}`);
+          }
         }
         if (parts.length === 0) {
           set({
@@ -1084,7 +1096,7 @@ export const useWarStore = create<State>()(
         if (origin && last) {
           const folded: string[] = [];
           if (origin.models !== next.modelsRemaining) folded.push(`models ${origin.models} → ${next.modelsRemaining}`);
-          if (origin.wounds !== next.woundsOnCurrent) folded.push(`wounds ${origin.wounds} → ${next.woundsOnCurrent}`);
+          if (next.modelsRemaining >= origin.models && origin.wounds !== next.woundsOnCurrent) folded.push(`wounds ${origin.wounds} → ${next.woundsOnCurrent}`);
           if (folded.length === 0) {
             const slice = game.undoStack[0];
             set({

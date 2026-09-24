@@ -18,6 +18,7 @@ export function StratPanel({
 }) {
   const side = game.viewing;
   const playStratagem = useWarStore((s) => s.playStratagem);
+  const dismissStrat = useWarStore((s) => s.dismissStrat);
   const [fullByPhase, setFullByPhase] = useState<Record<string, boolean>>({});
   const dets = roster.detachmentIds.map((id) => getDetachment(roster.factionId, id)).filter(Boolean);
   const faction = getFaction(roster.factionId);
@@ -43,7 +44,7 @@ export function StratPanel({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">Tap a stratagem to play it and spend the CP.</p>
+      <p className="text-xs text-muted-foreground">Tap a stratagem to play it and spend the CP. Tap it again to clear it.</p>
       {grouped.map(([phase, strats]) => {
         const compact = !fullByPhase[phase];
         const label = phase === "any" ? "Any phase" : (PHASES.find((p) => p.id === phase)?.label ?? phase);
@@ -61,18 +62,20 @@ export function StratPanel({
             </div>
             <ul className="space-y-2">
               {strats.map((s) => {
-                const playCount = active.filter((a) => a.stratId === s.id && a.side === side).length;
+                const mine = active.filter((a) => a.stratId === s.id && a.side === side);
+                const playCount = mine.length;
                 const showFull = !compact;
-                const unaffordable = locked || game.cp[side] < s.cp;
+                const selected = playCount > 0;
+                const unaffordable = locked || (!selected && game.cp[side] < s.cp);
                 return (
                   <li key={s.id}>
                     <button
                       type="button"
                       disabled={unaffordable}
-                      onClick={() => playStratagem(side, s, s.source)}
+                      onClick={() => (selected ? dismissStrat(mine[0].id) : playStratagem(side, s, s.source))}
                       className={cn(
                         "w-full rounded-lg border bg-card text-left",
-                        playCount > 0 ? "border-steel/50" : "border-border",
+                        selected ? "border-steel/50" : "border-border",
                         showFull ? "p-3" : "px-2 py-1.5",
                         unaffordable && "opacity-50",
                       )}

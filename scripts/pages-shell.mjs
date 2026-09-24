@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = existsSync("dist/client") ? "dist/client" : "dist";
@@ -10,5 +10,9 @@ if (!shell) {
 const index = join(dir, "index.html");
 const missing = join(dir, "404.html");
 if (shell !== index) copyFileSync(shell, index);
-copyFileSync(index, missing);
+let html = readFileSync(index, "utf8");
+const css = readdirSync(join(dir, "assets")).find((name) => name.startsWith("styles-") && name.endsWith(".css"));
+if (css) html = html.replace(/assets\/styles-[A-Za-z0-9_-]+\.css/g, `assets/${css}`);
+writeFileSync(index, html);
+writeFileSync(missing, html);
 console.log(`GitHub Pages shell ready in ${dir}`);
