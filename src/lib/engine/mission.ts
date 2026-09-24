@@ -57,9 +57,9 @@ function controlled(runtime: BattleRuntime, side: "me"|"opponent"): ObjectiveRun
 function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondition): ConditionResult {
   const deps = Object.keys(runtime.objectives).map(id => "objective:" + id);
   if (c.kind === "UNSUPPORTED") return { status:"UNKNOWN", dependencies:deps, reason:"Mission condition is not represented by the engine yet." };
-  if (Object.values(runtime.objectives).some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:deps, reason:"Required objective control is not confirmed." };
   const mine = controlled(runtime, side);
   if (c.kind === "CONTROL_MORE_OBJECTIVES") {
+    if (Object.values(runtime.objectives).some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:deps, reason:"Objective control is not confirmed for the comparison." };
     const theirs = controlled(runtime, side === "me" ? "opponent" : "me");
     return { status: mine.length > theirs.length ? "PASS" : "FAIL", value: mine.length, dependencies:deps };
   }
@@ -69,12 +69,15 @@ function evaluate(runtime: BattleRuntime, side: "me"|"opponent", c: MissionCondi
       c.objectiveId === "OPPONENT_HOME" ? o.definition.kind === "home" && o.definition.owner !== side :
       o.definition.id === c.objectiveId);
     if (!target) return { status:"UNKNOWN", dependencies:deps, reason:"Required objective does not exist." };
+    if (target.status !== "CONFIRMED") return { status:"UNKNOWN", dependencies:["objective:"+target.definition.id], reason:"Required objective control is not confirmed." };
     return { status:target.controller === side ? "PASS":"FAIL", value:target.controller === side ? 1:0, dependencies:["objective:"+target.definition.id] };
   }
-  const matching = mine.filter(o => {
+  const relevant = Object.values(runtime.objectives).filter(o => {
     if (c.excludeHome && o.definition.kind === "home" && o.definition.owner === side) return false;
     return !c.objectiveKind || o.definition.kind === c.objectiveKind;
   });
+  if (relevant.some(o => o.status !== "CONFIRMED")) return { status:"UNKNOWN", dependencies:relevant.map(o => "objective:"+o.definition.id), reason:"Required objective control is not confirmed." };
+  const matching = relevant.filter(o => o.controller === side);
   if (c.count != null && matching.length < c.count) return { status:"FAIL", value:matching.length, dependencies:deps };
   return { status:"PASS", value:matching.length, dependencies:deps };
 }
