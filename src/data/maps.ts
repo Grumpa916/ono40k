@@ -432,8 +432,78 @@ export function formatCorner(corner: TerrainCorner) {
   return `${corner.id} ${formatInches(corner.across)} ${corner.acrossEdge} · ${formatInches(corner.down)} ${corner.downEdge}`;
 }
 
+export type MeasureGuide = {
+  cornerId: TerrainCorner["id"];
+  kind: "across" | "down";
+  edge: "left" | "right" | "top" | "bottom";
+  value: number;
+  x: number;
+  y: number;
+};
+
+/** Distances that place the piece. The far side is omitted when it is just a known edge length past a nearer mark. */
+export function placementGuides(piece: TerrainMeasure): MeasureGuide[] {
+  const guides: MeasureGuide[] = [];
+  for (const corner of piece.corners) {
+    guides.push({ cornerId: corner.id, kind: "across", edge: corner.acrossEdge, value: corner.across, x: corner.x, y: corner.y });
+    guides.push({ cornerId: corner.id, kind: "down", edge: corner.downEdge, value: corner.down, x: corner.x, y: corner.y });
+  }
+  const sides = rectangleSides(piece.corners);
+  const dropX = farFace(piece.corners.map((corner) => corner.x), 60, sides);
+  const dropY = farFace(piece.corners.map((corner) => corner.y), 44, sides);
+  const visible = guides.filter((guide) => {
+    if (guide.kind === "across" && dropX != null && Math.abs(guide.x - dropX) < 0.7) return false;
+    if (guide.kind === "down" && dropY != null && Math.abs(guide.y - dropY) < 0.7) return false;
+    return true;
+  });
+  const kept: MeasureGuide[] = [];
+  for (const guide of visible.sort((a, b) => a.value - b.value || a.cornerId.localeCompare(b.cornerId))) {
+    const sameLine = kept.some(
+      (other) =>
+        other.kind === guide.kind &&
+        other.edge === guide.edge &&
+        other.value === guide.value &&
+        Math.abs((guide.kind === "across" ? guide.y : guide.x) - (other.kind === "across" ? other.y : other.x)) < 0.6,
+    );
+    if (!sameLine) kept.push(guide);
+  }
+  return kept;
+}
+
+function rectangleSides(corners: TerrainCorner[]): number[] {
+  if (corners.length < 3) return [];
+  const [a, b, c] = corners;
+  const lengths = [dist(a!, b!), dist(a!, c!), dist(b!, c!)].sort((p, q) => p - q);
+  const [short, mid, long] = lengths;
+  if (short == null || mid == null || long == null) return [];
+  if (Math.abs(long - Math.hypot(short, mid)) > 0.85) return [];
+  return [short, mid];
+}
+
+function farFace(values: number[], board: number, sides: number[]): number | null {
+  if (sides.length === 0) return null;
+  const faces = clusters(values, 0.6);
+  if (faces.length !== 2) return null;
+  const [a, b] = faces;
+  if (a == null || b == null) return null;
+  const span = Math.abs(b - a);
+  if (!sides.some((side) => Math.abs(span - side) <= 0.5)) return null;
+  const inset = (face: number) => Math.min(face, board - face);
+  return inset(a) <= inset(b) ? b : a;
+}
+
+function clusters(values: number[], tol: number) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const out: number[] = [];
+  for (const value of sorted) {
+    const last = out[out.length - 1];
+    if (last == null || Math.abs(value - last) > tol) out.push(value);
+    else out[out.length - 1] = (last + value) / 2;
+  }
+  return out;
+}
+
 const TAG_H = 2.15;
-const TAG_GAP = 0.85;
 
 export function measureTagWidth(label: string) {
   return Math.max(label.length * 1.15 + 1.35, 3.8);
@@ -445,82 +515,85 @@ export type PlacedMeasure = {
   y: number;
   w: number;
   h: number;
+  /** Midpoint of the dimension line this tag belongs to. */
   anchorX: number;
   anchorY: number;
+  /** Line direction. Tags only slide along this so they stay with their own measurement. */
+  axis: "x" | "y";
+  lo: number;
+  hi: number;
 };
 
-/** Inch tags sit in the outer gutters so they cannot cover each other or the terrain. */
+/** Inch tags sit beside the line they measure, not in a shared margin. */
 export function layoutMeasureLabels(piece: TerrainMeasure): PlacedMeasure[] {
-  const groups: Record<"left" | "right" | "top" | "bottom", PlacedMeasure[]> = {
-    left: [],
-    right: [],
-    top: [],
-    bottom: [],
-  };
-  const seenAcross = new Set<string>();
-  const seenDown = new Set<string>();
-  for (const corner of piece.corners) {
-    const acrossKey = `${corner.acrossEdge}-${corner.across}`;
-    const downKey = `${corner.downEdge}-${corner.down}`;
-    if (!seenAcross.has(acrossKey)) {
-      seenAcross.add(acrossKey);
-      const label = formatInches(corner.across);
-      const w = measureTagWidth(label);
-      const edge = corner.acrossEdge === "left" ? 0 : 60;
-      const x = corner.acrossEdge === "left" ? -5.7 - w / 2 : 65.7 + w / 2;
-      groups[corner.acrossEdge].push({
-        label,
-        w,
-        h: TAG_H,
-        x,
-        y: corner.y,
-        anchorX: edge,
-        anchorY: corner.y,
-      });
-    }
-    if (!seenDown.has(downKey)) {
-      seenDown.add(downKey);
-      const label = formatInches(corner.down);
-      const w = measureTagWidth(label);
-      const edge = corner.downEdge === "top" ? 0 : 44;
-      const y = corner.downEdge === "top" ? -4.8 - TAG_H / 2 : 48.8 + TAG_H / 2;
-      groups[corner.downEdge].push({
-        label,
-        w,
-        h: TAG_H,
-        x: corner.x,
-        y,
-        anchorX: corner.x,
-        anchorY: edge,
-      });
-    }
+  const labels: PlacedMeasure[] = [];
+  for (const guide of placementGuides(piece)) {
+    const vertical = guide.kind === "down";
+    const x1 = vertical ? guide.x : guide.edge === "left" ? 0 : 60;
+    const y1 = vertical ? (guide.edge === "top" ? 0 : 44) : guide.y;
+    labels.push(placeBeside(formatInches(guide.value), x1, y1, guide.x, guide.y));
   }
-  pack(groups.left, "y", 1, 43);
-  pack(groups.right, "y", 1, 43);
-  pack(groups.top, "x", 2, 58);
-  pack(groups.bottom, "x", 2, 58);
-  return [...groups.left, ...groups.right, ...groups.top, ...groups.bottom];
+  slideApart(labels);
+  return labels;
 }
 
-function pack(labels: PlacedMeasure[], axis: "x" | "y", lo: number, hi: number) {
-  const sorted = [...labels].sort((a, b) => a[axis] - b[axis]);
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1]!;
-    const cur = sorted[i]!;
-    const minPos = prev[axis] + (prev[axis === "x" ? "w" : "h"] + cur[axis === "x" ? "w" : "h"]) / 2 + TAG_GAP;
-    if (cur[axis] < minPos) cur[axis] = minPos;
+function placeBeside(label: string, x1: number, y1: number, x2: number, y2: number): PlacedMeasure {
+  const w = measureTagWidth(label);
+  const h = TAG_H;
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const vertical = Math.abs(x1 - x2) < 0.05;
+  if (vertical) {
+    const roomRight = 60 - mx - 0.4;
+    const roomLeft = mx - 0.4;
+    let x = mx;
+    if (roomRight >= w && roomRight >= roomLeft) x = mx + 0.5 + w / 2;
+    else if (roomLeft >= w) x = mx - 0.5 - w / 2;
+    else x = Math.min(60 - w / 2 - 0.25, Math.max(w / 2 + 0.25, mx));
+    const inset = h / 2 + 0.2;
+    const lo = Math.min(y1, y2) + inset;
+    const hi = Math.max(y1, y2) - inset;
+    return { label, x, y: my, w, h, anchorX: mx, anchorY: my, axis: "y", lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
   }
-  const last = sorted[sorted.length - 1];
-  const first = sorted[0];
-  if (last) {
-    const size = last[axis === "x" ? "w" : "h"];
-    const overflow = last[axis] + size / 2 + 0.2 - hi;
-    if (overflow > 0) for (const label of sorted) label[axis] -= overflow;
-  }
-  if (first) {
-    const size = first[axis === "x" ? "w" : "h"];
-    const underflow = lo + size / 2 + 0.2 - first[axis];
-    if (underflow > 0) for (const label of sorted) label[axis] += underflow;
+  const roomBelow = 44 - my - 0.4;
+  const roomAbove = my - 0.4;
+  let y = my;
+  if (roomBelow >= h && roomBelow >= roomAbove) y = my + 0.45 + h / 2;
+  else if (roomAbove >= h) y = my - 0.45 - h / 2;
+  else y = Math.min(44 - h / 2 - 0.25, Math.max(h / 2 + 0.25, my));
+  const inset = w / 2 + 0.2;
+  const lo = Math.min(x1, x2) + inset;
+  const hi = Math.max(x1, x2) - inset;
+  return { label, x: mx, y, w, h, anchorX: mx, anchorY: my, axis: "x", lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
+}
+
+function slideApart(labels: PlacedMeasure[]) {
+  for (let pass = 0; pass < 12; pass++) {
+    let moved = false;
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = i + 1; j < labels.length; j++) {
+        const a = labels[i]!;
+        const b = labels[j]!;
+        const overlapX = Math.abs(a.x - b.x) * 2 < a.w + b.w + 0.45;
+        const overlapY = Math.abs(a.y - b.y) * 2 < a.h + b.h + 0.45;
+        if (!overlapX || !overlapY) continue;
+        const span = b.hi - b.lo;
+        if (span > 0.35) {
+          const dir = Math.sign(b[b.axis] - a[b.axis]) || 1;
+          const next = Math.min(b.hi, Math.max(b.lo, b[b.axis] + dir * 0.65));
+          if (next !== b[b.axis]) {
+            b[b.axis] = next;
+            moved = true;
+            continue;
+          }
+        }
+        const cross = b.axis === "y" ? "x" : "y";
+        const dir = Math.sign(b[cross] - a[cross]) || 1;
+        b[cross] += dir * 0.65;
+        moved = true;
+      }
+    }
+    if (!moved) break;
   }
 }
 

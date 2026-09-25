@@ -1,4 +1,4 @@
-import { areaLabel, layoutMeasureLabels, layoutTerrainBadges, territoryGuide, terrainMeasures, type MapLayout, type TerrainMeasure } from "@/data/maps";
+import { areaLabel, layoutMeasureLabels, layoutTerrainBadges, placementGuides, territoryGuide, terrainMeasures, type MapLayout, type TerrainMeasure } from "@/data/maps";
 import { TERRAIN_MARKS } from "@/data/terrain-marks";
 import { cn } from "@/lib/utils";
 
@@ -323,55 +323,78 @@ function PieceBadge({
 }
 
 function MeasureGuides({ piece }: { piece: TerrainMeasure }) {
+  const guides = placementGuides(piece);
   const labels = layoutMeasureLabels(piece);
+  const cx = (piece.minX + piece.maxX) / 2;
+  const cy = (piece.minY + piece.maxY) / 2;
+  const marked = new Set(guides.map((guide) => guide.cornerId));
   return (
     <g pointerEvents="none" fontFamily="ui-sans-serif, system-ui, sans-serif">
-      {piece.corners.map((corner) => {
-        const xEdge = corner.acrossEdge === "left" ? 0 : 60;
-        const yEdge = corner.downEdge === "top" ? 0 : 44;
-        return (
-          <g key={corner.id}>
-            <line
-              x1={xEdge}
-              y1={corner.y}
-              x2={corner.x}
-              y2={corner.y}
-              stroke="var(--color-primary)"
-              strokeWidth="0.24"
-              strokeDasharray="0.7 0.45"
-            />
-            <line
-              x1={corner.x}
-              y1={yEdge}
-              x2={corner.x}
-              y2={corner.y}
-              stroke="var(--color-primary)"
-              strokeWidth="0.24"
-              strokeDasharray="0.7 0.45"
-            />
-            <circle cx={corner.x} cy={corner.y} r="0.7" fill="var(--color-primary)" stroke="var(--color-background)" strokeWidth="0.2" />
-          </g>
-        );
+      {guides.map((guide) => {
+        const x1 = guide.kind === "down" ? guide.x : guide.edge === "left" ? 0 : 60;
+        const y1 = guide.kind === "down" ? (guide.edge === "top" ? 0 : 44) : guide.y;
+        return <DimLine key={`${guide.cornerId}-${guide.kind}`} x1={x1} y1={y1} x2={guide.x} y2={guide.y} />;
       })}
-      {labels.map((label) => {
-        const shifted = Math.hypot(label.x - label.anchorX, label.y - label.anchorY) > 1.15;
+      {piece.corners
+        .filter((corner) => marked.has(corner.id))
+        .map((corner) => {
+          const dx = corner.x - cx;
+          const dy = corner.y - cy;
+          const len = Math.hypot(dx, dy) || 1;
+          return (
+            <g key={corner.id}>
+              <circle cx={corner.x} cy={corner.y} r="0.85" fill="var(--color-primary)" stroke="var(--color-background)" strokeWidth="0.2" />
+              <text
+                x={corner.x + (dx / len) * 1.85}
+                y={corner.y + (dy / len) * 1.85 + 0.45}
+                textAnchor="middle"
+                fill="var(--color-foreground)"
+                stroke="var(--color-background)"
+                strokeWidth="0.35"
+                paintOrder="stroke"
+                fontSize="1.55"
+                fontWeight="700"
+              >
+                {corner.id}
+              </text>
+            </g>
+          );
+        })}
+      {labels.map((label, i) => {
+        const off = label.axis === "y" ? label.x - label.anchorX : label.y - label.anchorY;
+        const stub = Math.abs(off) > 1.1;
         return (
-          <g key={`${label.label}-${label.anchorX}-${label.anchorY}`}>
-            {shifted ? (
+          <g key={`${label.label}-${i}`}>
+            {stub ? (
               <line
-                x1={label.anchorX}
-                y1={label.anchorY}
+                x1={label.axis === "y" ? label.anchorX : label.x}
+                y1={label.axis === "y" ? label.y : label.anchorY}
                 x2={label.x}
                 y2={label.y}
                 stroke="var(--color-primary)"
                 strokeWidth="0.16"
-                strokeOpacity="0.7"
               />
             ) : null}
             <MeasureTag x={label.x} y={label.y} w={label.w} h={label.h} label={label.label} />
           </g>
         );
       })}
+    </g>
+  );
+}
+
+function DimLine({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number }) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len;
+  const py = dx / len;
+  const tick = 0.7;
+  return (
+    <g stroke="var(--color-primary)" strokeWidth="0.22">
+      <line x1={x1} y1={y1} x2={x2} y2={y2} strokeDasharray="0.55 0.38" />
+      <line x1={x1 - px * tick} y1={y1 - py * tick} x2={x1 + px * tick} y2={y1 + py * tick} />
+      <line x1={x2 - px * tick} y1={y2 - py * tick} x2={x2 + px * tick} y2={y2 + py * tick} />
     </g>
   );
 }

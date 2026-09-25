@@ -20,6 +20,7 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const wide = pathname.startsWith("/battle") || pathname.startsWith("/setup");
   const activeGameId = useWarStore((s) => s.activeGameId);
   useCodexSync((s) => s.revision);
 
@@ -31,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="tactical-grid min-h-dvh">
       <AccountSync />
       <header className="sticky top-0 z-30 border-b border-border bg-background">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
+        <div className={cn("mx-auto flex h-14 items-center justify-between gap-3 px-4", wide ? "max-w-[90rem]" : "max-w-6xl")}>
           <Link to="/" className="flex min-w-0 items-baseline gap-2">
             <span className="font-display text-lg font-semibold tracking-wide">Ono40k</span>
             <span className="hidden text-[10px] tracking-[0.2em] text-muted-foreground uppercase sm:inline">11th edition</span>
@@ -64,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <SaveBanner />
-      <main className="mx-auto w-full min-w-0 max-w-6xl px-4 pt-5 pb-24 md:pb-10">{children}</main>
+      <main className={cn("mx-auto w-full min-w-0 px-4 pt-5 pb-24 md:pb-10", wide ? "max-w-[90rem]" : "max-w-6xl")}>{children}</main>
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="grid grid-cols-6">
           {NAV.map((item) => {

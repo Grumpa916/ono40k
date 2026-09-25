@@ -88,6 +88,7 @@ export function GameSetup({
 }) {
   const lists = useWarStore((s) => s.lists);
   const hydrated = useWarStore((s) => s.hydrated);
+  const [loadGaveUp, setLoadGaveUp] = useState(false);
   const startGame = useWarStore((s) => s.startGame);
   const navigate = useNavigate();
   const codexCache = useRef(new Map<string, Roster>());
@@ -127,6 +128,13 @@ export function GameSetup({
 
   const mineSource = options.find((s) => sourceKey(s) === mineKey) ?? null;
   const theirsSource = options.find((s) => sourceKey(s) === theirsKey) ?? null;
+
+  useEffect(() => {
+    if (hydrated) return;
+    const t = window.setTimeout(() => setLoadGaveUp(true), 1500);
+    return () => window.clearTimeout(t);
+  }, [hydrated]);
+  const listsReady = hydrated || loadGaveUp;
 
   useEffect(() => {
     if (!hydrated) return;
@@ -235,8 +243,9 @@ export function GameSetup({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 pb-8">
-      <div>
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 pb-8 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:items-start lg:gap-4">
+      <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:max-h-[calc(100dvh-8rem)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
+      <div className="order-1 lg:order-none">
         {onBack ? (
           <button type="button" onClick={onBack} className="text-xs text-muted-foreground">
             Back to armies
@@ -248,11 +257,11 @@ export function GameSetup({
         </p>
       </div>
 
-      {!hydrated ? (
-        <p className="rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">Loading saved lists…</p>
+      {!listsReady ? (
+        <p className="order-2 rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground lg:order-none">Loading saved lists…</p>
       ) : (
       <>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="order-2 grid gap-3 sm:grid-cols-2 lg:order-none">
         <RosterCard
           title="My Roster"
           value={mineKey}
@@ -275,7 +284,7 @@ export function GameSetup({
         />
       </div>
 
-      <section className="space-y-3 rounded-xl border border-steel/40 bg-card p-4">
+      <section className="order-3 space-y-3 rounded-xl border border-steel/40 bg-card p-4 lg:order-none">
         <div>
           <h2 className="text-sm font-medium">Primary Mission</h2>
           <p className="mt-1 text-xs text-muted-foreground">Primary scoring is tracked during Battle Mode.</p>
@@ -294,17 +303,7 @@ export function GameSetup({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-        <h2 className="text-sm font-medium">Create the Battlefield</h2>
-        <DispositionLayouts
-          layouts={maps}
-          mapId={brief.mapId}
-          pairing={myRoster && oppRoster ? `${rosterDisposition(myRoster) ?? "—"} vs ${rosterDisposition(oppRoster) ?? "—"}` : null}
-          onPick={(id) => setBrief((prev) => ({ ...prev, mapId: id }))}
-        />
-      </section>
-
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section className="order-5 space-y-3 rounded-xl border border-border bg-card p-4 lg:order-none">
         <h2 className="text-sm font-medium">Battle Options</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="My Army Battle Ready">
@@ -338,7 +337,7 @@ export function GameSetup({
         <p className="text-xs text-muted-foreground">Battle Ready is +10 VP if that army is fully painted. It starts at No.</p>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section className="order-6 space-y-3 rounded-xl border border-border bg-card p-4 lg:order-none">
         <h2 className="text-sm font-medium">Battle Roles</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-3">
@@ -375,7 +374,7 @@ export function GameSetup({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <section className="order-7 space-y-3 rounded-xl border border-border bg-card p-4 lg:order-none">
         <div>
           <h2 className="text-sm font-medium">Secondary Missions — 11th Edition</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -406,7 +405,7 @@ export function GameSetup({
         </div>
       </section>
 
-      <details className="rounded-xl border border-border bg-card p-4">
+      <details className="order-8 rounded-xl border border-border bg-card p-4 lg:order-none">
         <summary className="cursor-pointer text-sm font-medium">Scout, Infiltrate, and notes</summary>
         <div className="mt-3 space-y-3">
           <p className="text-xs text-muted-foreground">Tick any Scout or Infiltrate you will actually use. A unit cannot use both.</p>
@@ -425,7 +424,7 @@ export function GameSetup({
         </div>
       </details>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="order-9 flex flex-wrap items-center gap-2 lg:order-none">
         <Button type="button" onClick={start}>
           Start / Reset Battle
         </Button>
@@ -435,6 +434,18 @@ export function GameSetup({
       </div>
       </>
       )}
+      </div>
+      {listsReady ? (
+        <section className="order-4 space-y-3 rounded-xl border border-border bg-card p-4 lg:sticky lg:top-20 lg:order-none lg:col-start-1 lg:row-start-1 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <h2 className="text-sm font-medium">Create the Battlefield</h2>
+          <DispositionLayouts
+            layouts={maps}
+            mapId={brief.mapId}
+            pairing={myRoster && oppRoster ? `${rosterDisposition(myRoster) ?? "—"} vs ${rosterDisposition(oppRoster) ?? "—"}` : null}
+            onPick={(id) => setBrief((prev) => ({ ...prev, mapId: id }))}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

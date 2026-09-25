@@ -165,11 +165,28 @@ function idbStorage(): StateStorage {
     if (typeof indexedDB === "undefined") return Promise.reject(new Error("no indexedDB"));
     opened ??= new Promise((resolve, reject) => {
       const req = indexedDB.open(DB, 1);
+      let settled = false;
       req.onupgradeneeded = () => {
         if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        if (settled) {
+          req.result.close();
+          return;
+        }
+        settled = true;
+        resolve(req.result);
+      };
+      req.onerror = () => {
+        if (settled) return;
+        settled = true;
+        reject(req.error ?? new Error("idb-error"));
+      };
+      req.onblocked = () => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("idb-blocked"));
+      };
     });
     return withTimeout(opened, 800).catch((err) => {
       opened = null;
@@ -220,11 +237,16 @@ function idbStorage(): StateStorage {
     getItem: async (name) => {
       try {
         const db = await open();
-        const fromIdb = await new Promise<string | null>((resolve, reject) => {
-          const r = db.transaction(STORE, "readonly").objectStore(STORE).get(name);
-          r.onsuccess = () => resolve((r.result as string | undefined) ?? null);
-          r.onerror = () => reject(r.error);
-        });
+        const fromIdb = await withTimeout(
+          new Promise<string | null>((resolve, reject) => {
+            const tx = db.transaction(STORE, "readonly");
+            const r = tx.objectStore(STORE).get(name);
+            r.onsuccess = () => resolve((r.result as string | undefined) ?? null);
+            r.onerror = () => reject(r.error ?? new Error("idb-read"));
+            tx.onabort = () => reject(tx.error ?? new Error("idb-abort"));
+          }),
+          1000,
+        );
         if (fromIdb != null) return fromIdb;
       } catch {
         /* fall through to localStorage */
@@ -1498,12 +1520,29 @@ let hydrateOnce: Promise<void> | null = null;
 
 export function hydrateWarStore() {
   if (hydrateOnce) return hydrateOnce;
-  hydrateOnce = Promise.resolve(useWarStore.persist.rehydrate())
-    .catch(() => undefined)
-    .finally(() => {
-      useWarStore.getState().setHydrated();
-    });
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (!useWarStore.getState().hydrated) useWarStore.getState().setHydrated();
+  };
+  hydrateOnce = Promise.race([
+    Promise.resolve()
+      .then(() => useWarStore.persist.rehydrate())
+      .catch(() => undefined),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, 1500);
+    }),
+  ]).then(finish);
   return hydrateOnce;
 }
 
 export type { Disposition };
+
+if (typeof window !== "undefined") {
+  try {
+    void hydrateWarStore();
+  } catch {
+    useWarStore.getState().setHydrated();
+  }
+}

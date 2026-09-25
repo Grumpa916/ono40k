@@ -139,6 +139,26 @@ function ListBuilder() {
             {def.name}
             {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
           </button>
+          {def.role === "character" ? (
+            <Button
+              size="sm"
+              variant={ru.warlord ? "default" : "outline"}
+              className="h-7 shrink-0 px-2 text-[11px]"
+              aria-pressed={ru.warlord === true}
+              aria-label={ru.warlord ? "Warlord" : "Make warlord"}
+              onClick={() => {
+                useWarStore.setState({
+                  lists: useWarStore.getState().lists.map((l) =>
+                    l.id === list.id
+                      ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === ru.id })), updatedAt: Date.now() }
+                      : l,
+                  ),
+                });
+              }}
+            >
+              WL
+            </Button>
+          ) : null}
           <span className="w-12 shrink-0 text-right font-mono text-sm tabular-nums leading-5">{total}</span>
           <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Remove" onClick={() => removeUnit(list.id, ru.id)}>
             <Trash2 className="size-4" />
@@ -584,22 +604,18 @@ function ListBuilder() {
             {inspectUnit && inspectRu ? (
               <>
                 <Datasheet unit={inspectUnit} accent={faction.accent} points={unitTotalPoints(list, inspectRu)} wargearIds={inspectRu.wargearIds ?? []} />
+                {(() => {
+                  const hosts =
+                    inspectUnit.role === "character" && !inspectRu.attachedTo
+                      ? list.units.filter((other) => other.id !== inspectRu.id && inspectUnit.leaderOf?.includes(other.unitId))
+                      : [];
+                  const showOptions =
+                    (enhancements.length > 0 && inspectUnit.role === "character") ||
+                    (inspectUnit.sizes?.length ?? 0) > 1 ||
+                    hosts.length > 0;
+                  if (!showOptions) return null;
+                  return (
                 <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-                  {inspectUnit.role === "character" ? (
-                    <Button
-                      size="sm"
-                      variant={inspectRu.warlord ? "default" : "outline"}
-                      onClick={() => {
-                        useWarStore.setState({
-                          lists: useWarStore.getState().lists.map((l) =>
-                            l.id === list.id ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === inspectRu.id })) } : l,
-                          ),
-                        });
-                      }}
-                    >
-                      {inspectRu.warlord ? "Warlord" : "Make warlord"}
-                    </Button>
-                  ) : null}
                   {enhancements.length > 0 && inspectUnit.role === "character" ? (
                     <div className="space-y-1.5">
                       <Label>Enhancement</Label>
@@ -644,13 +660,7 @@ function ListBuilder() {
                       </Select>
                     </div>
                   ) : null}
-                  {inspectUnit.role === "character" && !inspectRu.attachedTo
-                    ? (() => {
-                        const hosts = list.units.filter(
-                          (other) => other.id !== inspectRu.id && inspectUnit.leaderOf?.includes(other.unitId),
-                        );
-                        if (hosts.length === 0) return null;
-                        return (
+                  {hosts.length > 0 ? (
                           <div className="space-y-1.5">
                             <Label>Bodyguard</Label>
                             <Select onValueChange={(v) => updateUnit(list.id, inspectRu.id, { attachedTo: v })}>
@@ -667,10 +677,10 @@ function ListBuilder() {
                               </SelectContent>
                             </Select>
                           </div>
-                        );
-                      })()
-                    : null}
+                        ) : null}
                 </div>
+                  );
+                })()}
                 {gearGroups.length > 0 ? (
                   <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                     <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Wargear</p>

@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BattleMap } from "@/components/BattleMap";
 import { Button } from "@/components/ui/button";
-import { formatCorner, terrainMeasures, type MapLayout } from "@/data/maps";
+import { formatInches, placementGuides, terrainMeasures, type MapLayout } from "@/data/maps";
 import { TERRAIN_MARKS } from "@/data/terrain-marks";
 import { cn } from "@/lib/utils";
 
@@ -81,15 +81,15 @@ export function MapSetup({
           {picked ? (
             <>
               <p className="text-[11px] font-medium">{picked.mark}</p>
-              {picked.corners.map((corner) => (
-                <p key={corner.id} className="text-[11px] leading-tight text-muted-foreground">
-                  {formatCorner(corner)}
+              {placementGuides(picked).map((guide) => (
+                <p key={`${guide.cornerId}-${guide.kind}`} className="text-[11px] leading-tight text-muted-foreground">
+                  {guide.cornerId} {formatInches(guide.value)} {guide.edge}
                 </p>
               ))}
             </>
           ) : (
             <p className="text-[11px] leading-snug text-muted-foreground">
-              Tap a footprint. Dots mark the three corners. Measure each to the nearer board edge, to the nearest ½″.
+              Tap a footprint. Each number is the distance from that corner to the nearer board edge. The far side is left off when it is only the piece’s own width or depth.
             </p>
           )}
         </div>
@@ -110,9 +110,9 @@ export function MapSetup({
                 )}
               >
                 <p className="text-[11px] font-medium">{piece.mark}</p>
-                {piece.corners.map((corner) => (
-                  <p key={corner.id} className="text-[11px] leading-tight text-muted-foreground">
-                    {formatCorner(corner)}
+                {placementGuides(piece).map((guide) => (
+                  <p key={`${guide.cornerId}-${guide.kind}`} className="text-[11px] leading-tight text-muted-foreground">
+                    {guide.cornerId} {formatInches(guide.value)} {guide.edge}
                   </p>
                 ))}
               </button>

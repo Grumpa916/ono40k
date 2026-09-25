@@ -252,6 +252,62 @@ const UnitCard = memo(function UnitCard({
   });
   const penalised = effects.some((e) => e.kind === "penalty");
   const buffed = effects.some((e) => e.kind === "buff");
+  const trackers = () => (
+    <>
+      {maxW > 1 ? (
+        <WoundStepper
+          value={wounds}
+          max={maxW}
+          locked={locked}
+          alert={penalised}
+          label="Wounds"
+          onDec={() => applyWounds(-1)}
+          onInc={() => applyWounds(1)}
+        />
+      ) : null}
+      {ru.models > 1 || maxW === 1 ? (
+        <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+          <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
+          <Button
+            size="icon-sm"
+            className="size-7"
+            variant="outline"
+            aria-label="Remove model"
+            disabled={locked || st.destroyed || st.modelsRemaining <= 0}
+            onClick={() => {
+              const next = Math.max(0, st.modelsRemaining - 1);
+              setUnitState(ru.id, {
+                modelsRemaining: next,
+                destroyed: next === 0,
+                woundsOnCurrent: next === 0 ? 0 : maxW,
+              });
+            }}
+          >
+            <Minus className="size-3.5" />
+          </Button>
+          <span className="w-8 text-center font-mono text-xs tabular-nums">
+            {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
+          </span>
+          <Button
+            size="icon-sm"
+            className="size-7"
+            variant="outline"
+            aria-label="Add model"
+            disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
+            onClick={() =>
+              setUnitState(ru.id, {
+                modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
+                destroyed: false,
+                woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
+              })
+            }
+          >
+            <Plus className="size-3.5" />
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
   return (
     <div
       onClick={() => onOpen(ru.id)}
@@ -299,8 +355,9 @@ const UnitCard = memo(function UnitCard({
         >
           <Skull className="size-3.5" />
         </Button>
+        {paired ? null : <div className="ml-auto hidden shrink-0 items-center gap-1.5 lg:flex">{trackers()}</div>}
       </div>
-      <div className={cn("mt-1 grid min-w-0 grid-cols-6 gap-[3px]", paired ? "w-full" : "w-[72%]")}>
+      <div className={cn("mt-1 grid min-w-0 grid-cols-6 gap-[3px]", paired ? "w-full" : "w-[72%] lg:w-full")}>
         <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
         <UnitStat label="T" value={def.stats.t} />
         <UnitStat label="SV" value={`${def.stats.sv}+`} />
@@ -308,62 +365,7 @@ const UnitCard = memo(function UnitCard({
         <UnitStat label="LD" value={`${def.stats.ld}+`} />
         <UnitStat label="OC" value={def.stats.oc} />
       </div>
-      {maxW > 1 || ru.models > 1 || maxW === 1 ? (
-        <div className="mt-1 flex flex-wrap items-center justify-end gap-1.5">
-          {maxW > 1 ? (
-            <WoundStepper
-              value={wounds}
-              max={maxW}
-              locked={locked}
-              alert={penalised}
-              label="Wounds"
-              onDec={() => applyWounds(-1)}
-              onInc={() => applyWounds(1)}
-            />
-          ) : null}
-          {ru.models > 1 || maxW === 1 ? (
-            <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
-              <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
-              <Button
-                size="icon-sm"
-                className="size-7"
-                variant="outline"
-                aria-label="Remove model"
-                disabled={locked || st.destroyed || st.modelsRemaining <= 0}
-                onClick={() => {
-                  const next = Math.max(0, st.modelsRemaining - 1);
-                  setUnitState(ru.id, {
-                    modelsRemaining: next,
-                    destroyed: next === 0,
-                    woundsOnCurrent: next === 0 ? 0 : maxW,
-                  });
-                }}
-              >
-                <Minus className="size-3.5" />
-              </Button>
-              <span className="w-8 text-center font-mono text-xs tabular-nums">
-                {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
-              </span>
-              <Button
-                size="icon-sm"
-                className="size-7"
-                variant="outline"
-                aria-label="Add model"
-                disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
-                onClick={() =>
-                  setUnitState(ru.id, {
-                    modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
-                    destroyed: false,
-                    woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
-                  })
-                }
-              >
-                <Plus className="size-3.5" />
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+      <div className={cn("mt-1 flex flex-wrap items-center justify-end gap-1.5", !paired && "lg:hidden")}>{trackers()}</div>
       {extras || ru.notes ? (
         <div className="mt-1 space-y-1">
           {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}

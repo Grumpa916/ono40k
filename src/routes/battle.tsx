@@ -98,7 +98,7 @@ function BattleTable({ game }: { game: Game }) {
         </div>
       ) : null}
 
-      <div className="sticky top-14 z-20 -mx-4 border-b border-border bg-background px-4 py-2">
+      <div className="sticky top-14 z-20 -mx-4 border-b border-border bg-background px-4 py-2 lg:hidden">
         <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
           <button
             type="button"
@@ -117,37 +117,13 @@ function BattleTable({ game }: { game: Game }) {
         </div>
       </div>
 
-      {screen === "units" ? (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 gap-1">
-              {(["me", "opponent"] as const).map((side) => (
-                <button
-                  key={side}
-                  type="button"
-                  onClick={() => setViewing(side)}
-                  className={cn(
-                    "h-10 max-w-[9.5rem] truncate rounded-md border px-3 text-sm font-medium",
-                    viewing === side
-                      ? side === "opponent"
-                        ? "border-blood bg-blood text-primary-foreground"
-                        : "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-muted text-muted-foreground",
-                  )}
-                >
-                  {side === "me" ? game.myName : game.opponentName}
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
-            {faction?.name} · {roster.disposition ?? "No disposition"}
-            {viewing !== game.activeSide ? " · peeking" : ""}
-          </p>
-          <ArmyPanel game={game} roster={roster} enemy={viewing === "me" ? theirs : mine} locked={locked} onOpen={setSheetId} />
-        </div>
-      ) : (
-        <>
+      <div
+        className={cn(
+          "flex flex-col gap-4 lg:grid lg:items-start lg:gap-4",
+          sheetDef ? "lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_22rem]" : "lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]",
+        )}
+      >
+      <div className={cn("min-w-0 space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1", screen !== "score" && "hidden lg:block")}>
           <Scoreboard game={game} locked={locked} myTotal={myTotal} oppTotal={oppTotal} />
           {shownStrats.length > 0 ? (
             <div className="space-y-1">
@@ -243,12 +219,50 @@ function BattleTable({ game }: { game: Game }) {
           </RuleFold>
 
       <LedgerTape game={game} log={log} undoCount={undoStack.length} onUndo={undoLast} />
-        </>
-      )}
+      </div>
+      <div className={cn("min-w-0 space-y-3 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1", screen !== "units" && "hidden lg:block")}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 gap-1">
+              {(["me", "opponent"] as const).map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  onClick={() => setViewing(side)}
+                  className={cn(
+                    "h-10 max-w-[9.5rem] truncate rounded-md border px-3 text-sm font-medium lg:max-w-none",
+                    viewing === side
+                      ? side === "opponent"
+                        ? "border-blood bg-blood text-primary-foreground"
+                        : "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-muted text-muted-foreground",
+                  )}
+                >
+                  {side === "me" ? game.myName : game.opponentName}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
+            {faction?.name} · {roster.disposition ?? "No disposition"}
+            {viewing !== game.activeSide ? " · peeking" : ""}
+          </p>
+          <ArmyPanel game={game} roster={roster} enemy={viewing === "me" ? theirs : mine} locked={locked} onOpen={setSheetId} />
+      </div>
+      {sheetDef ? (
+        <aside className="hidden min-w-0 lg:sticky lg:top-20 lg:block lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <div className="mb-2 flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => setSheetId(null)}>
+              Close
+            </Button>
+          </div>
+          <Datasheet unit={sheetDef} accent={faction?.accent} wargearIds={sheetRu?.wargearIds ?? []} />
+        </aside>
+      ) : null}
+      </div>
 
       {sheetDef ? (
-        <div className="fixed inset-0 z-40 flex items-end bg-background/70 p-3 sm:items-center sm:justify-center" onClick={() => setSheetId(null)}>
-          <div className="max-h-[88vh] w-full max-w-2xl cursor-pointer overflow-y-auto">
+        <div className="fixed inset-0 z-40 flex items-end bg-background/70 p-3 sm:items-center sm:justify-center lg:hidden" onClick={() => setSheetId(null)}>
+          <div className="max-h-[88vh] w-full max-w-2xl overflow-y-auto" onClick={(event) => event.stopPropagation()}>
             <Datasheet unit={sheetDef} accent={faction?.accent} wargearIds={sheetRu?.wargearIds ?? []} />
           </div>
         </div>
