@@ -10,7 +10,8 @@ export const w = (
   ap: number,
   damage: number | string,
   keywords: string[] = [],
-): Weapon => ({ name, kind, range, attacks, skill, strength, ap, damage, keywords });
+  choice?: string,
+): Weapon => ({ name, kind, range, attacks, skill, strength, ap, damage, keywords, choice });
 
 export const boltRifle = w("Bolt rifle", "ranged", 24, 2, 3, 4, -1, 1, ["Assault", "Heavy"]);
 export const boltPistol = w("Bolt pistol", "ranged", 12, 1, 3, 4, 0, 1, ["Pistol"]);

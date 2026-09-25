@@ -5,6 +5,7 @@ import { spaceMarines } from "./factions/space-marines";
 import { tauEmpire } from "./factions/tau";
 import { tyranids } from "./factions/tyranids";
 import { ultramarines } from "./factions/ultramarines";
+import { applyUnitPatch, useCodexSync } from "@/lib/codex-sync";
 
 export const FACTIONS: Faction[] = [
   spaceMarines,
@@ -29,7 +30,15 @@ export function getFaction(id: string): Faction | undefined {
 }
 
 export function getUnit(factionId: string, unitId: string): UnitDef | undefined {
-  return UNIT_BY_KEY.get(`${factionId}:${unitId}`);
+  const unit = UNIT_BY_KEY.get(`${factionId}:${unitId}`);
+  if (!unit) return undefined;
+  return applyUnitPatch(unit, useCodexSync.getState().patches[factionId]?.[unitId]);
+}
+
+export function withCodexPatches(faction: Faction): Faction {
+  const bag = useCodexSync.getState().patches[faction.id];
+  if (!bag) return faction;
+  return { ...faction, units: faction.units.map((unit) => applyUnitPatch(unit, bag[unit.id])) };
 }
 
 export function getDetachment(factionId: string, detId: string): Detachment | undefined {

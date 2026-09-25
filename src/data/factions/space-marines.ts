@@ -96,14 +96,18 @@ const units: UnitDef[] = [
   }),
   u("sm-intercessors", "Intercessor Squad", "battleline", 80, { ...s, oc: 2 }, KW_BL_TAC, {
     sizes: [[5, 80], [10, 150]],
-    r: [boltRifle, boltPistol],
+    r: [
+      boltRifle,
+      w("Bolt pistol", "ranged", 12, 1, 3, 5, -1, 1, ["Pistol"]),
+      w("Sergeant's bolt rifle", "ranged", 24, 1, 3, 10, -2, 3, ["Rapid Fire 1"]),
+    ],
     m: [closeCombat],
-    ab: [objSec],
+    ab: [a("Tactical Mainstay", "This unit can perform Actions while it is shooting, charging, fighting, Battle-shocked, or within Engagement Range.")],
   }),
   u("sm-assault-intercessors", "Assault Intercessor Squad", "battleline", 75, { ...s, oc: 2 }, KW_BL_TAC, {
     sizes: [[5, 75], [10, 150]],
     r: [heavyBoltPistol],
-    m: [astartesChainsword],
+    m: [w("Astartes chainsword", "melee", "Melee", 4, 3, 5, -1, 1, [])],
     ab: [
       a("Shock Assault", "Each time this unit piles in, it can move an extra 3\"."),
       a("On the Charge", "If this unit charged this turn, until the end of the Fight phase add 1 to the Strength and AP of melee weapons in this unit (including attached Characters)."),
@@ -132,7 +136,7 @@ const units: UnitDef[] = [
     m: [closeCombat],
     ab: [a("Omni-scrambler", "Enemy units that set up as Reinforcements cannot be set up within 12\" of this unit."), infiltrate],
   }),
-  u("sm-heavy-intercessors", "Heavy Intercessor Squad", "battleline", 110, { ...sGravis, oc: 2 }, [
+  u("sm-heavy-intercessors", "Heavy Intercessor Squad", "battleline", 100, { ...sGravis, oc: 2 }, [
     "Infantry",
     "Battleline",
     "Grenades",
@@ -140,7 +144,7 @@ const units: UnitDef[] = [
     "Gravis",
     AA,
   ], {
-    sizes: [[5, 110], [10, 220]],
+    sizes: [[5, 100], [10, 220]],
     r: [w("Heavy bolt rifle", "ranged", 30, 2, 3, 5, -1, 2, ["Assault", "Heavy", "Rapid Fire 1"])],
     m: [closeCombat],
     ab: [a("Unyielding", "While this unit is within range of an objective you control, add 1 to its Save characteristic.")],
@@ -166,7 +170,7 @@ const units: UnitDef[] = [
   ], {
     inv: 4,
     sizes: [[5, 160], [10, 320]],
-    r: [stormBolter],
+    r: [w("Storm bolter", "ranged", 24, 2, 3, 5, -1, 1, ["Rapid Fire 2"])],
     m: [powerFist],
     ab: [
       a("Fury of the First", "Each time a model in this unit makes an attack that targets a unit within 9\", improve the AP of that attack by 1."),
@@ -185,8 +189,8 @@ const units: UnitDef[] = [
   u("sm-hellblasters", "Hellblaster Squad", "infantry", 110, s, KW_INF_TAC, {
     sizes: [[5, 110], [10, 220]],
     r: [
-      w("Plasma incinerator", "ranged", 24, 2, 3, 7, -2, 1, ["Assault", "Heavy"]),
-      w("Plasma incinerator — supercharge", "ranged", 24, 2, 3, 8, -3, 2, ["Assault", "Heavy", "Hazardous"]),
+      w("Plasma incinerator", "ranged", 24, 2, 3, 7, -2, 1, ["Assault", "Heavy", "Rapid Fire 1"]),
+      w("Plasma incinerator — supercharge", "ranged", 24, 2, 3, 8, -3, 2, ["Assault", "Heavy", "Hazardous", "Rapid Fire 1"]),
     ],
     m: [closeCombat],
     ab: [a("Plasma Discipline", "Add 1 to Hazardous tests made for plasma weapons in this unit.")],
@@ -200,7 +204,8 @@ const units: UnitDef[] = [
   u("sm-aggressors", "Aggressor Squad", "infantry", 80, sGravis, KW_GRAVIS, {
     sizes: [[3, 80], [6, 165]],
     r: [
-      w("Auto boltstorm gauntlets", "ranged", 18, 3, 3, 5, -1, 1, ["Twin-linked", "Pistol"]),
+      w("Auto boltstorm gauntlets", "ranged", 18, 3, 3, 5, -1, 1, ["Twin-linked", "Pistol"], "fists"),
+      w("Flamestorm gauntlets", "ranged", 12, 3, 0, 4, 0, 1, ["Torrent", "Ignores Cover", "Blast 2"], "fists"),
       fragstorm,
     ],
     m: [w("Power fists", "melee", "Melee", 3, 3, 8, -2, 2, ["Twin-linked"])],
@@ -260,12 +265,15 @@ const units: UnitDef[] = [
     ],
   }),
   u("sm-outriders", "Outrider Squad", "mounted", 70, { m: 12, t: 5, sv: 3, w: 4, ld: 6, oc: 2 }, ["Mounted", "Grenades", "Imperium", AA], {
-    sizes: [[3, 70], [6, 140]],
-    r: [w("Twin bolt rifle", "ranged", 24, 2, 3, 4, -1, 1, ["Twin-linked"]), heavyBoltPistol],
-    m: [astartesChainsword],
+    sizes: [[3, 70], [6, 160]],
+    r: [w("Twin bolt rifle", "ranged", 24, 2, 3, 5, -1, 1, ["Twin-linked"]), heavyBoltPistol],
+    m: [
+      w("Astartes chainsword", "melee", "Melee", 4, 3, 5, -1, 1, []),
+      w("Sergeant's thunder hammer", "melee", "Melee", 3, 4, 8, -2, 3, ["Devastating Wounds"]),
+    ],
     ab: [
       a("Turbo-boost", "When this unit Advances, add 6\" instead of rolling."),
-      a("Shock Cavalry", "If this unit charged this turn, until the end of the Fight phase its melee weapons have Sustained Hits 1 and +1 Damage."),
+      a("Shock Cavalry", "If this unit charged this turn, its melee weapons have Sustained Hits 1 and +1 Damage. The Sergeant's thunder hammer is +1 to Hit instead of +1 Damage."),
     ],
   }),
   u("sm-redemptor", "Redemptor Dreadnought", "vehicle", 195, { m: 8, t: 10, sv: 2, w: 12, ld: 6, oc: 4 }, KW_WALKER, {
@@ -307,7 +315,7 @@ const units: UnitDef[] = [
     m: [armouredHull],
     ab: [
       a("Assault Vehicle", "Units can disembark after this Transport has Advanced."),
-      a("Orbital Array", "This model has Scouts 6\"."),
+      a("Orbital Array", "This model has Scouts 6\". It can transport 6 Tacticus models or 3 Gravis models."),
     ],
     transport: 6,
   }),
@@ -490,4 +498,5 @@ export const spaceMarines: Faction = {
   ),
   detachments,
   units,
+  updatedAt: "2026-09-25",
 };

@@ -19,28 +19,36 @@ export function useSecondClock(active: boolean) {
 export function BattleClock({ game, locked }: { game: Game; locked: boolean }) {
   const pauseClock = useWarStore((s) => s.pauseClock);
   const resumeClock = useWarStore((s) => s.resumeClock);
-  const endGame = useWarStore((s) => s.endGame);
+  const stopClocks = useWarStore((s) => s.stopClocks);
+  const resumeClocks = useWarStore((s) => s.resumeClocks);
   const turnsRunning = !!game.runningSince && game.status === "active";
-  const now = useSecondClock(!locked && game.status === "active");
+  const clocksStopped = game.status === "active" && game.battleRunningSince === null;
+  const now = useSecondClock(!locked && game.status === "active" && !clocksStopped);
   const battle = formatClock(battleElapsedMs(game, now));
   return (
     <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
       <span className="font-mono text-sm tabular-nums">{battle}</span>
       {game.status === "active" ? (
-        <>
-          {turnsRunning ? (
-            <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={pauseClock}>
-              <Pause className="size-3.5" /> Pause
-            </Button>
-          ) : (
-            <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={resumeClock}>
-              <Play className="size-3.5" /> Resume
-            </Button>
-          )}
-          <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={endGame}>
-            End battle
+        clocksStopped ? (
+          <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={resumeClocks}>
+            <Play className="size-3.5" /> Resume game
           </Button>
-        </>
+        ) : (
+          <>
+            {turnsRunning ? (
+              <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={pauseClock}>
+                <Pause className="size-3.5" /> Pause current turn
+              </Button>
+            ) : (
+              <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={resumeClock}>
+                <Play className="size-3.5" /> Resume
+              </Button>
+            )}
+            <Button size="sm" className="h-7 px-2 text-[11px]" variant="outline" disabled={locked} onClick={stopClocks}>
+              Stop game
+            </Button>
+          </>
+        )
       ) : null}
     </div>
   );

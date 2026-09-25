@@ -168,11 +168,13 @@ const units: UnitDef[] = [
   }),
   u("nids-hyper-raveners", "Hyperadapted Raveners", "character", 165, { m: 10, t: 5, sv: 4, w: 3, ld: 7, oc: 1 }, ["Infantry", "Character", "Synapse", "Tyranids", "Vanguard Invader", "Burrower"], {
     sizes: [[5, 165]],
-    r: [w("Thorax web spitter", "ranged", 18, "D6+3", 0, 6, -1, 1, ["Assault", "Ignores Cover", "Torrent"])],
-    m: [w("Hyperadapted claws", "melee", "Melee", 5, 3, 5, -1, 1, ["Anti-Monster 5+", "Anti-Vehicle 5+", "Sustained Hits 1"])],
+    r: [w("Venom bolt", "ranged", 12, "D6+3", 0, 6, -1, 1, ["Assault", "Ignores Cover", "Torrent"])],
+    m: [w("Prime claws and talons", "melee", "Melee", 6, 3, 5, -2, 2, ["Anti-Monster 5+", "Anti-Vehicle 5+", "Twin-linked"])],
     ab: [
       deepStrike,
-      a("Tunnel Network", "Friendly Tyranids units can Ingress onto a Tunnel marker more than 8\" from enemy models."),
+      a("Alpha Invader", "Weapons equipped by models in this unit have Sustained Hits 1."),
+      a("Ravener Prime", "The Ravener Prime has 6 wounds and Leadership 7+. Other models have 3 wounds."),
+      a("Hypersensory Array", "Once per battle round, this unit can use Rapid Ingress or Heroic Intervention for 1 CP less, and that use does not count against the once-per-phase limit."),
     ],
     lead: ["nids-raveners"],
   }),
@@ -183,8 +185,7 @@ const units: UnitDef[] = [
       infiltrate,
       loneOp,
       stealth,
-      a("Feeder Tendrils", "Each time this model destroys an enemy Character model, you gain 1 CP."),
-      a("Pheromone Trail", "Once per battle round, this model can use Rapid Ingress for 0 CP."),
+      a("Pheromone Trail", "Once per battle round, one model with this ability can use the Rapid Ingress Stratagem for 0 CP."),
     ],
   }),
   u("nids-neurolictor", "Neurolictor", "character", 80, { m: 8, t: 5, sv: 4, w: 7, ld: 7, oc: 1 }, ["Infantry", "Great Devourer", "Synapse", "Tyranids", "Vanguard Invader", "Neurolictor"], {
@@ -221,7 +222,7 @@ const units: UnitDef[] = [
     sizes: sizes10(80, 155),
     r: [fleshborer],
     m: [w("Blinding venom", "melee", "Melee", 1, 4, 3, 0, 1, [])],
-    ab: [a("Winged Swarm", "Ingress from Reserves more than 8\" from enemy models. Eligible to shoot and charge after Falling Back.")],
+    ab: [deepStrike, stealth, a("Winged Swarm", "After this unit shoots, if it is not in Engagement Range it can make a Normal move of up to 6\". Until the end of the turn it cannot declare a charge.")],
   }),
   u("nids-neurogaunts", "Neurogaunts", "infantry", 45, { m: 6, t: 3, sv: 6, w: 1, ld: 8, oc: 1 }, ["Infantry", "Tyranids", "Endless Multitude"], {
     sizes: [
@@ -291,9 +292,9 @@ const units: UnitDef[] = [
     m: [clawsTeeth],
     ab: [a("Disruption Bombardment", "If this unit scores a hit against an Infantry unit, that unit is −2 Move and cannot Advance until your next turn.")],
   }),
-  u("nids-biovores", "Biovores", "infantry", 50, { m: 5, t: 6, sv: 4, w: 4, ld: 8, oc: 1 }, KW_INF, {
+  u("nids-biovores", "Biovores", "infantry", 60, { m: 5, t: 6, sv: 3, w: 5, ld: 8, oc: 1 }, KW_INF, {
     sizes: [
-      [1, 50],
+      [1, 60],
       [2, 90],
       [3, 130],
     ],
@@ -322,17 +323,17 @@ const units: UnitDef[] = [
   }),
   u("nids-venomthropes", "Venomthropes", "infantry", 55, { m: 6, t: 5, sv: 4, w: 3, ld: 8, oc: 1 }, ["Infantry", "Fly", "Tyranids"], {
     sizes: sizes36(55, 110),
-    m: [w("Toxic lashes", "melee", "Melee", 6, 3, 5, -1, 1, ["Anti-Infantry 2+"])],
-    ab: [a("Spore Cloud", "Friendly Tyranids units (excluding Monsters) within 6\" have Stealth. All friendly Tyranids units within 6\" have the Benefit of Cover.")],
+    m: [w("Toxic lashes", "melee", "Melee", 5, 3, 3, 0, 1, ["Anti-Infantry 2+"])],
+    ab: [stealth, a("Foul Spores", "Friendly Tyranids units within 6\" have Stealth.")],
   }),
   u("nids-tyrant-guard", "Tyrant Guard", "infantry", 80, { m: 6, t: 8, sv: 3, w: 4, ld: 8, oc: 1 }, KW_INF, {
     sizes: sizes36(80, 170),
     m: [
-      scythingTalons,
-      w("Bone cleaver, lash whip and rending claws", "melee", "Melee", 4, 3, 7, -1, 2, ["Twin-linked"]),
-      w("Crushing claws", "melee", "Melee", 3, 4, 10, -2, 3, []),
+      w("Scything talons and rending claws", "melee", "Melee", 5, 3, 5, -1, 1, []),
+      w("Bone cleaver, lash whip and rending claws", "melee", "Melee", 3, 3, 5, -1, 2, []),
+      w("Crushing claws and rending claws", "melee", "Melee", 2, 4, 8, -2, 2, ["Twin-linked"]),
     ],
-    ab: [a("Guardian Organism", "While a Character is attached, that Character has a 5+ Feel No Pain and is not an eligible target for Precision attacks.")],
+    ab: [a("Guardian Organism", "While a Character is leading this unit, that Character has Feel No Pain 5+.")],
   }),
   u("nids-zoanthropes", "Zoanthropes", "infantry", 90, { m: 5, t: 5, sv: 5, w: 3, ld: 7, oc: 1 }, ["Infantry", "Psyker", "Fly", "Synapse", "Tyranids"], {
     inv: 4,
@@ -386,92 +387,97 @@ const units: UnitDef[] = [
     ab: [a("Death Scream", "After this model shoots, one unit it hit must take a Battle-shock test at −1.")],
   }),
   u("nids-haruspex", "Haruspex", "monster", 125, { m: 8, t: 11, sv: 3, w: 14, ld: 8, oc: 4 }, ["Monster", "Tyranids", "Harvester"], {
-    m: [
-      w("Grazing maw", "melee", "Melee", 14, 3, 7, -2, 1, []),
-      w("Raking claws", "melee", "Melee", 4, 3, 14, -2, "D6+1", ["Extra Attacks"]),
-      w("Grasping tongue", "melee", "Melee", 1, 3, 7, -2, 2, ["Precision", "Extra Attacks"]),
-    ],
-    ab: [a("Rapacious Hunger", "Enemy units in Engagement Range of this model must take a Battle-shock test in your opponent's Command phase.")],
+    r: [w("Grasping tongue", "ranged", 12, 1, 3, 6, -2, "D6+1", ["Precision"])],
+    m: [w("Shovelling claws", "melee", "Melee", 4, 3, 14, -2, "D6+1", ["Extra Attacks"])],
+    ab: [a("Grisly Spectacle", "After this model fights, if it destroyed a unit, each enemy unit within 6\" must take a Battle-shock test.")],
   }),
-  u("nids-psychophage", "Psychophage", "monster", 110, { m: 8, t: 9, sv: 3, w: 10, ld: 8, oc: 3 }, ["Monster", "Tyranids", "Harvester"], {
+  u("nids-psychophage", "Psychophage", "monster", 110, { m: 12, t: 9, sv: 3, w: 10, ld: 8, oc: 3 }, ["Monster", "Tyranids", "Harvester"], {
     fnp: 5,
     r: [w("Psychoclastic torrent", "ranged", 12, "D6", 0, 6, -1, 1, ["Torrent", "Ignores Cover"])],
     m: [w("Talons and betentacled maw", "melee", "Melee", 6, 3, 6, -2, 2, ["Anti-Psyker 4+", "Devastating Wounds"])],
-    ab: [a("Bio-acidic Bloom", "Friendly Tyranids units wholly within 6\" improve the AP of their melee weapons by 1.")],
+    ab: [
+      a("Bio-stimulus", "After this model shoots, pick one enemy unit it hit. Until the end of the turn, friendly Tyranids attacks against that unit are improved."),
+      a("Feeding Frenzy", "Melee attacks against a unit below Starting Strength are +1 to Hit, and also +1 to Wound if it is Below Half-strength."),
+    ],
   }),
   u("nids-maleceptor", "Maleceptor", "monster", 180, { m: 8, t: 11, sv: 3, w: 14, ld: 7, oc: 4 }, ["Monster", "Psyker", "Synapse", "Tyranids"], {
     inv: 4,
-    r: [w("Psychic overload", "ranged", 18, "D6+3", 3, 10, -2, 3, ["Blast", "Psychic"])],
     m: [
       w("Massive scything talons — strike", "melee", "Melee", 3, 3, 9, -2, "D6+1", []),
       w("Massive scything talons — sweep", "melee", "Melee", 6, 3, 7, -1, 2, []),
     ],
-    ab: [a("Psychic Overload", "Enemy units within 6\" that are Below Half-strength are −1 to Hit and −1 to Wound.")],
+    ab: [a("Encephalic Diffusion", "Enemy units within 6\" are −1 to Hit. A unit that is Below Half-strength is also −1 to Wound.")],
   }),
   u("nids-exocrine", "Exocrine", "monster", 135, { m: 8, t: 10, sv: 3, w: 14, ld: 8, oc: 4 }, KW_MON, {
     r: [w("Bio-plasmic cannon", "ranged", 36, "D6+3", 3, 9, -3, 3, ["Blast", "Heavy"])],
-    m: [powerfulLimbs],
-    ab: [a("Symbiotic Targeting", "If this model Remains Stationary, its bio-plasmic cannon has Ignores Cover and you can re-roll Hit rolls.")],
+    m: [w("Powerful limbs", "melee", "Melee", 3, 3, 7, 0, 2, [])],
+    ab: [a("Symbiotic Targeting", "After this model shoots, pick one enemy unit it hit. Until the end of the phase, friendly Tyranids re-roll Hit rolls against that unit.")],
   }),
-  u("nids-tyrannofex", "Tyrannofex", "monster", 170, { m: 8, t: 12, sv: 2, w: 16, ld: 8, oc: 4 }, KW_MON, {
+  u("nids-tyrannofex", "Tyrannofex", "monster", 170, { m: 9, t: 12, sv: 2, w: 16, ld: 8, oc: 5 }, KW_MON, {
     r: [
       w("Rupture cannon", "ranged", 48, 2, 3, 18, -4, "D6+6", ["Heavy"]),
       w("Acid spray", "ranged", 18, "2D6", 3, 6, -1, 2, ["Torrent", "Ignores Cover"]),
       stingerSalvo,
     ],
-    m: [powerfulLimbs],
-    ab: [a("Resilient Bio-hull", "Subtract 1 from the Damage of attacks allocated to this model.")],
+    m: [w("Powerful limbs", "melee", "Melee", 4, 3, 8, 0, 2, [])],
+    ab: [a("Resilient Organism", "Once per battle, when an attack is allocated to this model, you can change that attack's Damage to 0.")],
   }),
   u("nids-trygon", "Trygon", "monster", 140, { m: 10, t: 10, sv: 3, w: 14, ld: 8, oc: 4 }, ["Monster", "Tyranids", "Vanguard Invader", "Burrower"], {
-    r: [w("Bio-electric pulse", "ranged", 12, 6, 3, 5, 0, 1, ["Sustained Hits 2"])],
-    m: [w("Trygon scything talons", "melee", "Melee", 6, 3, 9, -2, 3, [])],
+    m: [w("Trygon scything talons", "melee", "Melee", 12, 3, 9, -2, 3, [])],
     ab: [
-      a("Death From Below", "Ingress from Reserves more than 8\" from enemy models, then place a Tunnel marker."),
-      a("Subterranean Assault", "Friendly Tyranids units can Ingress onto this model's Tunnel marker more than 8\" from enemy models."),
+      deepStrike,
+      a("Subterranean Tunnels", "When this model arrives with Deep Strike, it can be set up more than 6\" from enemy models."),
     ],
   }),
   u("nids-mawloc", "Mawloc", "monster", 135, { m: 10, t: 10, sv: 3, w: 14, ld: 8, oc: 4 }, ["Monster", "Tyranids", "Vanguard Invader", "Burrower"], {
     m: [
-      w("Distensible jaw", "melee", "Melee", 16, 3, 8, -2, 1, []),
-      w("Killriders", "melee", "Melee", 4, 3, 5, 0, 3, ["Anti-Infantry 3+", "Devastating Wounds", "Extra Attacks"]),
+      w("Mawloc scything talons", "melee", "Melee", 16, 3, 8, -2, 1, []),
+      w("Distensible jaw", "melee", "Melee", 1, 3, 5, 0, 3, ["Anti-Infantry 4+", "Devastating Wounds", "Extra Attacks"]),
     ],
     ab: [
       deepStrike,
       a("Terror from the Deep", "When this model is set up from Reserves, roll one D6 for each enemy unit within 12\": 2–4 that unit suffers D3 mortal wounds; 5+ it suffers 3 mortal wounds and is Battle-shocked."),
     ],
   }),
-  u("nids-toxicrene", "Toxicrene", "monster", 160, { m: 8, t: 11, sv: 3, w: 14, ld: 8, oc: 4 }, KW_MON, {
-    r: [w("Massive toxic lashes", "ranged", 12, "2D6", 3, 6, -1, 2, ["Anti-Infantry 2+"])],
+  u("nids-toxicrene", "Toxicrene", "monster", 120, { m: 8, t: 11, sv: 3, w: 14, ld: 8, oc: 4 }, KW_MON, {
+    r: [w("Massive toxic lashes", "ranged", 9, "2D6", 3, 6, -1, 2, ["Anti-Infantry 2+"])],
     m: [w("Massive toxic lashes", "melee", "Melee", 12, 3, 6, -1, 2, ["Anti-Infantry 2+"])],
     ab: [
-      a("Choking Spores", "Enemy units within Engagement Range cannot Fall Back on a 3+."),
-      a("Acid Blood", "At the end of your Movement phase, each enemy unit within 6\" suffers 1 mortal wound on a 2+ (D3 on a 6)."),
+      a("Grasping Tendrils", "When a non-Titanic enemy unit in Engagement Range is selected to Fall Back, on a 3+ it must Remain Stationary instead."),
+      a("Hypertoxic Miasma", "At the end of your Movement phase, each enemy unit within 6\" suffers 1 mortal wound on a 2–3, D3 on a 4–5, or D6 on a 6."),
     ],
   }),
   u("nids-norn-emissary", "Norn Emissary", "monster", 250, { m: 10, t: 11, sv: 2, w: 16, ld: 7, oc: 5 }, ["Monster", "Psyker", "Synapse", "Tyranids"], {
     inv: 4,
-    fnp: 4,
     r: [
-      w("Psychic tendril — blast", "ranged", 18, "D6+3", 2, 5, -1, 1, ["Blast", "Psychic"]),
-      w("Psychic tendril — lance", "ranged", 24, 1, 2, 12, -3, "D6+3", ["Psychic"]),
-      w("Psychic tendril — precision", "ranged", 24, 2, 2, 6, -2, 3, ["Precision", "Psychic"]),
+      w("Psychic tendril — neuroblast", "ranged", 18, "2D6", 2, 6, -2, 1, ["Blast", "Psychic"], "tendril"),
+      w("Psychic tendril — neurolance", "ranged", 18, 2, 2, 12, -3, "D6", ["Melta 2", "Psychic"], "tendril"),
+      w("Psychic tendril — neuroparasite", "ranged", 18, 2, 2, 8, -2, "D3", ["Precision", "Psychic"], "tendril"),
     ],
-    m: [w("Monstrous rending claws", "melee", "Melee", 6, 2, 9, -2, 3, [])],
-    ab: [a("Singular Purpose", "At the start of the battle, choose an objective or an enemy unit. Against that target this model re-rolls Hit and Wound; or while within range of that objective it has a 5+ Feel No Pain and OC 15.")],
+    m: [
+      w("Monstrous scything talons", "melee", "Melee", 6, 2, 9, -2, 3, []),
+      w("Monstrous rending claws", "melee", "Melee", 4, 2, 7, -2, 2, ["Extra Attacks"]),
+    ],
+    ab: [
+      a("Singular Purpose", "At the start of the battle, choose an objective or an enemy unit. Against that target this model re-rolls Hit and Wound rolls."),
+      a("Unnatural Resistance", "This model has Feel No Pain 4+ against mortal wounds."),
+    ],
   }),
   u("nids-norn-assimilator", "Norn Assimilator", "monster", 250, { m: 10, t: 11, sv: 2, w: 16, ld: 7, oc: 5 }, ["Monster", "Synapse", "Tyranids", "Harvester"], {
-    inv: 4,
-    r: [w("Toxinjector harpoon", "ranged", 18, 1, 3, 14, -3, "D6+6", ["Melta 2"])],
-    m: [w("Monstrous scything talons", "melee", "Melee", 8, 2, 9, -2, 3, [])],
+    r: [w("Toxinjector harpoon", "ranged", 12, 2, 2, 12, -3, "D6+1", ["Harpooned"])],
+    m: [
+      w("Monstrous scything talons", "melee", "Melee", 6, 2, 9, -2, 3, []),
+      w("Toxinjector harpoon", "melee", "Melee", 4, 2, 12, -3, "D6+1", ["Extra Attacks"]),
+    ],
     ab: [
-      a("Singular Purpose", "At the start of the battle, choose an objective or an enemy unit. Against that target this model re-rolls Hit and Wound; or while within range of that objective it has a 5+ Feel No Pain and OC 15."),
-      a("Impaling Strike", "If this model's toxinjector harpoon hit a Monster or Vehicle this turn, add 2 to its Charge rolls against that unit."),
+      a("Singular Purpose", "At the start of the battle, choose an objective or an enemy unit. Against that target this model re-rolls Hit and Wound rolls."),
+      a("Harpoon Barbs", "Once per turn, when an enemy unit in Engagement Range Falls Back, on a 2+ it suffers D6 mortal wounds."),
     ],
   }),
   u("nids-harpy", "Harpy", "monster", 185, { m: "20+", t: 9, sv: 3, w: 12, ld: 8, oc: 0 }, ["Monster", "Fly", "Aircraft", "Tyranids", "Vanguard Invader"], {
     r: [
-      w("Twin stranglethorn cannon", "ranged", 36, "D6+1", 3, 7, -1, 2, ["Blast", "Twin-linked"]),
-      w("Twin heavy venom cannon", "ranged", 36, "D3", 3, 9, -2, 3, ["Blast", "Twin-linked"]),
+      w("Twin stranglethorn cannon", "ranged", 36, "D6+1", 2, 7, -1, 2, ["Blast", "Twin-linked"], "gun"),
+      w("Twin heavy venom cannon", "ranged", 36, "D3", 3, 9, -2, 3, ["Blast", "Twin-linked"], "gun"),
     ],
     m: [w("Scything wings", "melee", "Melee", 3, 4, 6, 0, 1, [])],
     ab: [
@@ -480,11 +486,10 @@ const units: UnitDef[] = [
   }),
   u("nids-hive-crone", "Hive Crone", "monster", 170, { m: "20+", t: 9, sv: 3, w: 12, ld: 8, oc: 0 }, ["Monster", "Fly", "Aircraft", "Tyranids", "Vanguard Invader"], {
     r: [
-      w("Drool cannon", "ranged", 12, "2D6", 0, 6, -1, 1, ["Torrent", "Ignores Cover"]),
-      w("Tentaclids", "ranged", 24, 2, 3, 7, 0, 2, ["Anti-Vehicle 4+", "Devastating Wounds"]),
-      stingerSalvo,
+      w("Drool cannon", "ranged", 12, "2D6", 0, 6, -1, 1, ["Torrent"]),
+      w("Tentaclids", "ranged", 36, 4, 3, 7, 0, 2, ["Anti-Vehicle 4+", "Devastating Wounds"]),
     ],
-    m: [w("Thorax spur", "melee", "Melee", 3, 4, 10, -2, "D6", ["Anti-Fly 2+"])],
+    m: [w("Thorax spur", "melee", "Melee", 1, 3, 10, -3, "D6", ["Anti-Fly 2+", "Extra Attacks"])],
     ab: [a("Airborne Predator", "Each time this model makes an attack that targets a unit that can Fly, add 1 to the Hit roll.")],
   }),
   u("nids-tyrannocyte", "Tyrannocyte", "transport", 80, { m: 8, t: 9, sv: 3, w: 10, ld: 8, oc: 2 }, ["Monster", "Fly", "Transport", "Dedicated Transport", "Tyranids", "Vanguard Invader"], {
@@ -512,20 +517,20 @@ const units: UnitDef[] = [
       a("Living Bomb", "If an enemy unit ends a move within 6\", or if this unit is destroyed, roll 3D6: each 2+ inflicts 1 mortal wound on the closest enemy (each 6 inflicts D3). Then this unit is destroyed."),
     ],
   }),
-  u("nids-sporocyst", "Sporocyst", "monster", 145, { m: 0, t: 10, sv: 3, w: 12, ld: 8, oc: 0 }, KW_MON, {
+  u("nids-sporocyst", "Sporocyst", "monster", 145, { m: 0, t: 10, sv: 3, w: 10, ld: 8, oc: 0 }, KW_MON, {
     r: [w("Sporocyst bio-weapons", "ranged", 24, 5, 4, 5, 0, 1, [])],
     m: [w("Flensing whips", "melee", "Melee", 6, 4, 6, 0, 1, [])],
     ab: [a("Spore Node", "This model cannot move. In your Shooting phase it can spawn a Spore Mines unit wholly within 18\" and more than 8\" from enemy models.")],
   }),
-  u("nids-barbed-hierodule", "Barbed Hierodule", "monster", 340, { m: 12, t: 10, sv: 2, w: 18, ld: 8, oc: 5 }, ["Monster", "Tyranids", "Frame"], {
-    r: [w("Bio-cannon cluster", "ranged", 36, "2D6", 3, 8, -2, 2, ["Blast", "Twin-linked"])],
-    m: [w("Massive scything talons", "melee", "Melee", 6, 3, 12, -2, "D6+1", [])],
-    ab: [a("Titanic Bioform", "This model can move over terrain and other models as if they were not there.")],
+  u("nids-barbed-hierodule", "Barbed Hierodule", "monster", 340, { m: 8, t: 12, sv: 2, w: 18, ld: 8, oc: 5 }, ["Monster", "Tyranids", "Frame"], {
+    r: [w("Bio-cannon", "ranged", 48, "D6+3", 3, 9, -2, 2, ["Blast"])],
+    m: [w("Hierodule scything talons", "melee", "Melee", 8, 3, 14, -2, "D3+3", [])],
+    ab: [a("Overgrown Barbs", "After this model shoots, one non-Titanic unit it hit is hindered until your next turn.")],
   }),
   u("nids-scythed-hierodule", "Scythed Hierodule", "monster", 330, { m: 12, t: 12, sv: 2, w: 18, ld: 8, oc: 5 }, ["Monster", "Tyranids", "Frame"], {
-    r: [w("Bio-acid spray", "ranged", 18, "2D6", 0, 8, -2, 2, ["Torrent", "Ignores Cover"])],
-    m: [w("Massive scything talons", "melee", "Melee", 8, 3, 14, -3, "D6+2", [])],
-    ab: [a("Titanic Bioform", "This model can move over terrain and other models as if they were not there.")],
+    r: [w("Bio-acid spray", "ranged", 18, "3D6", 0, 6, -2, 1, ["Torrent"])],
+    m: [w("Hierodule scything talons", "melee", "Melee", 10, 3, 14, -2, "D3+3", [])],
+    ab: [a("Irresistible Force", "This model can declare a charge in a turn in which it Fell Back.")],
   }),
   u("nids-dimachaeron", "Dimachaeron", "monster", 200, { m: 12, t: 10, sv: 3, w: 16, ld: 7, oc: 5 }, ["Monster", "Tyranids", "Frame"], {
     inv: 5,
@@ -535,23 +540,30 @@ const units: UnitDef[] = [
     ],
     ab: [a("Alpha Predator", "This model can Advance and charge. Re-roll Charge rolls for this model.")],
   }),
-  u("nids-harridan", "Harridan", "monster", 580, { m: "20+", t: 12, sv: 3, w: 20, ld: 8, oc: 0 }, ["Monster", "Fly", "Aircraft", "Titanic", "Tyranids"], {
-    r: [
-      w("Bio-cannon cluster", "ranged", 48, "2D6", 3, 9, -2, 3, ["Blast"]),
-      w("Heavy venom cannon", "ranged", 36, "D3", 3, 9, -2, 3, ["Blast"]),
+  u("nids-harridan", "Harridan", "monster", 610, { m: 14, t: 10, sv: 3, w: 30, ld: 8, oc: 0 }, ["Monster", "Fly", "Aircraft", "Titanic", "Tyranids"], {
+    r: [w("Dire bio-cannon", "ranged", 48, "D6+6", 3, 10, -3, 3, ["Blast"])],
+    m: [w("Gargantuan scything talons", "melee", "Melee", 6, 3, 14, -2, "D6", [])],
+    ab: [
+      a("Frenzied Metabolism", "When this model shoots, you can add 1 to its Wound rolls until the end of the phase."),
+      a("Damaged", "While this model has 1–10 wounds remaining, subtract 1 from its Hit rolls."),
     ],
-    m: [w("Scything wings", "melee", "Melee", 6, 4, 8, -1, 2, [])],
-    ab: [a("Sky-hive", "This model can transport Gargoyles: Gargoyles units can start the battle embarked and disembark after this model moves.")],
     transport: 20,
   }),
-  u("nids-hierophant", "Hierophant Bio-titan", "monster", 810, { m: 12, t: 14, sv: 2, w: 30, ld: 7, oc: 8 }, ["Monster", "Titanic", "Towering", "Synapse", "Tyranids"], {
+  u("nids-hierophant", "Hierophant Bio-titan", "monster", 810, { m: 12, t: 14, sv: 2, w: 30, ld: 8, oc: 12 }, ["Monster", "Titanic", "Towering", "Synapse", "Tyranids"], {
     inv: 5,
     r: [
-      w("Bio-cannon cluster", "ranged", 48, "3D6", 3, 10, -3, 3, ["Blast"]),
-      w("Dire bio-cannon", "ranged", 72, 2, 3, 16, -4, "D6+6", ["Heavy"]),
+      w("Bio-plasma torrent", "ranged", 12, "3D6", 0, 7, -2, 1, ["Assault", "Torrent"]),
+      w("Dire bio-cannon", "ranged", 48, "D6+6", 3, 10, -3, 3, ["Blast"]),
     ],
-    m: [w("Lashwhip pods", "melee", "Melee", 12, 3, 10, -2, 3, [])],
-    ab: [a("Bio-titan", "This model has a 5+ invulnerable save. Subtract 1 from the Damage of attacks allocated to it. It can move over terrain and other models.")],
+    m: [
+      w("Titanic scything talons", "melee", "Melee", 8, 3, 20, -2, "D6+1", []),
+      w("Lashwhip pods", "melee", "Melee", 10, 3, 5, -1, 1, ["Extra Attacks"]),
+    ],
+    ab: [
+      a("Apex-beast", "Attacks against a Battle-shocked unit are +1 to Hit."),
+      a("Stalking Forward", "This model can move over models that are not Titanic and over terrain 4\" or less in height."),
+      a("Damaged", "While this model has 1–10 wounds remaining, its OC is reduced by 6 and its Hit rolls are −1."),
+    ],
   }),
 ];
 
@@ -712,9 +724,9 @@ export const tyranids: Faction = {
   accent: "#6b3d7a",
   rule: a(
     "Synapse / Shadow in the Warp",
-    "Friendly Tyranid units within 6\" of a Synapse model take Battle-shock tests on 3D6, discarding the highest, and add 1 to melee Strength. Once per battle, in your Command phase, every enemy unit takes a Battle-shock test (−1 if within 6\" of Synapse).",
+    "Friendly Tyranid units within 6\" of a Synapse model are within Synapse Range. They take Battle-shock tests on 3D6 instead of 2D6, and add 1 to the Strength of their melee attacks. Once per battle, in either player's Command phase, each enemy unit takes a Battle-shock test (−1 if it is within 6\" of a Synapse unit).",
   ),
   detachments,
   units,
-  updatedAt: "2026-09-20",
+  updatedAt: "2026-09-24",
 };

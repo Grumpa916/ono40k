@@ -57,9 +57,11 @@
     text-wrap: balance;
     font-family: var(--font-display);
   }
+@media (pointer: fine) {
   p {
     text-wrap: pretty;
   }
+}
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;

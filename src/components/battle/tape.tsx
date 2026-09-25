@@ -6,7 +6,7 @@ import { type Game, type LedgerEvent, type LedgerEventKind } from "@/data/types"
 import { cn, battleElapsedMs, formatClock } from "@/lib/utils";
 
 export function TapeClock({ game }: { game: Game }) {
-  const now = useSecondClock(game.status === "active");
+  const now = useSecondClock(game.status === "active" && game.battleRunningSince !== null);
   return <>{formatClock(battleElapsedMs(game, now))}</>;
 }
 

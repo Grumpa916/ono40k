@@ -34,6 +34,8 @@ export type MapLayout = {
   name: string;
   blurb: string;
   board: "44×60";
+  /** Which table edge the deployment zones sit on. */
+  edge: string;
   zones: MapZone[];
   areas: MapArea[];
   terrain: string[];
@@ -58,6 +60,7 @@ export const MAPS: MapLayout[] = GW_LAYOUTS.map((layout) => ({
   name: `Layout ${layout.letter} · ${layoutMissions(layout.a, layout.b)}`,
   blurb: `${layout.label}. Games Workshop 11th edition Event Companion layout on a 44×60 board.`,
   board: "44×60",
+  edge: layout.edge,
   zones: layout.zones,
   areas: [],
   terrain: layout.terrain,

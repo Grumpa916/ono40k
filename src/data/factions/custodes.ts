@@ -2,10 +2,10 @@ import type { Detachment, Faction, UnitDef } from "../types";
 import { a, detPack, u } from "../helpers";
 import { w } from "../weapons";
 
-const guardianSpearRanged = w("Guardian spear", "ranged", 24, 2, 2, 4, -1, 2, ["Assault"]);
-const guardianSpearMelee = w("Guardian spear", "melee", "Melee", 5, 2, 7, -2, 2, []);
+const guardianSpearRanged = w("Guardian spear", "ranged", 24, 2, 2, 5, -1, 2, ["Assault", "Rapid Fire 2"]);
+const guardianSpearMelee = w("Guardian spear", "melee", "Melee", 6, 2, 8, -2, 2, []);
 const castellanAxeRanged = w("Castellan axe", "ranged", 24, 2, 2, 4, -1, 2, ["Assault"]);
-const castellanAxeMelee = w("Castellan axe", "melee", "Melee", 4, 2, 9, -1, 3, []);
+const castellanAxeMelee = w("Castellan axe", "melee", "Melee", 3, 2, 10, -2, 4, []);
 const sentinelBladeRanged = w("Sentinel blade", "ranged", 12, 2, 2, 4, -1, 2, ["Assault", "Pistol"]);
 const KW_CUST = ["Infantry", "Imperium", "Adeptus Custodes"];
 const KW_CHAR = ["Infantry", "Character", "Imperium", "Adeptus Custodes"];
@@ -15,11 +15,11 @@ const units: UnitDef[] = [
   u("custodes-trajann", "Trajann Valoris", "character", 135, { m: 6, t: 6, sv: 2, w: 7, ld: 5, oc: 2 }, ["Infantry", "Character", "Epic Hero", "Imperium", "Adeptus Custodes"], {
     inv: 4,
     fnp: 5,
-    r: [w("Eagle's Scream", "ranged", 24, 2, 2, 5, -2, 3, ["Assault"])],
-    m: [w("Watcher's Axe", "melee", "Melee", 6, 2, 10, -2, 3, [])],
+    r: [w("Eagle's Scream", "ranged", 24, 2, 2, 6, -2, 2, ["Assault", "Rapid Fire 2"])],
+    m: [w("Watcher's Axe", "melee", "Melee", 6, 2, 12, -3, 4, ["Cleave 1"])],
     ab: [
-      a("Captain-General", "While leading a unit, models in that unit ignore modifiers to Ballistic Skill, Weapon Skill, and Hit rolls."),
-      a("Moment Shackle", "Once per battle, at the start of the Fight phase: Watcher's Axe has Attacks 12, or this model has a 2+ invulnerable save."),
+      a("Captain-General", "Adeptus Custodes units from your army (excluding Monsters and Vehicles) within 6\" re-roll Hit rolls of 1 and Wound rolls of 1."),
+      a("Moment Shackle", "Once per battle, at the start of the Fight phase: Watcher's Axe makes 3 extra attacks, or this model has a 3+ invulnerable save."),
       a("Supreme Commander", "If this model is in your army, it must be your Warlord."),
     ],
     lead: leadGuard,
@@ -41,8 +41,8 @@ const units: UnitDef[] = [
     inv: 4,
     r: [guardianSpearRanged, castellanAxeRanged, sentinelBladeRanged],
     m: [
-      w("Guardian spear", "melee", "Melee", 7, 2, 7, -2, 2, []),
-      w("Castellan axe", "melee", "Melee", 6, 2, 9, -1, 3, []),
+      w("Guardian spear", "melee", "Melee", 7, 2, 8, -2, 2, []),
+      w("Castellan axe", "melee", "Melee", 6, 2, 10, -2, 4, []),
       w("Sentinel blade", "melee", "Melee", 7, 2, 6, -2, 1, []),
     ],
     ab: [
@@ -53,17 +53,17 @@ const units: UnitDef[] = [
   }),
   u("custodes-guard", "Custodian Guard", "battleline", 170, { m: 6, t: 6, sv: 2, w: 3, ld: 6, oc: 2 }, ["Infantry", "Battleline", "Imperium", "Adeptus Custodes"], {
     inv: 4,
-    sizes: [[4, 170], [5, 215]],
+    sizes: [[3, 170]],
     r: [guardianSpearRanged, sentinelBladeRanged],
     m: [guardianSpearMelee, w("Sentinel blade", "melee", "Melee", 5, 2, 6, -2, 1, [])],
     ab: [
-      a("Stand Vigil", "Re-roll Wound rolls of 1. While on an objective you control, re-roll the Wound roll instead."),
-      a("Sentinel Storm", "Once per battle, after this unit shoots, it can shoot again."),
+      a("Stand Vigil", "While this unit is within range of an objective marker, its attacks have Sustained Hits 1 against units that are not Monsters or Vehicles."),
+      a("Vexilia", "One model may take a Vexilia and keep its spear. Models in this unit then have OC 4 and ignore modifiers to Leadership."),
     ],
   }),
   u("custodes-wardens", "Custodian Wardens", "infantry", 200, { m: 6, t: 6, sv: 2, w: 3, ld: 6, oc: 2 }, KW_CUST, {
     inv: 4,
-    sizes: [[4, 200], [5, 250]],
+    sizes: [[3, 200]],
     r: [guardianSpearRanged, castellanAxeRanged],
     m: [guardianSpearMelee, castellanAxeMelee],
     ab: [
@@ -73,7 +73,7 @@ const units: UnitDef[] = [
   }),
   u("custodes-allarus", "Allarus Custodians", "infantry", 110, { m: 5, t: 7, sv: 2, w: 4, ld: 6, oc: 2 }, ["Infantry", "Terminator", "Imperium", "Adeptus Custodes"], {
     inv: 4,
-    sizes: [[2, 110], [3, 165], [5, 280], [6, 340]],
+    sizes: [[2, 110], [3, 165]],
     r: [w("Balistus grenade launcher", "ranged", 18, "D6", 2, 4, -1, 1, ["Blast"]), guardianSpearRanged, castellanAxeRanged],
     m: [guardianSpearMelee, castellanAxeMelee],
     ab: [
@@ -189,8 +189,9 @@ export const custodes: Faction = {
   accent: "#c9a227",
   rule: a(
     "Martial Ka'tah",
-    "At the start of the Fight phase, select one stance until the end of the phase: Kaptaris (−1 to Hit melee attacks that target your Adeptus Custodes units) or Dacatarai (Adeptus Custodes melee weapons have Sustained Hits 1).",
+    "At the start of the Fight phase, select one stance until the end of the phase: Dacatarai (Adeptus Custodes melee weapons have Sustained Hits 1) or Rendax (Adeptus Custodes melee weapons have Lethal Hits).",
   ),
   detachments,
   units,
+  updatedAt: "2026-09-25",
 };

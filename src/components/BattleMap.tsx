@@ -10,6 +10,7 @@ export function BattleMap({
   activePiece = null,
   onPiece,
   sides,
+  zones = false,
 }: {
   layout: MapLayout;
   className?: string;
@@ -19,6 +20,8 @@ export function BattleMap({
   onPiece?: (n: number) => void;
   /** Ledger map: name each player's territory and measure the deployment zones. */
   sides?: { attacker: string; defender: string };
+  /** Setup map: draw deployment-zone depths while measuring terrain. */
+  zones?: boolean;
 }) {
   const pieces = measure ? terrainMeasures(layout.terrain, TERRAIN_MARKS[layout.id]) : [];
   const bySource = new Map(pieces.map((piece) => [piece.source, piece]));
@@ -26,7 +29,8 @@ export function BattleMap({
   const badges = layoutTerrainBadges(labelled, layout.markers);
   const byN = new Map(labelled.map((piece) => [piece.n, piece]));
   const active = pieces.find((piece) => piece.n === activePiece) ?? null;
-  const split = sides && !compact && !measure ? territoryGuide(layout.zones, layout.markers) : null;
+  const zoneGuide = !compact && (Boolean(sides) || zones) ? territoryGuide(layout.zones, layout.markers) : null;
+  const split = zoneGuide && sides && !measure ? zoneGuide : null;
 
   return (
     <svg
@@ -111,6 +115,13 @@ export function BattleMap({
       ))}
       <rect width="60" height="44" fill="none" stroke="var(--color-border)" strokeWidth="0.5" pointerEvents="none" />
       {split && sides ? <TerritoryOverlay split={split} attacker={sides.attacker} defender={sides.defender} /> : null}
+      {zones && measure && zoneGuide ? (
+        <g pointerEvents="none">
+          {zoneGuide.depths.map((depth) => (
+            <DepthMark key={`${depth.side}-${depth.label}-${depth.x1}-${depth.y1}`} depth={depth} />
+          ))}
+        </g>
+      ) : null}
       {measure
         ? badges.map((badge) => {
             const piece = byN.get(badge.n);

@@ -1,4 +1,4 @@
-import type { UnitDef, WargearOption } from "./types";
+import type { UnitDef, WargearOption, Weapon } from "./types";
 
 export type WargearGroup = {
   id: string;
@@ -165,8 +165,25 @@ function inferred(unit: UnitDef): WargearOption[] {
   return opts;
 }
 
+function choiceLoadouts(unit: UnitDef): WargearOption[] {
+  const groups = new Map<string, Weapon[]>();
+  for (const weapon of [...unit.ranged, ...unit.melee]) {
+    if (!weapon.choice) continue;
+    const list = groups.get(weapon.choice) ?? [];
+    list.push(weapon);
+    groups.set(weapon.choice, list);
+  }
+  const opts: WargearOption[] = [];
+  for (const [group, weapons] of groups) {
+    weapons.forEach((weapon, index) => opts.push(o(`${unit.id}-${group}-${index}`, weapon.name, 0, "loadout")));
+  }
+  return opts;
+}
+
 export function wargearGroups(unit: UnitDef): WargearGroup[] {
-  const all = [...inferred(unit), ...(unit.wargear ?? [])];
+  const choices = choiceLoadouts(unit);
+  const extra = inferred(unit).filter((opt) => choices.length === 0 || opt.group !== "loadout");
+  const all = [...choices, ...extra, ...(unit.wargear ?? [])];
   const map = new Map<string, WargearOption[]>();
   for (const opt of all) {
     const arr = map.get(opt.group) ?? [];
@@ -179,6 +196,38 @@ export function wargearGroups(unit: UnitDef): WargearGroup[] {
       return { id, label: GROUP_LABEL[id] ?? id, options: list };
     })
     .filter((g) => g.options.length > 0);
+}
+
+function sameName(a: string, b: string) {
+  const left = a.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const right = b.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  if (left.length < 4 || right.length < 4) return false;
+  return left.includes(right) || right.includes(left);
+}
+
+/** Weapons this roster entry is actually carrying. Codex sheets omit wargearIds and keep every profile. */
+export function builtWeapons(unit: UnitDef, wargearIds: string[] | undefined): { ranged: Weapon[]; melee: Weapon[] } {
+  const selected = new Set(selectedWargear(unit, wargearIds).map((opt) => opt.name));
+  const loadoutNames = wargearGroups(unit)
+    .filter((group) => group.id === "loadout")
+    .flatMap((group) => group.options.map((opt) => opt.name))
+    .filter((name) => !isDefaultWargearName(name));
+  const keep = (weapon: Weapon, siblings: Weapon[]) => {
+    if (weapon.choice) {
+      const options = siblings.filter((other) => other.choice === weapon.choice);
+      const picked = options.find((other) => [...selected].some((name) => sameName(name, other.name)));
+      return (picked ?? options[0]) === weapon;
+    }
+    const named = loadoutNames.filter((name) => sameName(name, weapon.name));
+    if (named.length === 0) return true;
+    const active = [...selected].find((name) => named.some((option) => sameName(name, option)));
+    if (active) return sameName(active, weapon.name);
+    return sameName(named[0], weapon.name);
+  };
+  return {
+    ranged: unit.ranged.filter((weapon) => keep(weapon, unit.ranged)),
+    melee: unit.melee.filter((weapon) => keep(weapon, unit.melee)),
+  };
 }
 
 export function resolvedWargearIds(unit: UnitDef, ids?: string[]): string[] {
@@ -204,7 +253,8 @@ export function wargearSummary(unit: UnitDef, ids?: string[]): WargearOption[] {
 }
 
 export function rosterLoadout(unit: UnitDef, ids?: string[]): string {
-  const weapons = [...unit.ranged, ...unit.melee].map((wpn) => wpn.name);
+  const equipped = builtWeapons(unit, ids ?? []);
+  const weapons = [...equipped.ranged, ...equipped.melee].map((wpn) => wpn.name);
   const extras = wargearSummary(unit, ids).map((g) => (g.points ? `${g.name} +${g.points}` : g.name));
   return [...weapons, ...extras].filter(Boolean).join(" · ");
 }

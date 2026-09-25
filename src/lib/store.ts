@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+import { persist, type StateStorage } from "zustand/middleware";
 import { getFaction, getUnit } from "@/data/codex";
 import { SEED_LISTS } from "@/data/seeds";
 import type {
@@ -48,6 +48,29 @@ function snapshotRoster(r: Roster): Roster {
 
 const SEED_IDS = new Set(SEED_LISTS.map((l) => l.id));
 
+/** Old base cost → catalogue base cost. Applied once, only when a roster still has the old cost. */
+const CATALOGUE_POINT_FIXES: Record<string, readonly [number, number]> = {
+  "sm-heavy-intercessors": [110, 100],
+  "um-heavy-intercessors": [110, 100],
+  "sm-outriders": [80, 70],
+  "um-outriders": [80, 70],
+  "um-guilliman": [415, 355],
+  "um-tigurius": [115, 85],
+  "um-sicarius": [115, 105],
+  "um-wardens": [90, 120],
+};
+
+function applyCataloguePoints(roster: Roster): Roster {
+  let changed = false;
+  const units = roster.units.map((unit) => {
+    const fix = CATALOGUE_POINT_FIXES[unit.unitId];
+    if (!fix || unit.points !== fix[0]) return unit;
+    changed = true;
+    return { ...unit, points: fix[1] };
+  });
+  return changed ? { ...roster, units, updatedAt: Date.now() } : roster;
+}
+
 function knownFaction(factionId: string) {
   return Boolean(getFaction(factionId));
 }
@@ -55,7 +78,7 @@ function knownFaction(factionId: string) {
 function mergeLists(persisted: Roster[] | undefined, current: Roster[]): Roster[] {
   const known = (l: Roster) => knownFaction(l.factionId);
   const currentKnown = current.filter(known);
-  if (!persisted?.length) return currentKnown.map((l) => snapshotRoster(l));
+  if (!persisted?.length) return currentKnown.map((l) => snapshotRoster(applyCataloguePoints(l)));
 
   const currentById = new Map(currentKnown.map((l) => [l.id, l]));
   const out: Roster[] = [];
@@ -64,14 +87,14 @@ function mergeLists(persisted: Roster[] | undefined, current: Roster[]): Roster[
     if (!known(raw)) continue;
     const live = currentById.get(raw.id);
     const chosen = live && (live.updatedAt ?? 0) > (raw.updatedAt ?? 0) ? live : raw;
-    out.push(snapshotRoster(chosen));
+    out.push(snapshotRoster(applyCataloguePoints(chosen)));
     seen.add(raw.id);
   }
   for (const live of currentKnown) {
     if (seen.has(live.id) || SEED_IDS.has(live.id)) continue;
-    out.push(snapshotRoster(live));
+    out.push(snapshotRoster(applyCataloguePoints(live)));
   }
-  return out.length ? out : currentKnown.map((l) => snapshotRoster(l));
+  return out.length ? out : currentKnown.map((l) => snapshotRoster(applyCataloguePoints(l)));
 }
 
 function gameStamp(g: Game) {
@@ -214,11 +237,7 @@ function idbStorage(): StateStorage {
     },
     setItem: (name, value) => {
       pending = { name, value };
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        void flush();
-      }, 400);
-      return writes;
+      return flush();
     },
     removeItem: async (name) => {
       try {
@@ -236,6 +255,47 @@ function idbStorage(): StateStorage {
           /* */
         }
       }
+    },
+  };
+}
+
+function deferredJsonStorage(inner: StateStorage) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending: { name: string; value: { state: unknown; version?: number } } | null = null;
+  const flush = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    const job = pending;
+    pending = null;
+    if (!job) return;
+    void inner.setItem(job.name, JSON.stringify(job.value));
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flush();
+    });
+  }
+  return {
+    getItem: async (name: string) => {
+      const raw = await inner.getItem(name);
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as { state: unknown; version?: number };
+      } catch {
+        return null;
+      }
+    },
+    setItem: (name: string, value: { state: unknown; version?: number }) => {
+      pending = { name, value };
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, 500);
+    },
+    removeItem: (name: string) => {
+      pending = null;
+      void inner.removeItem(name);
     },
   };
 }
@@ -273,6 +333,8 @@ function hydrateGame(g: Game): Game {
     g.runningSince === undefined ? (complete ? null : g.startedAt) : g.runningSince;
   return {
     ...g,
+    myRoster: applyCataloguePoints(g.myRoster),
+    opponentRoster: applyCataloguePoints(g.opponentRoster),
     log: g.log ?? [],
     activeStrats: g.activeStrats ?? [],
     scoringActions: g.scoringActions ?? [],
@@ -304,6 +366,22 @@ function turnKey(round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", firstTurn: "
   return String(turnRank(round, side, firstTurn));
 }
 
+export function stratsOnTurn(game: Game): { reviewing: boolean; strats: ActiveStrat[] } {
+  const firstTurn = game.preBattle?.firstTurn === "opponent" ? "opponent" : "me";
+  const liveR = game.liveRound ?? game.round;
+  const liveS = game.liveSide ?? game.activeSide;
+  const reviewing = game.round !== liveR || game.activeSide !== liveS;
+  if (!reviewing) return { reviewing, strats: game.activeStrats ?? [] };
+  return { reviewing, strats: game.stratHistory?.[turnKey(game.round, game.activeSide, firstTurn)] ?? [] };
+}
+
+function dropStrat(history: Game["stratHistory"], id: string): Game["stratHistory"] {
+  if (!history) return history;
+  const next: NonNullable<Game["stratHistory"]> = {};
+  for (const [key, list] of Object.entries(history)) next[key] = list.filter((s) => s.id !== id);
+  return next;
+}
+
 function browseTurn(g: Game, round: 1 | 2 | 3 | 4 | 5, side: "me" | "opponent", phase: PhaseId): Game {
   const liveR = g.liveRound ?? g.round;
   const liveS = g.liveSide ?? g.activeSide;
@@ -330,13 +408,28 @@ function freezeTurns(g: Game, now = Date.now()): { runningSince: null; turnMs: {
   return { runningSince: null, turnMs };
 }
 
+function currentBattleMs(g: Game, now: number): number {
+  if (g.battleRunningSince === null) return Math.max(0, g.elapsedMs ?? 0);
+  if (typeof g.battleRunningSince === "number") return Math.max(0, (g.elapsedMs ?? 0) + (now - g.battleRunningSince));
+  return Math.max(0, now - g.startedAt);
+}
+
 function stopAllClocks(g: Game, now = Date.now()) {
   const turns = freezeTurns(g, now);
   return {
     ...turns,
-    elapsedMs: now - g.startedAt,
+    elapsedMs: currentBattleMs(g, now),
+    battleRunningSince: null,
     finishedAt: now,
     status: "complete" as const,
+  };
+}
+
+function stopClocks(g: Game, now = Date.now()) {
+  return {
+    ...freezeTurns(g, now),
+    elapsedMs: currentBattleMs(g, now),
+    battleRunningSince: null as null,
   };
 }
 
@@ -358,7 +451,8 @@ function snapshotUndo(g: Game): GameUndoSlice {
     activeSide: g.activeSide,
     viewing: g.viewing,
     cp: clone(g.cp),
-    cpHistory: clone(g.cpHistory),
+    cpHistory: g.cpHistory ? clone(g.cpHistory) : undefined,
+    stratHistory: g.stratHistory ? clone(g.stratHistory) : undefined,
     unitState: clone(g.unitState),
     activeStrats: clone(g.activeStrats ?? []),
     scoringActions: clone(g.scoringActions ?? []),
@@ -492,6 +586,8 @@ type State = {
   undoLast: () => void;
   pauseClock: () => void;
   resumeClock: () => void;
+  stopClocks: () => void;
+  resumeClocks: () => void;
   endGame: () => void;
   leaveGame: () => void;
   resumeGame: (id: string) => void;
@@ -1112,6 +1208,7 @@ export const useWarStore = create<State>()(
                             viewing: slice.viewing ?? g.viewing,
                             cp: clone(slice.cp),
                             ...(slice.cpHistory ? { cpHistory: clone(slice.cpHistory) } : {}),
+                            stratHistory: slice.stratHistory ? clone(slice.stratHistory) : undefined,
                             unitState: clone(slice.unitState),
                             activeStrats: clone(slice.activeStrats),
                             scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
@@ -1213,18 +1310,25 @@ export const useWarStore = create<State>()(
           set,
           "stratagem",
           `${sideName(game, side)} · ${label} (${total} CP)`,
-          (g) => ({
-            ...g,
-            cp: { ...g.cp, [side]: Math.max(0, g.cp[side] - total) },
-            cpHistory: {
-              ...(g.cpHistory ?? {}),
-              [turnKey(g.round, g.activeSide, g.preBattle?.firstTurn ?? "me")]: {
-                ...g.cp,
-                [side]: Math.max(0, g.cp[side] - total),
+          (g) => {
+            const key = turnKey(g.round, g.activeSide, g.preBattle?.firstTurn ?? "me");
+            return {
+              ...g,
+              cp: { ...g.cp, [side]: Math.max(0, g.cp[side] - total) },
+              cpHistory: {
+                ...(g.cpHistory ?? {}),
+                [key]: {
+                  ...g.cp,
+                  [side]: Math.max(0, g.cp[side] - total),
+                },
               },
-            },
-            activeStrats: [...actives, ...g.activeStrats],
-          }),
+              stratHistory: {
+                ...(g.stratHistory ?? {}),
+                [key]: [...actives, ...(g.stratHistory?.[key] ?? [])],
+              },
+              activeStrats: [...actives, ...g.activeStrats],
+            };
+          },
         );
       },
       dismissStrat: (activeId) => {
@@ -1251,6 +1355,7 @@ export const useWarStore = create<State>()(
           ...g,
           cp: onLive ? nextCp : g.cp,
           cpHistory: { ...(g.cpHistory ?? {}), [liveKey]: nextCp },
+          stratHistory: dropStrat(g.stratHistory, activeId),
           activeStrats: (g.activeStrats ?? []).filter((s) => s.id !== activeId),
         }));
       },
@@ -1272,6 +1377,7 @@ export const useWarStore = create<State>()(
                   viewing: slice.viewing ?? g.viewing,
                   cp: clone(slice.cp),
                   ...(slice.cpHistory ? { cpHistory: clone(slice.cpHistory) } : {}),
+                  stratHistory: slice.stratHistory ? clone(slice.stratHistory) : undefined,
                   unitState: clone(slice.unitState),
                   activeStrats: clone(slice.activeStrats),
                   scoringActions: clone(slice.scoringActions ?? g.scoringActions ?? []),
@@ -1302,6 +1408,26 @@ export const useWarStore = create<State>()(
           ),
         });
       },
+      stopClocks: () => {
+        const id = get().activeGameId;
+        if (!id) return;
+        const now = Date.now();
+        set({
+          games: get().games.map((g) => (g.id === id && g.status === "active" ? { ...g, ...stopClocks(g, now) } : g)),
+        });
+      },
+      resumeClocks: () => {
+        const id = get().activeGameId;
+        if (!id) return;
+        const now = Date.now();
+        set({
+          games: get().games.map((g) =>
+            g.id === id && g.status === "active" && g.battleRunningSince === null
+              ? { ...g, battleRunningSince: now, runningSince: g.runningSince ?? now }
+              : g,
+          ),
+        });
+      },
       endGame: () => {
         const id = get().activeGameId;
         if (!id) return;
@@ -1328,6 +1454,7 @@ export const useWarStore = create<State>()(
               finishedAt: undefined,
               startedAt: now - frozen,
               runningSince: now,
+              battleRunningSince: undefined,
             };
           }),
         });
@@ -1336,7 +1463,7 @@ export const useWarStore = create<State>()(
     {
       name: "war-ledger",
       skipHydration: true,
-      storage: createJSONStorage(() => idbStorage()),
+      storage: deferredJsonStorage(idbStorage()),
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<State>;
         const lists = mergeLists(persisted.lists, currentState.lists);

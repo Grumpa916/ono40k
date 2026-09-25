@@ -1,13 +1,12 @@
-import { useMemo, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { BattleMap } from "@/components/BattleMap";
-import { MapSetup } from "@/components/MapSetup";
+import { DispositionLayouts } from "@/components/DispositionLayouts";
 import { sourceKey, resolveArmy, type ArmySource } from "@/components/battle/army-source";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { getFaction } from "@/data/codex";
-import { getMap, layoutsFor } from "@/data/maps";
+import { layoutsFor } from "@/data/maps";
 import { FIXED_SECONDARIES } from "@/data/secondaries";
 import { BATTLE_SIZES, type BattleSize, type PreBattle, type Roster, type SideKey, type SideScore } from "@/data/types";
 import { defaultPreBattle, otherSide, preAbilityUnits } from "@/lib/prebattle";
@@ -88,6 +87,7 @@ export function GameSetup({
   onBack?: () => void;
 }) {
   const lists = useWarStore((s) => s.lists);
+  const hydrated = useWarStore((s) => s.hydrated);
   const startGame = useWarStore((s) => s.startGame);
   const navigate = useNavigate();
   const codexCache = useRef(new Map<string, Roster>());
@@ -124,10 +124,16 @@ export function GameSetup({
   const [meFixed, setMeFixed] = useState<string[]>([]);
   const [themFixed, setThemFixed] = useState<string[]>([]);
   const [brief, setBrief] = useState<PreBattle>(defaultPreBattle);
-  const [mapOpen, setMapOpen] = useState(false);
 
   const mineSource = options.find((s) => sourceKey(s) === mineKey) ?? null;
   const theirsSource = options.find((s) => sourceKey(s) === theirsKey) ?? null;
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const keys = new Set(options.map(sourceKey));
+    if (mineKey && !keys.has(mineKey)) setMineKey("");
+    if (theirsKey && !keys.has(theirsKey)) setTheirsKey("");
+  }, [hydrated, options, mineKey, theirsKey]);
   const myRoster = resolve(mineSource);
   const oppRoster = resolve(theirsSource);
   const size: BattleSize = sizeTouched ? battleSize : (myRoster?.battleSize ?? "strike");
@@ -138,7 +144,10 @@ export function GameSetup({
   const oppLabel = (names?.opponent || oppRoster?.name || "Opponent").trim() || "Opponent";
   const defenderName = attacker === "me" ? oppLabel : attacker === "opponent" ? myLabel : null;
   const maps = layoutsFor(myRoster ? rosterDisposition(myRoster) : null, oppRoster ? rosterDisposition(oppRoster) : null);
-  const selectedMap = getMap(brief.mapId);
+  const mapKey = maps.map((layout) => layout.id).join("|");
+  useEffect(() => {
+    setBrief((prev) => (prev.mapId && !mapKey.split("|").includes(prev.mapId) ? { ...prev, mapId: null } : prev));
+  }, [mapKey]);
   const myAbilities = useMemo(() => (myRoster ? preAbilityUnits(myRoster) : []), [myRoster]);
   const theirAbilities = useMemo(() => (oppRoster ? preAbilityUnits(oppRoster) : []), [oppRoster]);
   const myCopies = useMemo(() => unitCopyMarks(myRoster?.units ?? []), [myRoster]);
@@ -189,7 +198,6 @@ export function GameSetup({
     setThemFixed([]);
     setSizeTouched(false);
     setBrief(defaultPreBattle());
-    setMapOpen(false);
   };
 
   const start = () => {
@@ -240,6 +248,10 @@ export function GameSetup({
         </p>
       </div>
 
+      {!hydrated ? (
+        <p className="rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">Loading saved lists…</p>
+      ) : (
+      <>
       <div className="grid gap-3 sm:grid-cols-2">
         <RosterCard
           title="My Roster"
@@ -280,6 +292,16 @@ export function GameSetup({
             pairing={myRoster && oppRoster ? `${rosterDisposition(oppRoster) ?? "—"} vs ${rosterDisposition(myRoster) ?? "—"}` : null}
           />
         </div>
+      </section>
+
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-medium">Create the Battlefield</h2>
+        <DispositionLayouts
+          layouts={maps}
+          mapId={brief.mapId}
+          pairing={myRoster && oppRoster ? `${rosterDisposition(myRoster) ?? "—"} vs ${rosterDisposition(oppRoster) ?? "—"}` : null}
+          onPick={(id) => setBrief((prev) => ({ ...prev, mapId: id }))}
+        />
       </section>
 
       <section className="space-y-3 rounded-xl border border-border bg-card p-4">
@@ -385,48 +407,9 @@ export function GameSetup({
       </section>
 
       <details className="rounded-xl border border-border bg-card p-4">
-        <summary className="cursor-pointer text-sm font-medium">Battlefield, Scout, and Infiltrate</summary>
+        <summary className="cursor-pointer text-sm font-medium">Scout, Infiltrate, and notes</summary>
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-muted-foreground">
-            11th edition scores terrain areas. Pick Layout A, B, or C for this disposition pairing, then tick any Scout or Infiltrate you will actually use. A unit cannot use both.
-          </p>
-          {maps.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Set a force disposition on both rosters to load the three maps for this pairing.</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-3 gap-1.5">
-                {maps.map((layout) => {
-                  const on = brief.mapId === layout.id;
-                  return (
-                    <button
-                      key={layout.id}
-                      type="button"
-                      onClick={() => setBrief((p) => ({ ...p, mapId: layout.id }))}
-                      className={cn("min-w-0 rounded-lg border p-1.5 text-left", on ? "border-primary bg-accent" : "border-border bg-background")}
-                    >
-                      <BattleMap layout={layout} compact />
-                      <p className="mt-1 truncate text-[11px] font-medium">{layout.letter}</p>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    const pick = maps[Math.floor(Math.random() * maps.length)];
-                    if (pick) setBrief((p) => ({ ...p, mapId: pick.id }));
-                  }}
-                >
-                  Roll D3
-                </Button>
-                <Button type="button" variant="outline" disabled={!selectedMap} onClick={() => setMapOpen(true)}>
-                  Full map
-                </Button>
-              </div>
-            </>
-          )}
+          <p className="text-xs text-muted-foreground">Tick any Scout or Infiltrate you will actually use. A unit cannot use both.</p>
           <Input
             value={brief.terrainNote}
             onChange={(e) => setBrief((p) => ({ ...p, terrainNote: e.target.value }))}
@@ -439,9 +422,6 @@ export function GameSetup({
           />
           <AbilityBlock label={myRoster?.name ?? "My army"} units={myAbilities} copies={myCopies} brief={brief} onToggle={toggleAbility} />
           <AbilityBlock label={oppRoster?.name ?? "Opponent"} units={theirAbilities} copies={theirCopies} brief={brief} onToggle={toggleAbility} />
-          {mapOpen && selectedMap ? (
-            <MapSetup layout={selectedMap} layouts={maps} onPick={(id) => setBrief((p) => ({ ...p, mapId: id }))} onClose={() => setMapOpen(false)} />
-          ) : null}
         </div>
       </details>
 
@@ -453,6 +433,8 @@ export function GameSetup({
           Reset choices
         </Button>
       </div>
+      </>
+      )}
     </div>
   );
 }

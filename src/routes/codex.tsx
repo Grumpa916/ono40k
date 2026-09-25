@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Datasheet } from "@/components/Datasheet";
+import { CodexUpdate } from "@/components/CodexUpdate";
 import { RuleFold } from "@/components/RuleFold";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FACTIONS } from "@/data/codex";
+import { FACTIONS, withCodexPatches } from "@/data/codex";
 import { CORE_RULES, CORE_STRATAGEMS } from "@/data/core";
 import { RULE_SOURCES } from "@/data/sources";
+import { useCodexSync } from "@/lib/codex-sync";
 
 export const Route = createFileRoute("/codex")({ component: CodexPage });
 
@@ -26,7 +28,11 @@ function CodexPage() {
   const [factionId, setFactionId] = useState(FACTIONS[0]?.id ?? "sm");
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("sheets");
-  const faction = FACTIONS.find((f) => f.id === factionId) ?? FACTIONS[0];
+  const revision = useCodexSync((s) => s.revision);
+  const faction = useMemo(() => {
+    const base = FACTIONS.find((f) => f.id === factionId) ?? FACTIONS[0];
+    return withCodexPatches(base);
+  }, [factionId, revision]);
   const units = useMemo(() => {
     const query = q.trim().toLowerCase();
     return faction.units.filter((u) => {
@@ -95,6 +101,7 @@ function CodexPage() {
               </p>
             </div>
             <RuleFold kicker="Army rule" title={faction.rule.name} text={faction.rule.text} />
+            <CodexUpdate faction={FACTIONS.find((f) => f.id === faction.id) ?? faction} />
           </section>
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="w-full">

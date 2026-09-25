@@ -6,4 +6,10 @@ export const RULE_SOURCES = [
     primary: true,
     note: "Datasheets, points, and detachments",
   },
+  {
+    name: "BSData 11th",
+    href: "https://github.com/BSData/wh40k-11e",
+    primary: false,
+    note: "Automated profile and points check",
+  },
 ] as const;

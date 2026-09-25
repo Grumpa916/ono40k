@@ -36,6 +36,8 @@ export type Weapon = {
   ap: number;
   damage: number | string;
   keywords: string[];
+  /** Mutually exclusive armament. Weapons that share a choice are one build, not all equipped. */
+  choice?: string;
 };
 
 export type Ability = {
@@ -200,6 +202,7 @@ export type GameUndoSlice = {
   viewing: "me" | "opponent";
   cp: { me: number; opponent: number };
   cpHistory?: Record<string, { me: number; opponent: number }>;
+  stratHistory?: Record<string, ActiveStrat[]>;
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
   status: "active" | "complete";
@@ -252,6 +255,7 @@ export type Game = {
   scores: { me: SideScore; opponent: SideScore };
   cp: { me: number; opponent: number };
   cpHistory?: Record<string, { me: number; opponent: number }>;
+  stratHistory?: Record<string, ActiveStrat[]>;
   unitState: Record<string, UnitBattleState>;
   activeStrats: ActiveStrat[];
   scoringActions?: ScoringAction[];
@@ -262,6 +266,8 @@ export type Game = {
   startedAt: number;
   finishedAt?: number;
   elapsedMs?: number;
+  /** Undefined: battle clock runs from startedAt. Null: battle clock is stopped. */
+  battleRunningSince?: number | null;
   runningSince?: number | null;
   turnMs?: { me: number; opponent: number };
   liveRound?: 1 | 2 | 3 | 4 | 5;

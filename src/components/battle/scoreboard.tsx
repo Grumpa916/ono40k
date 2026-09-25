@@ -162,35 +162,35 @@ export function Scoreboard({
                 </Button>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 items-stretch gap-2">
               <button
                 type="button"
                 onClick={() => setViewing("me")}
                 className={cn(
-                  "flex h-12 items-center justify-between gap-2 rounded-lg border px-3 text-sm font-medium",
+                  "flex h-full min-h-12 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium",
                   game.activeSide === "me"
-                    ? "border-primary bg-primary text-primary-foreground"
+                    ? "border-[#2f8f4e] bg-[#2f8f4e] text-[#f4f7f4]"
                     : game.viewing === "me"
                       ? "border-steel bg-accent"
                       : "border-border bg-muted",
                 )}
               >
-                <span className="truncate">{game.myName}</span>
+                <span className="min-w-0 flex-1 leading-tight">{game.myName}</span>
                 <SideClock game={game} side="me" />
               </button>
               <button
                 type="button"
                 onClick={() => setViewing("opponent")}
                 className={cn(
-                  "flex h-12 items-center justify-between gap-2 rounded-lg border px-3 text-sm font-medium",
+                  "flex h-full min-h-12 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium",
                   game.activeSide === "opponent"
-                    ? "border-blood bg-blood text-primary-foreground"
+                    ? "border-[#2f8f4e] bg-[#2f8f4e] text-[#f4f7f4]"
                     : game.viewing === "opponent"
                       ? "border-steel bg-accent"
                       : "border-border bg-muted",
                 )}
               >
-                <span className="truncate">{game.opponentName}</span>
+                <span className="min-w-0 flex-1 leading-tight">{game.opponentName}</span>
                 <SideClock game={game} side="opponent" />
               </button>
             </div>

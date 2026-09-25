@@ -58,6 +58,45 @@ export function woundEffects(input: {
   woundsNow: number;
   battleShocked: boolean;
 }): WoundEffect[] {
+  const enemyKey = input.enemy
+    ? input.enemy.units
+        .map((unit) => {
+          const st = input.unitState[unit.id];
+          return st && !st.destroyed && st.modelsRemaining > 0 ? unit.unitId : "";
+        })
+        .join(",")
+    : "";
+  const key = [
+    input.unit.id,
+    input.woundsNow,
+    input.state.belowStarting ? 1 : 0,
+    input.state.belowHalf ? 1 : 0,
+    input.battleShocked ? 1 : 0,
+    input.enhancementId ?? "",
+    input.roster.factionId,
+    input.roster.detachmentIds.join(","),
+    enemyKey,
+  ].join("|");
+  const hit = effectCache.get(key);
+  if (hit) return hit;
+  const effects = collectWoundEffects(input);
+  effectCache.set(key, effects);
+  if (effectCache.size > 500) effectCache.clear();
+  return effects;
+}
+
+const effectCache = new Map<string, WoundEffect[]>();
+
+function collectWoundEffects(input: {
+  unit: UnitDef;
+  roster: Roster;
+  enemy: Roster | null;
+  unitState: Record<string, UnitBattleState>;
+  enhancementId?: string;
+  state: StrengthState;
+  woundsNow: number;
+  battleShocked: boolean;
+}): WoundEffect[] {
   const { state, unit, woundsNow } = input;
   if (woundsNow <= 0) return [];
   const effects: WoundEffect[] = [];

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { getSupabase } from "@/lib/supabase";
 import { useSupabaseConfig, useSupabaseSession } from "@/lib/use-supabase-session";
 import { useWarStore, hydrateWarStore } from "@/lib/store";
+import { useCodexSync } from "@/lib/codex-sync";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -20,6 +21,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const activeGameId = useWarStore((s) => s.activeGameId);
+  useCodexSync((s) => s.revision);
 
   useEffect(() => {
     void hydrateWarStore();

@@ -20,18 +20,7 @@ function Login() {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
   if (!config) return <ConnectProject />;
-  if (session.userId) {
-    return (
-      <main className="mx-auto w-full max-w-sm space-y-4 py-6">
-        <h1 className="font-display text-2xl font-semibold">Signed in</h1>
-        <p className="text-sm text-muted-foreground">{session.email} is connected. Lists save to Supabase from this browser.</p>
-        <Button asChild className="w-full">
-          <Link to="/">Back to lists</Link>
-        </Button>
-      </main>
-    );
-  }
-  return <SupabaseSignIn />;
+  return <SupabaseSignIn signedIn={Boolean(session.userId)} email={session.email} />;
 }
 
 function ConnectProject() {
@@ -108,29 +97,146 @@ function ConnectProject() {
   );
 }
 
-function SupabaseSignIn() {
+function recoveryRedirect() {
+  const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  return `${window.location.origin}${base}/login`;
+}
+
+function SupabaseSignIn({ signedIn, email: signedInEmail }: { signedIn: boolean; email: string | null }) {
+  const [mode, setMode] = useState<"in" | "forgot" | "reset">("in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(mode: "in" | "up") {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) setMode("reset");
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setMode("reset");
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  async function submit(kind: "in" | "up") {
     const supabase = getSupabase();
     if (!supabase) return;
     setBusy(true);
     setError("");
     setNotice("");
     const credentials = { email: email.trim(), password };
-    const result = mode === "in" ? await supabase.auth.signInWithPassword(credentials) : await supabase.auth.signUp(credentials);
+    const result = kind === "in" ? await supabase.auth.signInWithPassword(credentials) : await supabase.auth.signUp(credentials);
     setBusy(false);
     if (result.error) {
       setError(result.error.message);
       return;
     }
-    if (mode === "up" && !result.data.session) {
+    if (kind === "up" && !result.data.session) {
       setNotice("Check your email to confirm the account, then sign in.");
     }
+  }
+
+  async function sendReset() {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const result = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: recoveryRedirect() });
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setNotice("Check your email for a link to set a new password.");
+  }
+
+  async function savePassword() {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    if (password !== confirm) {
+      setError("Those passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    const result = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    setPassword("");
+    setConfirm("");
+    setMode("in");
+    setNotice("Password updated. You are signed in.");
+  }
+
+  if (signedIn && mode !== "reset") {
+    return (
+      <main className="mx-auto w-full max-w-sm space-y-4 py-6">
+        <h1 className="font-display text-2xl font-semibold">Signed in</h1>
+        <p className="text-sm text-muted-foreground">{signedInEmail} is connected. Lists save to Supabase from this browser.</p>
+        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+        <Button asChild className="w-full">
+          <Link to="/">Back to lists</Link>
+        </Button>
+      </main>
+    );
+  }
+
+  if (mode === "forgot") {
+    return (
+      <main className="mx-auto w-full max-w-sm space-y-4 py-6">
+        <div>
+          <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Supabase</p>
+          <h1 className="font-display mt-1 text-2xl font-semibold">Reset password</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Enter the email on the account. A link will let you choose a new password.</p>
+        </div>
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">Email</span>
+          <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+        </label>
+        {error ? <p className="text-sm text-blood">{error}</p> : null}
+        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+        <Button type="button" className="w-full" disabled={busy || !email.trim()} onClick={() => void sendReset()}>
+          Send reset link
+        </Button>
+        <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => { setMode("in"); setError(""); setNotice(""); }}>
+          Back to sign in
+        </button>
+      </main>
+    );
+  }
+
+  if (mode === "reset") {
+    return (
+      <main className="mx-auto w-full max-w-sm space-y-4 py-6">
+        <div>
+          <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Supabase</p>
+          <h1 className="font-display mt-1 text-2xl font-semibold">New password</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Choose a new password for this account.</p>
+        </div>
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">New password</span>
+          <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" minLength={6} required />
+        </label>
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted-foreground">Confirm password</span>
+          <Input type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={6} required />
+        </label>
+        {error ? <p className="text-sm text-blood">{error}</p> : null}
+        <Button type="button" className="w-full" disabled={busy || password.length < 6} onClick={() => void savePassword()}>
+          Save password
+        </Button>
+      </main>
+    );
   }
 
   return (
@@ -163,6 +269,9 @@ function SupabaseSignIn() {
       <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => void submit("up")}>
         Create account
       </Button>
+      <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => { setMode("forgot"); setError(""); setNotice(""); }}>
+        Forgot password?
+      </button>
       <button
         type="button"
         className="text-sm text-muted-foreground underline-offset-4 hover:underline"

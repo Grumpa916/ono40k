@@ -1,7 +1,6 @@
 import { ChevronLeft } from "lucide-react";
-import { useMemo, useState } from "react";
-import { BattleMap } from "@/components/BattleMap";
-import { MapSetup } from "@/components/MapSetup";
+import { useEffect, useMemo, useState } from "react";
+import { DispositionLayouts } from "@/components/DispositionLayouts";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { RuleFold } from "@/components/RuleFold";
@@ -57,7 +56,6 @@ export function PreBattleForm({
   onStart: (briefing: PreBattle, scores: { me: SideScore; opponent: SideScore }) => void;
 }) {
   const [brief, setBrief] = useState<PreBattle>(defaultPreBattle);
-  const [mapOpen, setMapOpen] = useState(false);
   const [meScore, setMeScore] = useState<ScoreDraft>(emptyDraft);
   const [themScore, setThemScore] = useState<ScoreDraft>(emptyDraft);
 
@@ -70,7 +68,10 @@ export function PreBattleForm({
   const theirCopies = useMemo(() => unitCopyMarks(theirs.units), [theirs.units]);
 
   const maps = layoutsFor(rosterDisposition(mine), rosterDisposition(theirs));
-  const selectedMap = getMap(brief.mapId);
+  const mapKey = maps.map((layout) => layout.id).join("|");
+  useEffect(() => {
+    setBrief((prev) => (prev.mapId && !mapKey.split("|").includes(prev.mapId) ? { ...prev, mapId: null } : prev));
+  }, [mapKey]);
   const secondariesReady = (d: ScoreDraft) =>
     d.mode === "tactical" || (d.mode === "fixed" && d.fixedIds.length === 2);
   const ready = secondariesReady(meScore) && secondariesReady(themScore) && Boolean(brief.mapId || maps.length === 0);
@@ -163,65 +164,12 @@ export function PreBattleForm({
 
       <section className="space-y-2">
         <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">3 · Battlefield</p>
-        {maps.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Set force dispositions on both lists to load the three Event Companion maps for this pairing.</p>
-        ) : (
-          <>
-            <p className="text-xs text-muted-foreground">
-              {rosterDisposition(mine)} vs {rosterDisposition(theirs)} · 44×60 · pick Layout A, B, or C. Roll D3 if the organiser has not locked one.
-            </p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {maps.map((layout) => {
-                const on = brief.mapId === layout.id;
-                return (
-                  <button
-                    key={layout.id}
-                    type="button"
-                    onClick={() => setBrief((p) => ({ ...p, mapId: layout.id }))}
-                    className={cn(
-                      "min-w-0 rounded-lg border p-1.5 text-left",
-                      on ? "border-primary bg-accent" : "border-border bg-card",
-                    )}
-                  >
-                    <BattleMap layout={layout} compact />
-                    <p className="mt-1 truncate text-[11px] font-medium leading-tight">{layout.letter}</p>
-                    <p className="truncate text-[10px] leading-tight text-muted-foreground">{layout.name.replace(/^Layout [ABC] · /, "")}</p>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  const pick = maps[Math.floor(Math.random() * maps.length)];
-                  if (pick) setBrief((p) => ({ ...p, mapId: pick.id }));
-                }}
-              >
-                Roll D3
-              </Button>
-              <Button type="button" variant="outline" disabled={!selectedMap} onClick={() => setMapOpen(true)}>
-                Full map
-              </Button>
-            </div>
-            {selectedMap ? (
-              <p className="text-[11px] text-muted-foreground">
-                {selectedMap.name}. Open the full map to measure terrain before you start.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Select a map to continue.</p>
-            )}
-            {mapOpen && selectedMap ? (
-              <MapSetup
-                layout={selectedMap}
-                layouts={maps}
-                onPick={(id) => setBrief((p) => ({ ...p, mapId: id }))}
-                onClose={() => setMapOpen(false)}
-              />
-            ) : null}
-          </>
-        )}
+        <DispositionLayouts
+          layouts={maps}
+          mapId={brief.mapId}
+          pairing={`${rosterDisposition(mine) ?? "—"} vs ${rosterDisposition(theirs) ?? "—"}`}
+          onPick={(id) => setBrief((prev) => ({ ...prev, mapId: id }))}
+        />
         <Input
           value={brief.terrainNote}
           onChange={(e) => setBrief((p) => ({ ...p, terrainNote: e.target.value }))}

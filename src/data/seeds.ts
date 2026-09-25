@@ -16,8 +16,8 @@ export const SEED_LISTS: Roster[] = [
     createdAt: 1,
     updatedAt: 1,
     units: [
-      { id: "u1", unitId: "um-guilliman", models: 1, points: 415, warlord: true },
-      { id: "u2", unitId: "um-tigurius", models: 1, points: 115 },
+      { id: "u1", unitId: "um-guilliman", models: 1, points: 355, warlord: true },
+      { id: "u2", unitId: "um-tigurius", models: 1, points: 85 },
       { id: "u3", unitId: "um-titus", models: 1, points: 90 },
       { id: "u4", unitId: "um-intercessors", models: 10, points: 150 },
       { id: "u5", unitId: "um-intercessors", models: 5, points: 80 },

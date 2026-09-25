@@ -32,8 +32,8 @@ const uniqueUnits: UnitDef[] = [
     "um-guilliman",
     "Roboute Guilliman",
     "character",
-    415,
-    { m: 8, t: 10, sv: 2, w: 16, ld: 5, oc: 4 },
+    355,
+    { m: 8, t: 9, sv: 2, w: 10, ld: 5, oc: 4 },
     ["Monster", "Character", "Epic Hero", "Imperium", "Primarch", "Mobile", "Ultramarines", "Adeptus Astartes"],
     {
       inv: 4,
@@ -89,8 +89,8 @@ const uniqueUnits: UnitDef[] = [
     "um-tigurius",
     "Chief Librarian Tigurius",
     "character",
-    115,
-    { m: 6, t: 5, sv: 3, w: 4, ld: 5, oc: 1 },
+    85,
+    { m: 6, t: 4, sv: 3, w: 4, ld: 6, oc: 1 },
     ["Infantry", "Character", "Epic Hero", "Psyker", "Grenades", "Imperium", "Tacticus", "Ultramarines", "Adeptus Astartes"],
     {
       inv: 4,
@@ -110,8 +110,8 @@ const uniqueUnits: UnitDef[] = [
     "um-sicarius",
     "Cato Sicarius",
     "character",
-    115,
-    { m: 6, t: 5, sv: 2, w: 5, ld: 6, oc: 1 },
+    105,
+    { m: 6, t: 4, sv: 2, w: 5, ld: 6, oc: 1 },
     [...KW_UM_CHAR.slice(0, 4), "Captain", ...KW_UM_CHAR.slice(4)],
     {
       inv: 4,
@@ -171,7 +171,7 @@ const uniqueUnits: UnitDef[] = [
       { id: "um-victrix-blades", name: "Chapter Champion — Blades of honour", points: 10, group: "extra", text: "One model replaces its bolt carbine with Blades of honour." },
     ],
   }),
-  u("um-wardens", "Wardens of Ultramar", "infantry", 90, { m: 6, t: 5, sv: 3, w: 3, ld: 6, oc: 2 }, [
+  u("um-wardens", "Wardens of Ultramar", "infantry", 120, { m: 6, t: 5, sv: 3, w: 3, ld: 6, oc: 2 }, [
     "Infantry",
     "Epic Hero",
     "Grenades",
@@ -180,7 +180,7 @@ const uniqueUnits: UnitDef[] = [
     "Ultramarines",
     "Adeptus Astartes",
   ], {
-    sizes: [[6, 90]],
+    sizes: [[6, 120]],
     r: [
       w("Bolt rifle", "ranged", 24, 2, 3, 5, -1, 1, ["Assault", "Rapid Fire 1"]),
       w("Astropathic blast", "ranged", 18, "D6", 3, 5, -1, 1, ["Blast", "Psychic"]),
@@ -203,7 +203,7 @@ const uniqueDets: Detachment[] = detPack("um", [
     tag: "blade",
     rule: a(
       "Mastered Doctrines",
-      "At the start of your Command phase you can select one Combat Doctrine (Devastator: ranged weapons have Assault; Tactical: shoot and charge after Fall Back; Assault: charge after Advance). You can select each Doctrine once per battle, or twice if a friendly Marneus Calgar or Roboute Guilliman model is on the battlefield.",
+      "At the start of your Command phase you can select one Combat Doctrine (Devastator: ranged weapons have Assault; Tactical: shoot and charge after Fall Back; Assault: charge after Advance). You can select each Doctrine once per battle, or one Doctrine a second time if Marneus Calgar is on the battlefield. Roboute Guilliman has all three active on his datasheet.",
     ),
     strats: [
       { id: "um-blade-foresight", name: "Tactical Foresight", cp: 1, when: "Opponent shooting or Fight", text: "Until the end of the phase, each time an attack targets one Adeptus Astartes unit, if the attack's Strength is greater than or equal to that unit's Toughness, subtract 1 from the Wound roll." },
@@ -252,8 +252,9 @@ export const ultramarines: Faction = {
   accent: "#0038a8",
   rule: a(
     "Combat Doctrines",
-    "At the start of your Command phase, select one Combat Doctrine. Until your next Command phase it applies to all Adeptus Astartes units from your army. Devastator: ranged weapons have Assault. Tactical: eligible to shoot and charge after Falling Back. Assault: eligible to charge after Advancing. You can select each Doctrine once per battle (twice if a friendly Marneus Calgar or Roboute Guilliman model is on the battlefield). A unit can only have one Doctrine active unless a rule says otherwise.",
+    "At the start of your Command phase, select one Combat Doctrine. Until your next Command phase it applies to all Adeptus Astartes units from your army. Devastator: ranged weapons have Assault. Tactical: eligible to shoot and charge after Falling Back. Assault: eligible to charge after Advancing. You can select each Doctrine once per battle, or one Doctrine a second time if Marneus Calgar is on the battlefield. Roboute Guilliman has all three Doctrines active at all times. A unit can only have one Doctrine active unless a rule says otherwise.",
   ),
   detachments: [...uniqueDets, ...coreDets],
   units: [...uniqueUnits, ...coreUnits],
+  updatedAt: "2026-09-25",
 };

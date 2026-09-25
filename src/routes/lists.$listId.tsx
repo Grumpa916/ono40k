@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronDown, Minus, Plus, Save, Search, Star, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Plus, Save, Search, Star, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Datasheet } from "@/components/Datasheet";
@@ -11,13 +11,14 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { getDetachment, getFaction, getUnit } from "@/data/codex";
+import { getDetachment, getFaction, getUnit, withCodexPatches } from "@/data/codex";
 import { DISPOSITIONS, missionFor } from "@/data/missions";
 import { BATTLE_SIZES, type Disposition, type UnitDef, type UnitRole } from "@/data/types";
-import { resolvedWargearIds, rosterLoadout, setWargearGroup, wargearGroups } from "@/data/wargear";
+import { isDefaultWargearName, resolvedWargearIds, rosterLoadout, setWargearGroup, wargearGroups } from "@/data/wargear";
 import { encodeRoster } from "@/lib/share";
 import { outgoingShares, revokeShare, shareList, type OutgoingShare } from "@/lib/list-shares";
 import { useWarStore } from "@/lib/store";
+import { useCodexSync } from "@/lib/codex-sync";
 import { rosterDp, rosterPoints, unitTotalPoints, validateRoster } from "@/lib/validation";
 import { cn, roleLabel, unitCopyMarks } from "@/lib/utils";
 
@@ -44,14 +45,18 @@ function ListBuilder() {
   const toggleFavorite = useWarStore((s) => s.toggleFavorite);
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [pending, setPending] = useState<Record<string, number>>({});
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [detOpen, setDetOpen] = useState<Record<string, boolean>>({});
+  const [detsOpen, setDetsOpen] = useState(false);
   const [oppDisp, setOppDisp] = useState<Disposition | null>(null);
   const [shareEmail, setShareEmail] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [outgoing, setOutgoing] = useState<OutgoingShare[]>([]);
-  const faction = list ? getFaction(list.factionId) : undefined;
+  const revision = useCodexSync((s) => s.revision);
+  const faction = useMemo(() => {
+    const base = list ? getFaction(list.factionId) : undefined;
+    return base ? withCodexPatches(base) : undefined;
+  }, [list, revision]);
   const copies = useMemo(() => (list ? unitCopyMarks(list.units) : {}), [list]);
 
   const catalogSections = useMemo(() => {
@@ -115,6 +120,9 @@ function ListBuilder() {
   const enhancements = selectedDets.flatMap((d) => d!.enhancements);
   const inspectRu = inspectId ? list.units.find((u) => u.id === inspectId) : undefined;
   const inspectUnit = inspectRu ? getUnit(list.factionId, inspectRu.unitId) : undefined;
+  const gearGroups = inspectUnit
+    ? wargearGroups(inspectUnit).filter((group) => group.id !== "loadout" || group.options.some((opt) => !isDefaultWargearName(opt.name)))
+    : [];
 
   const unitCard = (ru: (typeof list.units)[number]) => {
     const def = getUnit(list.factionId, ru.unitId);
@@ -122,12 +130,8 @@ function ListBuilder() {
     const total = unitTotalPoints(list, ru);
     const loadout = rosterLoadout(def, ru.wargearIds);
     const enh = ru.enhancementId ? enhancements.find((e) => e.id === ru.enhancementId) : undefined;
-    const hosts =
-      def.role === "character" && def.leaderOf?.length
-        ? list.units.filter((other) => other.id !== ru.id && (def.leaderOf!.includes(other.unitId) || other.id === ru.attachedTo))
-        : [];
     const facts = [ru.models > 1 ? `${ru.models} models` : null, enh?.name, loadout, ru.notes].filter(Boolean).join(" · ");
-    const hasControls = def.role === "character" || (def.sizes?.length ?? 0) > 1 || hosts.length > 0;
+    const leader = list.units.find((other) => other.attachedTo === ru.id);
     return (
       <div className="min-w-0 rounded-lg border border-border bg-card px-2.5 py-1.5">
         <div className="flex min-w-0 items-center gap-1.5">
@@ -145,86 +149,14 @@ function ListBuilder() {
             {facts}
           </button>
         ) : null}
-        {hasControls ? (
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {def.role === "character" ? (
-              <Button
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                variant={ru.warlord ? "default" : "outline"}
-                onClick={() => {
-                  useWarStore.setState({
-                    lists: useWarStore.getState().lists.map((l) =>
-                      l.id === list.id ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === ru.id })) } : l,
-                    ),
-                  });
-                }}
-              >
-                WL
-              </Button>
-            ) : null}
-            {enhancements.length > 0 && def.role === "character" ? (
-              <Select
-                value={ru.enhancementId ?? "none"}
-                onValueChange={(v) => updateUnit(list.id, ru.id, { enhancementId: v === "none" ? undefined : v })}
-              >
-                <SelectTrigger className="h-7 w-[8.5rem] shrink-0 px-2 text-[11px]">
-                  <SelectValue placeholder="Enhancement" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No enhancement</SelectItem>
-                  {enhancements.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.name} +{e.points}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            {def.sizes && def.sizes.length > 1 ? (
-              <Select
-                value={String(ru.models)}
-                onValueChange={(v) => {
-                  const sizeOpt = def.sizes!.find((s) => s.models === Number(v));
-                  if (sizeOpt) updateUnit(list.id, ru.id, { models: sizeOpt.models, points: sizeOpt.points });
-                }}
-              >
-                <SelectTrigger className="h-7 w-[5.5rem] shrink-0 px-2 text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {def.sizes.map((s) => (
-                    <SelectItem key={s.models} value={String(s.models)}>
-                      {s.models} · {s.points}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            {hosts.length > 0 ? (
-              <Select
-                value={ru.attachedTo ?? "none"}
-                onValueChange={(v) => updateUnit(list.id, ru.id, { attachedTo: v === "none" ? undefined : v })}
-              >
-                <SelectTrigger className="h-7 w-[9.5rem] shrink-0 px-2 text-[11px]">
-                  <SelectValue placeholder="Bodyguard" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No bodyguard</SelectItem>
-                  {hosts.map((host) => {
-                    const hostDef = getUnit(list.factionId, host.unitId);
-                    const mark = copies[host.id] ? ` [${copies[host.id]}]` : "";
-                    return (
-                      <SelectItem key={host.id} value={host.id}>
-                        {hostDef?.name ?? "Unit"}
-                        {mark}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            ) : null}
-          </div>
+        {leader ? (
+          <button
+            type="button"
+            className="mt-1 text-[11px] tracking-wide text-muted-foreground uppercase"
+            onClick={() => updateUnit(list.id, leader.id, { attachedTo: undefined })}
+          >
+            Detach
+          </button>
         ) : null}
       </div>
     );
@@ -255,23 +187,47 @@ function ListBuilder() {
           >
             <Save className="size-4" /> Save
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              const code = encodeRoster(list);
-              await navigator.clipboard.writeText(code);
-              toast("Share code copied");
-            }}
-          >
-            Copy code
-          </Button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-card p-3">
-        <p className="text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase">Share with a player</p>
-        <p className="mt-1 text-xs text-muted-foreground">They must already have an Ono40k account. They receive this list only.</p>
+      <div className="sticky top-14 z-20 -mx-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <p className={cn("min-w-0 flex-1 truncate font-mono text-sm tabular-nums", errors.length > 0 && "text-blood")}>
+            {pts}/{size.points} · {dp}/{size.dp} DP · {errors[0]?.text ?? "Legal"}
+          </p>
+          <Select
+            value={list.battleSize}
+            onValueChange={(v) =>
+              updateList(list.id, {
+                battleSize: v as "incursion" | "strike",
+                pointsLimit: BATTLE_SIZES[v as "incursion" | "strike"].points,
+              })
+            }
+          >
+            <SelectTrigger className="h-8 w-[7.5rem] shrink-0 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="incursion">1000</SelectItem>
+              <SelectItem value="strike">2000</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <RuleFold kicker="Share" title="Copy a code or send this list">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            const code = encodeRoster(list);
+            await navigator.clipboard.writeText(code);
+            toast("Share code copied");
+          }}
+        >
+          Copy code
+        </Button>
+        <p className="text-xs text-muted-foreground">They must already have an Ono40k account. They receive this list only.</p>
         <form
           className="mt-2 flex flex-wrap items-center gap-2"
           onSubmit={async (event) => {
@@ -324,56 +280,29 @@ function ListBuilder() {
             ))}
           </ul>
         ) : null}
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="p-4">
-          <Label>Battle size</Label>
-          <Select
-            value={list.battleSize}
-            onValueChange={(v) =>
-              updateList(list.id, {
-                battleSize: v as "incursion" | "strike",
-                pointsLimit: BATTLE_SIZES[v as "incursion" | "strike"].points,
-              })
-            }
-          >
-            <SelectTrigger className="mt-2">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="incursion">Incursion 1000</SelectItem>
-              <SelectItem value="strike">Strike Force 2000</SelectItem>
-            </SelectContent>
-          </Select>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Points</p>
-          <p className={cn("mt-2 font-mono text-2xl tabular-nums", pts > size.points && "text-blood")}>
-            {pts}
-            <span className="text-sm text-muted-foreground">/{size.points}</span>
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">Detachment points</p>
-          <p className={cn("mt-2 font-mono text-2xl tabular-nums", dp > size.dp && "text-blood")}>
-            {dp}
-            <span className="text-sm text-muted-foreground">/{size.dp} DP</span>
-          </p>
-        </Card>
-      </div>
+      </RuleFold>
 
       <section>
-        <h2 className="font-display text-lg font-semibold">Detachments</h2>
-        <div className="mt-2 mb-3 space-y-1.5">
-          <p className="px-0.5 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Army abilities</p>
-          <RuleFold kicker="Army rule" title={faction.rule.name} text={faction.rule.text} />
-          {selectedDets.map((d) => (
-            <RuleFold key={`rule-${d!.id}`} kicker={d!.name} title={d!.rule.name} text={d!.rule.text} />
-          ))}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-semibold">Detachments</h2>
+          {selectedDets.length > 0 ? (
+            <Button size="sm" variant="outline" onClick={() => setDetsOpen((open) => !open)}>
+              {detsOpen ? "Show selected" : "Add detachment"}
+            </Button>
+          ) : null}
         </div>
-        <ul className="grid grid-cols-2 items-start gap-1">
-          {faction.detachments.map((d) => {
+        <RuleFold kicker="Rules" title={faction.rule.name} text={faction.rule.text}>
+          {selectedDets.map((d) => (
+            <p key={`rule-${d!.id}`} className="text-sm leading-relaxed">
+              <span className="font-medium">{d!.rule.name}. </span>
+              <span className="text-muted-foreground">{d!.rule.text}</span>
+            </p>
+          ))}
+        </RuleFold>
+        <ul className="mt-2 grid grid-cols-2 items-start gap-1">
+          {faction.detachments
+            .filter((d) => detsOpen || selectedDets.length === 0 || list.detachmentIds.includes(d.id))
+            .map((d) => {
             const on = list.detachmentIds.includes(d.id);
             const expanded = detOpen[d.id] === true;
             const over = !on && dp + d.dp > size.dp;
@@ -586,10 +515,7 @@ function ListBuilder() {
         open={addOpen}
         onOpenChange={(open) => {
           setAddOpen(open);
-          if (!open) {
-            setQuery("");
-            setPending({});
-          }
+          if (!open) setQuery("");
         }}
       >
         <SheetContent side="bottom" className="h-[88vh]">
@@ -612,71 +538,32 @@ function ListBuilder() {
                   </h3>
                   <ul className="space-y-2">
                     {section.units.map((u) => {
-                      const n = pending[u.id] ?? 0;
                       const epic = u.keywords.includes("Epic Hero");
                       const owned = list.units.filter((ru) => ru.unitId === u.id).length;
-                      const atCap = epic && owned + n >= 1;
-                      const takeOne = () => {
-                        if (atCap) {
-                          toast("Only one copy of an Epic Hero.");
-                          return;
-                        }
-                        setPending((p) => ({ ...p, [u.id]: (p[u.id] ?? 0) + 1 }));
-                      };
                       return (
                         <li key={u.id}>
-                          <div
-                            className={cn(
-                              "flex w-full items-center gap-2 rounded-lg border px-2 py-2",
-                              n > 0 ? "border-primary bg-accent" : "border-border bg-background",
-                            )}
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-lg border border-border bg-background px-2 py-2 text-left"
+                            onClick={() => {
+                              if (epic && owned >= 1) {
+                                toast("Only one copy of an Epic Hero.");
+                                return;
+                              }
+                              addSized(u, list.id, addUnit);
+                            }}
                           >
-                            <button
-                              type="button"
-                              className="min-w-0 flex-1 text-left"
-                              onClick={takeOne}
-                            >
+                            <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium">{u.name}</span>
                               <span className="text-xs text-muted-foreground">
                                 {u.sizes && u.sizes.length > 1
                                   ? `${u.sizes[0].models}–${u.sizes[u.sizes.length - 1].models} models`
                                   : roleLabel(u.role)}
                               </span>
-                            </button>
+                            </span>
                             <span className="shrink-0 font-mono text-sm tabular-nums">{u.points}</span>
-                            {n > 0 ? (
-                              <div className="flex shrink-0 items-center gap-0.5">
-                                <Button
-                                  size="icon-sm"
-                                  variant="outline"
-                                  aria-label={`Remove ${u.name}`}
-                                  onClick={() =>
-                                    setPending((p) => {
-                                      const next = { ...p, [u.id]: Math.max(0, (p[u.id] ?? 0) - 1) };
-                                      if (next[u.id] === 0) delete next[u.id];
-                                      return next;
-                                    })
-                                  }
-                                >
-                                  <Minus className="size-4" />
-                                </Button>
-                                <span className="w-6 text-center font-mono text-sm tabular-nums">{n}</span>
-                                <Button
-                                  size="icon-sm"
-                                  variant="outline"
-                                  aria-label={`Add another ${u.name}`}
-                                  disabled={atCap}
-                                  onClick={takeOne}
-                                >
-                                  <Plus className="size-4" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <span className="flex size-7 items-center justify-center rounded-sm border border-border">
-                                <Check className="size-3.5 opacity-0" />
-                              </span>
-                            )}
-                          </div>
+                            <Plus className="size-4 shrink-0 text-muted-foreground" />
+                          </button>
                         </li>
                       );
                     })}
@@ -685,43 +572,6 @@ function ListBuilder() {
               ))
             )}
           </div>
-          {Object.values(pending).reduce((a, b) => a + b, 0) > 0 ? (
-            <div className="flex items-center gap-2 border-t border-border px-5 py-3">
-              <p className="min-w-0 flex-1 text-sm">
-                {Object.values(pending).reduce((a, b) => a + b, 0)} selected
-                <span className="text-muted-foreground">
-                  {" · "}
-                  {Object.entries(pending).reduce((sum, [id, n]) => {
-                    const u = faction.units.find((x) => x.id === id);
-                    return sum + n * (u?.points ?? 0);
-                  }, 0)}{" "}
-                  pts
-                </span>
-              </p>
-              <Button
-                onClick={() => {
-                  let added = 0;
-                  for (const [id, n] of Object.entries(pending)) {
-                    const u = faction.units.find((x) => x.id === id);
-                    if (!u) continue;
-                    const epic = u.keywords.includes("Epic Hero");
-                    const owned = list.units.filter((ru) => ru.unitId === u.id).length;
-                    const count = epic ? Math.min(n, Math.max(0, 1 - owned)) : n;
-                    for (let i = 0; i < count; i++) {
-                      addSized(u, list.id, addUnit);
-                      added += 1;
-                    }
-                  }
-                  toast(`Added ${added} ${added === 1 ? "unit" : "units"}`);
-                  setPending({});
-                }}
-              >
-                Add to list
-              </Button>
-            </div>
-          ) : (
-            <p className="border-t border-border px-5 py-3 text-sm text-muted-foreground">Tap datasheets to select several, then add them together.</p>
-          )}
         </SheetContent>
       </Sheet>
 
@@ -733,40 +583,129 @@ function ListBuilder() {
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
             {inspectUnit && inspectRu ? (
               <>
-                <Datasheet unit={inspectUnit} accent={faction.accent} points={unitTotalPoints(list, inspectRu)} />
+                <Datasheet unit={inspectUnit} accent={faction.accent} points={unitTotalPoints(list, inspectRu)} wargearIds={inspectRu.wargearIds ?? []} />
                 <div className="space-y-3 rounded-xl border border-border bg-card p-4">
-                  <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Wargear</p>
-                  {wargearGroups(inspectUnit).map((group) => {
-                    const current = resolvedWargearIds(inspectUnit, inspectRu.wargearIds).find((id) =>
-                      group.options.some((opt) => opt.id === id),
-                    );
-                    return (
-                      <div key={group.id} className="space-y-1.5">
-                        <Label>{group.label}</Label>
-                        <Select
-                          value={current ?? group.options[0]?.id}
-                          onValueChange={(v) =>
-                            updateUnit(list.id, inspectRu.id, {
-                              wargearIds: setWargearGroup(inspectUnit, inspectRu.wargearIds, group.id, v),
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {group.options.map((opt) => (
-                              <SelectItem key={opt.id} value={opt.id}>
-                                {opt.name}
-                                {opt.points ? ` +${opt.points}` : " · 0 pts"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  })}
+                  {inspectUnit.role === "character" ? (
+                    <Button
+                      size="sm"
+                      variant={inspectRu.warlord ? "default" : "outline"}
+                      onClick={() => {
+                        useWarStore.setState({
+                          lists: useWarStore.getState().lists.map((l) =>
+                            l.id === list.id ? { ...l, units: l.units.map((u) => ({ ...u, warlord: u.id === inspectRu.id })) } : l,
+                          ),
+                        });
+                      }}
+                    >
+                      {inspectRu.warlord ? "Warlord" : "Make warlord"}
+                    </Button>
+                  ) : null}
+                  {enhancements.length > 0 && inspectUnit.role === "character" ? (
+                    <div className="space-y-1.5">
+                      <Label>Enhancement</Label>
+                      <Select
+                        value={inspectRu.enhancementId ?? "none"}
+                        onValueChange={(v) => updateUnit(list.id, inspectRu.id, { enhancementId: v === "none" ? undefined : v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Enhancement" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No enhancement</SelectItem>
+                          {enhancements.map((e) => (
+                            <SelectItem key={e.id} value={e.id}>
+                              {e.name} +{e.points}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  {inspectUnit.sizes && inspectUnit.sizes.length > 1 ? (
+                    <div className="space-y-1.5">
+                      <Label>Squad size</Label>
+                      <Select
+                        value={String(inspectRu.models)}
+                        onValueChange={(v) => {
+                          const sizeOpt = inspectUnit.sizes!.find((s) => s.models === Number(v));
+                          if (sizeOpt) updateUnit(list.id, inspectRu.id, { models: sizeOpt.models, points: sizeOpt.points });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {inspectUnit.sizes.map((s) => (
+                            <SelectItem key={s.models} value={String(s.models)}>
+                              {s.models} models · {s.points}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  {inspectUnit.role === "character" && !inspectRu.attachedTo
+                    ? (() => {
+                        const hosts = list.units.filter(
+                          (other) => other.id !== inspectRu.id && inspectUnit.leaderOf?.includes(other.unitId),
+                        );
+                        if (hosts.length === 0) return null;
+                        return (
+                          <div className="space-y-1.5">
+                            <Label>Bodyguard</Label>
+                            <Select onValueChange={(v) => updateUnit(list.id, inspectRu.id, { attachedTo: v })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Attach a bodyguard" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {hosts.map((host) => (
+                                  <SelectItem key={host.id} value={host.id}>
+                                    {getUnit(list.factionId, host.unitId)?.name ?? "Unit"}
+                                    {copies[host.id] ? ` [${copies[host.id]}]` : ""}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })()
+                    : null}
                 </div>
+                {gearGroups.length > 0 ? (
+                  <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+                    <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">Wargear</p>
+                    {gearGroups.map((group) => {
+                      const current = resolvedWargearIds(inspectUnit, inspectRu.wargearIds).find((id) =>
+                        group.options.some((opt) => opt.id === id),
+                      );
+                      return (
+                        <div key={group.id} className="space-y-1.5">
+                          <Label>{group.label}</Label>
+                          <Select
+                            value={current ?? group.options[0]?.id}
+                            onValueChange={(v) =>
+                              updateUnit(list.id, inspectRu.id, {
+                                wargearIds: setWargearGroup(inspectUnit, inspectRu.wargearIds, group.id, v),
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {group.options.map((opt) => (
+                                <SelectItem key={opt.id} value={opt.id}>
+                                  {opt.name}
+                                  {opt.points ? ` +${opt.points}` : " · 0 pts"}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
                 <div className="space-y-1.5 rounded-xl border border-border bg-card p-4">
                   <Label htmlFor="unit-notes">Notes</Label>
                   <Textarea

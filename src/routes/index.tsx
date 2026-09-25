@@ -16,7 +16,7 @@ import { decodeRoster } from "@/lib/share";
 import { incomingShares, type IncomingShare } from "@/lib/list-shares";
 import { useWarStore } from "@/lib/store";
 import { useSupabaseConfig } from "@/lib/use-supabase-session";
-import { rosterPoints } from "@/lib/validation";
+import { rosterPoints, validateRoster } from "@/lib/validation";
 import { cn, battleElapsedMs, formatClock } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({ component: Home });
@@ -318,6 +318,7 @@ function ListCard({
 }) {
   const faction = getFaction(list.factionId);
   const pts = rosterPoints(list);
+  const illegal = validateRoster(list).find((issue) => issue.level === "error");
   return (
     <li className="min-w-0">
       <Card className="flex h-full min-w-0 flex-col overflow-hidden p-4" style={{ borderLeftWidth: 3, borderLeftColor: faction?.accent }}>
@@ -325,6 +326,11 @@ function ListCard({
           <Link to="/lists/$listId" params={{ listId: list.id }} className="min-w-0 flex-1">
             <p className="text-[11px] tracking-[0.14em] text-muted-foreground uppercase">{faction?.name}</p>
             <h2 className="font-display mt-0.5 truncate text-lg font-semibold">{list.name}</h2>
+            <p className={cn("mt-1 font-mono text-sm tabular-nums", illegal ? "text-blood" : "text-ok")}>
+              {pts}/{list.pointsLimit}
+              <span className="text-muted-foreground"> · </span>
+              {illegal ? illegal.text : "Legal"}
+            </p>
           </Link>
           <button
             type="button"
@@ -337,17 +343,14 @@ function ListCard({
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Badge variant="outline">{BATTLE_SIZES[list.battleSize].label}</Badge>
-          <Badge className="tabular-nums">
-            {pts}/{list.pointsLimit}
-          </Badge>
           {list.disposition ? <Badge>{list.disposition}</Badge> : null}
           <Badge variant="outline">{list.units.length} units</Badge>
           {list.saved === false ? <Badge variant="outline">Draft</Badge> : null}
         </div>
         <div className="mt-4 flex items-center gap-1">
           <Button size="sm" variant="secondary" asChild>
-            <Link to="/lists/$listId" params={{ listId: list.id }}>
-              Edit
+            <Link to="/setup" search={{ list: list.id }}>
+              Use in battle
             </Link>
           </Button>
           <Button size="icon-sm" variant="ghost" aria-label="Duplicate" onClick={onDuplicate}>

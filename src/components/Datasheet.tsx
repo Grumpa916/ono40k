@@ -1,4 +1,5 @@
 import type { UnitDef, Weapon } from "@/data/types";
+import { builtWeapons } from "@/data/wargear";
 import { Badge } from "@/components/ui/badge";
 import { cn, roleLabel } from "@/lib/utils";
 
@@ -36,14 +37,17 @@ export function Datasheet({
   compact,
   className,
   points,
+  wargearIds,
 }: {
   unit: UnitDef;
   accent?: string;
   compact?: boolean;
   className?: string;
   points?: number;
+  wargearIds?: string[];
 }) {
   const shownPts = points ?? unit.points;
+  const weapons = wargearIds ? builtWeapons(unit, wargearIds) : { ranged: unit.ranged, melee: unit.melee };
   return (
     <article
       className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}
@@ -70,7 +74,7 @@ export function Datasheet({
       </div>
       {!compact && (
         <>
-          {(unit.ranged.length > 0 || unit.melee.length > 0) && (
+          {(weapons.ranged.length > 0 || weapons.melee.length > 0) && (
             <div className="mt-3 px-4">
               <table className="w-full table-fixed text-left text-[11px]">
                 <colgroup>
@@ -94,10 +98,10 @@ export function Datasheet({
                   </tr>
                 </thead>
                 <tbody>
-                  {unit.ranged.map((w) => (
+                  {weapons.ranged.map((w) => (
                     <WeaponRow key={`r-${w.name}`} w={w} />
                   ))}
-                  {unit.melee.map((w) => (
+                  {weapons.melee.map((w) => (
                     <WeaponRow key={`m-${w.name}`} w={w} />
                   ))}
                 </tbody>

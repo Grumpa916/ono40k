@@ -1,5 +1,5 @@
 import { Minus, Plus, Skull } from "lucide-react";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { wargearSummary } from "@/data/wargear";
 import { getUnit } from "@/data/codex";
@@ -96,8 +96,8 @@ export function WoundStepper({
 function UnitStat({ label, value, alert }: { label: string; value: string | number; alert?: boolean }) {
   return (
     <div className="flex min-w-0 flex-col items-center rounded bg-muted px-[3px] py-[1px]">
-      <span className="text-[9.6px] leading-none tracking-wide text-muted-foreground uppercase">{label}</span>
-      <span className={cn("font-mono text-[13.2px] leading-tight font-semibold tabular-nums", alert && "text-blood")}>{value}</span>
+      <span className="text-[11.5px] leading-none tracking-wide text-muted-foreground uppercase">{label}</span>
+      <span className={cn("font-mono text-[15.8px] leading-tight font-semibold tabular-nums", alert && "text-blood")}>{value}</span>
     </div>
   );
 }
@@ -160,170 +160,230 @@ export function ArmyPanel({
     });
   }, [roster.units, roster.factionId, game.unitState]);
   const copies = useMemo(() => unitCopyMarks(roster.units), [roster.units]);
+  const enemyStamp = useMemo(() => {
+    let stamp = "";
+    for (const unit of enemy.units) {
+      const st = game.unitState[unit.id];
+      stamp += st && !st.destroyed && st.modelsRemaining > 0 ? unit.unitId : ".";
+    }
+    return stamp;
+  }, [enemy.units, game.unitState]);
 
   return (
     <ul className="space-y-2">
       {ordered.map((group) => (
         <li key={group.map((unit) => unit.id).join("-")} className={group.length > 1 ? "grid grid-cols-2 items-start gap-2" : undefined}>
           {group.map((ru) => {
-        const paired = group.length > 1;
-        const def = getUnit(roster.factionId, ru.unitId);
-        const st = game.unitState[ru.id];
-        if (!def || !st) return null;
-        const maxW = unitMaxWounds(def.stats.w);
-        const wounds = remainingWounds(st, maxW);
-        const applyWounds = (delta: number) => setUnitState(ru.id, patchWounds(ru, def, st, delta));
-        const extras = wargearSummary(def, ru.wargearIds)
-          .map((g) => g.name)
-          .join(" · ");
-        const level = strengthState({
-          modelsStart: ru.models,
-          modelsNow: st.destroyed ? 0 : st.modelsRemaining,
-          woundsMax: maxW,
-          woundsNow: wounds,
-          destroyed: st.destroyed,
-        });
-        const effects = woundEffects({
-          unit: def,
-          roster,
-          enemy,
-          unitState: game.unitState,
-          enhancementId: ru.enhancementId,
-          state: level,
-          woundsNow: wounds,
-          battleShocked: st.battleShocked,
-        });
-        const penalised = effects.some((e) => e.kind === "penalty");
-        const buffed = effects.some((e) => e.kind === "buff");
-        return (
-          <div
-            key={ru.id}
-            onClick={() => onOpen(def.id)}
-            className={cn(
-              "army-row min-w-0 cursor-pointer rounded-lg border border-border bg-card px-2.5 py-1.5",
-              st.destroyed && "opacity-50",
-              !st.destroyed && st.battleShocked && "border-blood/50 bg-blood/10",
-              !st.destroyed && !st.battleShocked && penalised && "border-blood/40 bg-blood/10",
-              !st.destroyed && !penalised && buffed && "border-ok/50 bg-ok/10",
-            )}
-          >
-            <div className="flex min-w-0 items-center gap-1.5">
-              <span className="min-w-0 truncate text-left text-sm font-medium leading-5">
-                {def.name}
-                {copies[ru.id] ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copies[ru.id]}]</span> : null}
-                {ru.warlord ? <span className="ml-1.5 text-[10px] tracking-widest uppercase text-steel">WL</span> : null}
-              </span>
-              <Button
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                variant={st.battleShocked ? "blood" : "outline"}
-                disabled={locked}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setUnitState(ru.id, { battleShocked: !st.battleShocked });
-                }}
-              >
-                BS
-              </Button>
-              <Button
-                size="sm"
-                className="h-7 shrink-0 px-2 text-[11px]"
-                variant={st.destroyed ? "secondary" : "outline"}
-                disabled={locked}
-                aria-label="Destroyed"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setUnitState(
-                    ru.id,
-                    st.destroyed
-                      ? { destroyed: false, modelsRemaining: ru.models, woundsOnCurrent: maxW }
-                      : { destroyed: true, modelsRemaining: 0, woundsOnCurrent: 0 },
-                  );
-                }}
-              >
-                <Skull className="size-3.5" />
-              </Button>
-            </div>
-            <div className={cn("mt-1 grid min-w-0 grid-cols-6 gap-[3px]", paired ? "w-full" : "w-[60%]")}>
-              <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
-              <UnitStat label="T" value={def.stats.t} />
-              <UnitStat label="SV" value={`${def.stats.sv}+`} />
-              <UnitStat label="W" value={wounds} alert={wounds < maxW} />
-              <UnitStat label="LD" value={`${def.stats.ld}+`} />
-              <UnitStat label="OC" value={def.stats.oc} />
-            </div>
-            {maxW > 1 || ru.models > 1 || maxW === 1 ? (
-              <div className="mt-1 flex flex-wrap items-center justify-end gap-1.5">
-                {maxW > 1 ? (
-                  <WoundStepper
-                    value={wounds}
-                    max={maxW}
-                    locked={locked}
-                    alert={penalised}
-                    label="Wounds"
-                    onDec={() => applyWounds(-1)}
-                    onInc={() => applyWounds(1)}
-                  />
-                ) : null}
-                {ru.models > 1 || maxW === 1 ? (
-                  <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
-                    <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
-                    <Button
-                      size="icon-sm"
-                      className="size-7"
-                      variant="outline"
-                      aria-label="Remove model"
-                      disabled={locked || st.destroyed || st.modelsRemaining <= 0}
-                      onClick={() => {
-                        const next = Math.max(0, st.modelsRemaining - 1);
-                        setUnitState(ru.id, {
-                          modelsRemaining: next,
-                          destroyed: next === 0,
-                          woundsOnCurrent: next === 0 ? 0 : maxW,
-                        });
-                      }}
-                    >
-                      <Minus className="size-3.5" />
-                    </Button>
-                    <span className="w-8 text-center font-mono text-xs tabular-nums">
-                      {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
-                    </span>
-                    <Button
-                      size="icon-sm"
-                      className="size-7"
-                      variant="outline"
-                      aria-label="Add model"
-                      disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
-                      onClick={() =>
-                        setUnitState(ru.id, {
-                          modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
-                          destroyed: false,
-                          woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
-                        })
-                      }
-                    >
-                      <Plus className="size-3.5" />
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            {extras || ru.notes ? (
-              <div className="mt-1 space-y-1">
-                {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
-                {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
-              </div>
-            ) : null}
-            {effects.length > 0 ? (
-              <p className={cn("mt-1 text-xs leading-4", penalised ? "text-blood" : "text-ok")}>
-                {effects.map((e) => `${e.name}: ${e.text}`).join(" · ")}
-              </p>
-            ) : null}
-          </div>
-        );
+            const def = getUnit(roster.factionId, ru.unitId);
+            const st = game.unitState[ru.id];
+            if (!def || !st) return null;
+            return (
+              <UnitCard
+                key={ru.id}
+                ru={ru}
+                def={def}
+                st={st}
+                paired={group.length > 1}
+                locked={locked}
+                copy={copies[ru.id]}
+                roster={roster}
+                enemy={enemy}
+                enemyStamp={enemyStamp}
+                unitState={game.unitState}
+                onOpen={onOpen}
+                setUnitState={setUnitState}
+              />
+            );
           })}
         </li>
       ))}
     </ul>
   );
 }
+
+const UnitCard = memo(function UnitCard({
+  ru,
+  def,
+  st,
+  paired,
+  locked,
+  copy,
+  roster,
+  enemy,
+  unitState,
+  onOpen,
+  setUnitState,
+}: {
+  ru: RosterUnit;
+  def: UnitDef;
+  st: UnitBattleState;
+  paired: boolean;
+  locked: boolean;
+  copy?: string;
+  roster: Roster;
+  enemy: Roster;
+  enemyStamp: string;
+  unitState: Game["unitState"];
+  onOpen: (unitId: string) => void;
+  setUnitState: (unitId: string, patch: Partial<UnitBattleState>) => void;
+}) {
+  const maxW = unitMaxWounds(def.stats.w);
+  const wounds = remainingWounds(st, maxW);
+  const applyWounds = (delta: number) => setUnitState(ru.id, patchWounds(ru, def, st, delta));
+  const extras = wargearSummary(def, ru.wargearIds)
+    .map((g) => g.name)
+    .join(" · ");
+  const level = strengthState({
+    modelsStart: ru.models,
+    modelsNow: st.destroyed ? 0 : st.modelsRemaining,
+    woundsMax: maxW,
+    woundsNow: wounds,
+    destroyed: st.destroyed,
+  });
+  const effects = woundEffects({
+    unit: def,
+    roster,
+    enemy,
+    unitState,
+    enhancementId: ru.enhancementId,
+    state: level,
+    woundsNow: wounds,
+    battleShocked: st.battleShocked,
+  });
+  const penalised = effects.some((e) => e.kind === "penalty");
+  const buffed = effects.some((e) => e.kind === "buff");
+  return (
+    <div
+      onClick={() => onOpen(ru.id)}
+      className={cn(
+        "army-row min-w-0 cursor-pointer rounded-lg border border-border bg-card px-2.5 py-1.5",
+        st.destroyed && "opacity-50",
+        !st.destroyed && st.battleShocked && "border-blood/50 bg-blood/10",
+        !st.destroyed && !st.battleShocked && penalised && "border-blood/40 bg-blood/10",
+        !st.destroyed && !penalised && buffed && "border-ok/50 bg-ok/10",
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 truncate text-left text-sm font-medium leading-5">
+          {def.name}
+          {copy ? <span className="ml-1.5 text-[10px] tracking-widest text-steel">[{copy}]</span> : null}
+          {ru.warlord ? <span className="ml-1.5 text-[10px] tracking-widest uppercase text-steel">WL</span> : null}
+        </span>
+        <Button
+          size="sm"
+          className="h-7 shrink-0 px-2 text-[11px]"
+          variant={st.battleShocked ? "blood" : "outline"}
+          disabled={locked}
+          onClick={(event) => {
+            event.stopPropagation();
+            setUnitState(ru.id, { battleShocked: !st.battleShocked });
+          }}
+        >
+          BS
+        </Button>
+        <Button
+          size="sm"
+          className="h-7 shrink-0 px-2 text-[11px]"
+          variant={st.destroyed ? "secondary" : "outline"}
+          disabled={locked}
+          aria-label="Destroyed"
+          onClick={(event) => {
+            event.stopPropagation();
+            setUnitState(
+              ru.id,
+              st.destroyed
+                ? { destroyed: false, modelsRemaining: ru.models, woundsOnCurrent: maxW }
+                : { destroyed: true, modelsRemaining: 0, woundsOnCurrent: 0 },
+            );
+          }}
+        >
+          <Skull className="size-3.5" />
+        </Button>
+      </div>
+      <div className={cn("mt-1 grid min-w-0 grid-cols-6 gap-[3px]", paired ? "w-full" : "w-[72%]")}>
+        <UnitStat label="M" value={typeof def.stats.m === "number" ? `${def.stats.m}"` : def.stats.m} />
+        <UnitStat label="T" value={def.stats.t} />
+        <UnitStat label="SV" value={`${def.stats.sv}+`} />
+        <UnitStat label="W" value={wounds} alert={wounds < maxW} />
+        <UnitStat label="LD" value={`${def.stats.ld}+`} />
+        <UnitStat label="OC" value={def.stats.oc} />
+      </div>
+      {maxW > 1 || ru.models > 1 || maxW === 1 ? (
+        <div className="mt-1 flex flex-wrap items-center justify-end gap-1.5">
+          {maxW > 1 ? (
+            <WoundStepper
+              value={wounds}
+              max={maxW}
+              locked={locked}
+              alert={penalised}
+              label="Wounds"
+              onDec={() => applyWounds(-1)}
+              onInc={() => applyWounds(1)}
+            />
+          ) : null}
+          {ru.models > 1 || maxW === 1 ? (
+            <div className="flex shrink-0 items-center gap-0.5" onClick={(event) => event.stopPropagation()}>
+              <span className="mr-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">Models</span>
+              <Button
+                size="icon-sm"
+                className="size-7"
+                variant="outline"
+                aria-label="Remove model"
+                disabled={locked || st.destroyed || st.modelsRemaining <= 0}
+                onClick={() => {
+                  const next = Math.max(0, st.modelsRemaining - 1);
+                  setUnitState(ru.id, {
+                    modelsRemaining: next,
+                    destroyed: next === 0,
+                    woundsOnCurrent: next === 0 ? 0 : maxW,
+                  });
+                }}
+              >
+                <Minus className="size-3.5" />
+              </Button>
+              <span className="w-8 text-center font-mono text-xs tabular-nums">
+                {st.destroyed ? 0 : st.modelsRemaining}/{ru.models}
+              </span>
+              <Button
+                size="icon-sm"
+                className="size-7"
+                variant="outline"
+                aria-label="Add model"
+                disabled={locked || (!st.destroyed && st.modelsRemaining >= ru.models)}
+                onClick={() =>
+                  setUnitState(ru.id, {
+                    modelsRemaining: Math.min(ru.models, Math.max(st.modelsRemaining, 0) + 1),
+                    destroyed: false,
+                    woundsOnCurrent: st.destroyed ? maxW : remainingWounds(st, maxW),
+                  })
+                }
+              >
+                <Plus className="size-3.5" />
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {extras || ru.notes ? (
+        <div className="mt-1 space-y-1">
+          {extras ? <p className="truncate text-xs leading-4 text-muted-foreground">{extras}</p> : null}
+          {ru.notes ? <p className="truncate text-xs leading-4 text-muted-foreground">{ru.notes}</p> : null}
+        </div>
+      ) : null}
+      {effects.length > 0 ? (
+        <p className={cn("mt-1 text-xs leading-4", penalised ? "text-blood" : "text-ok")}>
+          {effects.map((e) => `${e.name}: ${e.text}`).join(" · ")}
+        </p>
+      ) : null}
+    </div>
+  );
+}, (prev, next) =>
+  prev.ru === next.ru &&
+  prev.st === next.st &&
+  prev.locked === next.locked &&
+  prev.paired === next.paired &&
+  prev.copy === next.copy &&
+  prev.enemyStamp === next.enemyStamp &&
+  prev.roster.detachmentIds === next.roster.detachmentIds &&
+  prev.onOpen === next.onOpen,
+);

@@ -60,12 +60,17 @@ export function battleElapsedMs(
     finishedAt?: number;
     status: string;
     elapsedMs?: number;
+    battleRunningSince?: number | null;
   },
   now = Date.now(),
 ): number {
   if (game.status === "complete") {
     if (game.elapsedMs != null) return Math.max(0, game.elapsedMs);
     return Math.max(0, (game.finishedAt ?? now) - game.startedAt);
+  }
+  if (game.battleRunningSince === null) return Math.max(0, game.elapsedMs ?? 0);
+  if (typeof game.battleRunningSince === "number") {
+    return Math.max(0, (game.elapsedMs ?? 0) + (now - game.battleRunningSince));
   }
   return Math.max(0, now - game.startedAt);
 }
