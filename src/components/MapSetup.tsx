@@ -19,6 +19,7 @@ export function MapSetup({
 }) {
   const pieces = terrainMeasures(layout.terrain, TERRAIN_MARKS[layout.id]);
   const [active, setActive] = useState<number | null>(null);
+  const [showTerrainSetup, setShowTerrainSetup] = useState(true);
 
   useEffect(() => {
     setActive(null);
@@ -52,10 +53,21 @@ export function MapSetup({
           <p className="truncate text-sm font-medium">{layout.name}</p>
           <p className="truncate text-[11px] text-muted-foreground">44″ × 60″ · terrain placement before the battle</p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowTerrainSetup((visible) => !visible)}
+          aria-pressed={showTerrainSetup}
+        >
+          {showTerrainSetup ? "Hide Terrain Setup" : "Show Terrain Setup"}
+        </Button>
         <Button type="button" variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close map">
           <X />
         </Button>
       </div>
+      {showTerrainSetup && (
+        <>
       <div className="grid grid-cols-3 gap-1.5 px-3 py-2">
         {layouts.map((option) => {
           const on = option.id === layout.id;
@@ -123,6 +135,8 @@ export function MapSetup({
           Done
         </Button>
       </div>
+        </>
+      )}
     </div>
   );
 }
