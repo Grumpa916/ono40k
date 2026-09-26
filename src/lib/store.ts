@@ -155,7 +155,7 @@ export function applyAccountSnapshot(remote: AccountSnapshot | null, mode: "merg
     mode === "replace"
       ? activeIfPresent(remote?.activeGameId, games)
       : (activeIfPresent(cur.activeGameId, games) ?? activeIfPresent(remote?.activeGameId, games));
-  useWarStore.setState({ lists, games, activeGameId });
+  useWarStore.setState({ lists, games, activeGameId, deletedListIds: [...deleted] });
 }
 
 function idbStorage(): StateStorage {
@@ -739,7 +739,10 @@ export const useWarStore = create<State>()(
         const id = uid("list");
         const now = Date.now();
         const list: Roster = { ...roster, id, favorite: false, saved: true, savedAt: now, createdAt: now, updatedAt: now };
-        set({ lists: [list, ...get().lists] });
+        set({
+          lists: [list, ...get().lists],
+          deletedListIds: get().deletedListIds.filter((deletedId) => deletedId !== id),
+        });
         return id;
       },
       startGame: ({ myName, opponentName, mine, theirs, briefing, scores }) => {
