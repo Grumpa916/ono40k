@@ -88,7 +88,7 @@ export function MapSetup({
         })}
       </div>
       <div className="shrink-0 px-3">
-        <BattleMap layout={layout} measure activePiece={active} onPiece={toggle} className="mx-auto max-h-[42vh] w-auto max-w-full" />
+        <BattleMap layout={layout} measure activePiece={active} onPiece={toggle} className="mx-auto w-full max-w-5xl" />
         <div className="space-y-0.5 py-2">
           {picked ? (
             <>
@@ -132,7 +132,7 @@ export function MapSetup({
           })}
         </div>
         <Button type="button" className="mt-3 w-full" onClick={onClose}>
-          Done
+          Close Terrain Setup
         </Button>
       </div>
         </>
