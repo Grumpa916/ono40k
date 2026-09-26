@@ -436,7 +436,7 @@ export function GameSetup({
       )}
       </div>
       {listsReady ? (
-        <section className="order-4 space-y-3 rounded-xl border border-border bg-card p-4 lg:sticky lg:top-20 lg:order-none lg:col-start-1 lg:row-start-1 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:overscroll-contain">
+        <section className="order-4 space-y-3 rounded-xl border border-border bg-card p-4 lg:sticky lg:top-20 lg:order-none lg:col-start-1 lg:row-start-1">
           <h2 className="text-sm font-medium">Create the Battlefield</h2>
           <DispositionLayouts
             layouts={maps}
