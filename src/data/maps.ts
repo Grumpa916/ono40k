@@ -524,77 +524,47 @@ export type PlacedMeasure = {
   hi: number;
 };
 
-/** Inch tags sit beside the line they measure, not in a shared margin. */
+/** Place each measurement value directly beside the terrain corner it describes. */
 export function layoutMeasureLabels(piece: TerrainMeasure): PlacedMeasure[] {
   const labels: PlacedMeasure[] = [];
   for (const guide of placementGuides(piece)) {
-    const vertical = guide.kind === "down";
-    const x1 = vertical ? guide.x : guide.edge === "left" ? 0 : 60;
-    const y1 = vertical ? (guide.edge === "top" ? 0 : 44) : guide.y;
-    labels.push(placeBeside(formatInches(guide.value), x1, y1, guide.x, guide.y));
-  }
-  slideApart(labels);
-  return labels;
-}
+    const label = formatInches(guide.value);
+    const w = measureTagWidth(label);
+    const h = TAG_H;
+    const cornerX = guide.x;
+    const cornerY = guide.y;
 
-function placeBeside(label: string, x1: number, y1: number, x2: number, y2: number): PlacedMeasure {
-  const w = measureTagWidth(label);
-  const h = TAG_H;
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  const vertical = Math.abs(x1 - x2) < 0.05;
-  if (vertical) {
-    const roomRight = 60 - mx - 0.4;
-    const roomLeft = mx - 0.4;
-    let x = mx;
-    if (roomRight >= w && roomRight >= roomLeft) x = mx + 0.5 + w / 2;
-    else if (roomLeft >= w) x = mx - 0.5 - w / 2;
-    else x = Math.min(60 - w / 2 - 0.25, Math.max(w / 2 + 0.25, mx));
-    const inset = h / 2 + 0.2;
-    const lo = Math.min(y1, y2) + inset;
-    const hi = Math.max(y1, y2) - inset;
-    return { label, x, y: my, w, h, anchorX: mx, anchorY: my, axis: "y", lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
-  }
-  const roomBelow = 44 - my - 0.4;
-  const roomAbove = my - 0.4;
-  let y = my;
-  if (roomBelow >= h && roomBelow >= roomAbove) y = my + 0.45 + h / 2;
-  else if (roomAbove >= h) y = my - 0.45 - h / 2;
-  else y = Math.min(44 - h / 2 - 0.25, Math.max(h / 2 + 0.25, my));
-  const inset = w / 2 + 0.2;
-  const lo = Math.min(x1, x2) + inset;
-  const hi = Math.max(x1, x2) - inset;
-  return { label, x: mx, y, w, h, anchorX: mx, anchorY: my, axis: "x", lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
-}
-
-function slideApart(labels: PlacedMeasure[]) {
-  for (let pass = 0; pass < 12; pass++) {
-    let moved = false;
-    for (let i = 0; i < labels.length; i++) {
-      for (let j = i + 1; j < labels.length; j++) {
-        const a = labels[i]!;
-        const b = labels[j]!;
-        const overlapX = Math.abs(a.x - b.x) * 2 < a.w + b.w + 0.45;
-        const overlapY = Math.abs(a.y - b.y) * 2 < a.h + b.h + 0.45;
-        if (!overlapX || !overlapY) continue;
-        const span = b.hi - b.lo;
-        if (span > 0.35) {
-          const dir = Math.sign(b[b.axis] - a[b.axis]) || 1;
-          const next = Math.min(b.hi, Math.max(b.lo, b[b.axis] + dir * 0.65));
-          if (next !== b[b.axis]) {
-            b[b.axis] = next;
-            moved = true;
-            continue;
-          }
-        }
-        const cross = b.axis === "y" ? "x" : "y";
-        const dir = Math.sign(b[cross] - a[cross]) || 1;
-        b[cross] += dir * 0.65;
-        moved = true;
-      }
+    if (guide.kind === "across") {
+      const y = guide.downEdge === "top" ? cornerY - 1.35 : cornerY + 1.35;
+      labels.push({
+        label,
+        x: cornerX,
+        y,
+        w,
+        h,
+        anchorX: cornerX,
+        anchorY: cornerY,
+        axis: "x",
+        lo: Math.max(0, cornerX - 5),
+        hi: Math.min(60, cornerX + 5),
+      });
+    } else {
+      const x = guide.acrossEdge === "left" ? cornerX - 1.8 : cornerX + 1.8;
+      labels.push({
+        label,
+        x,
+        y: cornerY,
+        w,
+        h,
+        anchorX: cornerX,
+        anchorY: cornerY,
+        axis: "y",
+        lo: Math.max(0, cornerY - 5),
+        hi: Math.min(44, cornerY + 5),
+      });
     }
-    if (!moved) break;
   }
+  return labels;
 }
 
 const BADGE_H = 2.3;
