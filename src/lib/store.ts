@@ -75,16 +75,20 @@ function knownFaction(factionId: string) {
   return Boolean(getFaction(factionId));
 }
 
-function mergeLists(persisted: Roster[] | undefined, current: Roster[]): Roster[] {
+function mergeLists(
+  persisted: Roster[] | undefined,
+  current: Roster[],
+  deletedIds: Set<string> = new Set(),
+): Roster[] {
   const known = (l: Roster) => knownFaction(l.factionId);
-  const currentKnown = current.filter(known);
-  if (!persisted?.length) return currentKnown.map((l) => snapshotRoster(applyCataloguePoints(l)));
+  const currentKnown = current.filter((l) => !deletedIds.has(l.id) && known(l));
+  const persistedKnown = (persisted ?? []).filter((l) => !deletedIds.has(l.id) && known(l));
+  if (!persistedKnown.length) return currentKnown.map((l) => snapshotRoster(applyCataloguePoints(l)));
 
   const currentById = new Map(currentKnown.map((l) => [l.id, l]));
   const out: Roster[] = [];
   const seen = new Set<string>();
-  for (const raw of persisted) {
-    if (!known(raw)) continue;
+  for (const raw of persistedKnown) {
     const live = currentById.get(raw.id);
     const chosen = live && (live.updatedAt ?? 0) > (raw.updatedAt ?? 0) ? live : raw;
     out.push(snapshotRoster(applyCataloguePoints(chosen)));
@@ -116,6 +120,8 @@ export type AccountSnapshot = {
   lists: Roster[];
   games: Game[];
   activeGameId: string | null;
+  /** IDs deliberately deleted by the user, so stale remote copies are not resurrected. */
+  deletedListIds?: string[];
 };
 
 function activeIfPresent(id: string | null | undefined, games: Game[]) {
@@ -124,17 +130,26 @@ function activeIfPresent(id: string | null | undefined, games: Game[]) {
 
 export function readAccountSnapshot(): AccountSnapshot {
   const s = useWarStore.getState();
-  return { lists: s.lists, games: s.games, activeGameId: s.activeGameId };
+  return {
+    lists: s.lists,
+    games: s.games,
+    activeGameId: s.activeGameId,
+    deletedListIds: s.deletedListIds,
+  };
 }
 
 export function applyAccountSnapshot(remote: AccountSnapshot | null, mode: "merge" | "replace") {
   const cur = useWarStore.getState();
+  const deleted = new Set([
+    ...(mode === "merge" ? cur.deletedListIds : []),
+    ...(remote?.deletedListIds ?? []),
+  ]);
   const lists =
     mode === "replace"
       ? remote?.lists?.length
-        ? mergeLists(remote.lists, [])
-        : mergeLists(undefined, SEED_LISTS)
-      : mergeLists(remote?.lists, cur.lists);
+        ? mergeLists(remote.lists, [], deleted)
+        : mergeLists(undefined, SEED_LISTS, deleted)
+      : mergeLists(remote?.lists, cur.lists, deleted);
   const games = mode === "replace" ? mergeGames(remote?.games, []) : mergeGames(remote?.games, cur.games);
   const activeGameId =
     mode === "replace"
@@ -558,6 +573,7 @@ function applyTracked(
 type State = {
   hydrated: boolean;
   lists: Roster[];
+  deletedListIds: string[];
   games: Game[];
   activeGameId: string | null;
   setHydrated: () => void;
@@ -621,6 +637,7 @@ export const useWarStore = create<State>()(
     (set, get) => ({
       hydrated: false,
       lists: SEED_LISTS,
+      deletedListIds: [],
       games: [],
       activeGameId: null,
       setHydrated: () => set({ hydrated: true }),
@@ -642,14 +659,23 @@ export const useWarStore = create<State>()(
           createdAt: now,
           updatedAt: now,
         };
-        set({ lists: [list, ...get().lists] });
+        set({
+          lists: [list, ...get().lists],
+          deletedListIds: get().deletedListIds.filter((deletedId) => deletedId !== id),
+        });
         return id;
       },
       updateList: (id, patch) =>
         set({
           lists: get().lists.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: Date.now() } : l)),
         }),
-      deleteList: (id) => set({ lists: get().lists.filter((l) => l.id !== id) }),
+      deleteList: (id) =>
+        set({
+          lists: get().lists.filter((l) => l.id !== id),
+          deletedListIds: get().deletedListIds.includes(id)
+            ? get().deletedListIds
+            : [...get().deletedListIds, id],
+        }),
       duplicateList: (id) => {
         const src = get().lists.find((l) => l.id === id);
         if (!src) return null;
@@ -663,7 +689,10 @@ export const useWarStore = create<State>()(
           updatedAt: Date.now(),
           units: src.units.map((u) => ({ ...u, id: uid("u") })),
         };
-        set({ lists: [copy, ...get().lists] });
+        set({
+          lists: [copy, ...get().lists],
+          deletedListIds: get().deletedListIds.filter((deletedId) => deletedId !== copy.id),
+        });
         return copy.id;
       },
       toggleFavorite: (id) =>
